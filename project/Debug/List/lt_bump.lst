@@ -1,0 +1,340 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:39:38
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\sensor\lt_bump.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\sensor\lt_bump.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\lt_bump.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\lt_bump.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\sensor\lt_bump.c
+      1          #include "am_type.h"
+      2          #include "sensor/sensor.h"
+      3          #include "syscall_api.h"
+      4          #include "am_config_macro.h"
+      5          
+      6          #define max(a,b) ((a)>(b)?(a):(b))
+      7          
+      8          #define TOUCH_RIGHT_MOVE 2
+      9          
+     10          #define TOUCH_BUMP_TRIGGER_TIME 120
+     11          
+     12          #define LIGHT_BUMP_DELAY_COUNT   4//5
+     13          #define DOCK_LIGHT_TOUCH_THROD  30
+     14          
+     15          BOOLEAN touch_bump_onoff=FALSE;
+     16          BOOLEAN tb_on_sig=FALSE;
+     17          static u32 front_time_stp=0;
+     18          
+     19          /****************************************************************
+     20          *Function   :  turn_off_touch_bump
+     21          *Author     :  lyy    
+     22          *Date       :  2017.4.20
+     23          *Description:  关闭light touch bump功能
+     24          *CallBy     :  任何地方，中断上下文除外
+     25          *Input      :  无
+     26          *Output     :  无
+     27          *Return     :  无
+     28          *Others     :  
+     29          *History    : //修改历史
+     30              <author>       <time>      <version>           <desc>
+     31              lyy            17.4.28       v1.0         build this function
+     32          ******************************************************************/
+     33          void turn_off_touch_bump()
+     34          {
+     35            if(touch_bump_onoff==FALSE)
+     36            {
+     37            }
+     38            touch_bump_onoff=TRUE;
+     39          }
+     40          
+     41          /****************************************************************
+     42          *Function   :  turn_on_touch_bump
+     43          *Author     :  lyy    
+     44          *Date       :  2017.4.20
+     45          *Description:  打开light touch bump功能
+     46          *CallBy     :  任何地方，中断上下文除外
+     47          *Input      :  无
+     48          *Output     :  无
+     49          *Return     :  无
+     50          *Others     :  
+     51          *History    : //修改历史
+     52              <author>       <time>      <version>           <desc>
+     53              lyy            17.4.28       v1.0         build this function
+     54          ******************************************************************/
+     55          void turn_on_touch_bump()
+     56          {
+     57            if(touch_bump_onoff==TRUE)
+     58            {
+     59              front_time_stp=0;
+     60            }
+     61            touch_bump_onoff=FALSE;
+     62          }
+     63          
+     64          
+     65          /****************************************************************
+     66          *Function   :  touch_bump_run
+     67          *Author     :  lyy
+     68          *Date       :  2017.4.20
+     69          *Description:  计算是否产生lt bump
+     70          *CallBy     :  提高给SDK调用，返回结果
+     71          *Input      :  无
+     72          *Output     :  无
+     73          *Return     :  return value:
+     74                      0: no bump
+     75                      1: left bump
+     76                      2: right bump
+     77                      3: center bump
+     78          *Others     :  
+     79          *History    : //修改历史
+     80              <author>       <time>      <version>           <desc>
+     81              lyy            17.4.28       v1.0         build this function
+     82          ******************************************************************/
+     83          int touch_bump_run(void)
+     84          {
+     85            s16 value_cl;
+     86            u16 value_cr;
+     87            static s16 cl_array[2];
+     88            static s16 cr_array[2];
+     89          
+     90            s16 value_fl;
+     91            s16 value_fr;
+     92            s16 value_cliff_center;
+     93            s16 value_center;
+     94            u32 time_now;
+     95            static u16 value_max=0;
+     96            static u8 decay_count=0;
+     97            static s16 c_array[2];
+     98          
+     99          
+    100            static s16 cl_value_max=0;
+    101            static u8 cl_decay_count=0;
+    102            static u32 cl_time_stp=0;
+    103          
+    104            static s16 cr_value_max=0;
+    105            static u8 cr_decay_count=0;
+    106            static u32 cr_time_stp=0;
+    107          
+    108            int lt_bump=0;
+    109          
+    110            int TOTCH_BUMP_TIME_DELAY = 900;
+    111          
+    112            if(touch_bump_onoff)
+    113            {
+    114               return 0;
+    115            }
+    116            
+    117            
+    118            value_fl = robot_signal_distance(LT_FRONTLEFT)>>TOUCH_RIGHT_MOVE;
+    119            value_fr = robot_signal_distance(LT_FRONTRIGHT)>>TOUCH_RIGHT_MOVE;
+    120          
+    121            time_now = timer_ms();
+    122          
+    123            {
+    124              value_cl = robot_signal_distance(LT_CENTERLEFT)>>TOUCH_RIGHT_MOVE;
+    125              value_cr = robot_signal_distance(LT_CENTERRIGHT)>>TOUCH_RIGHT_MOVE;
+    126          
+    127          
+    128              value_cl=mid_filter(cl_array, value_cl);
+    129              value_cr=mid_filter(cr_array, value_cr);
+    130              
+    131              
+    132          #ifdef USE_LEFT_RIGHT_LT //用上左右两边的lt 做判断
+    133              {
+    134                value_l=robot_signal_distance(LT_LEFT)>>TOUCH_RIGHT_MOVE;
+    135                value_r=robot_signal_distance(LT_RIGHT)>>TOUCH_RIGHT_MOVE;
+    136                if(!(wall_follow_is_running()))
+    137                {
+    138                  if(value_l > lt_max_light_value*3)
+    139                  {
+    140                    value_cl += lt_max_light_value;
+    141                  }
+    142                  if(value_r > lt_max_light_value*3)
+    143                  {
+    144                    value_cr += lt_max_light_value;
+    145                  }
+    146                }
+    147              }
+    148          #endif
+    149              
+    150            }
+    151          
+    152            value_center = (value_fl + value_fr)>>1;
+    153          
+    154            value_center=mid_filter(c_array, value_center);
+    155          
+    156            //process the front touch bump
+    157            if((value_center >= UI_SET_LT_BUMP_THROD) && (timer_elapsed(front_time_stp)>TOTCH_BUMP_TIME_DELAY))
+    158            {
+    159             // printf("value_center = %d\r\n",value_center);
+    160              if((value_max < value_center) && (value_center<UI_SET_LT_MAX_LIGHT_VALUE))
+    161              {
+    162                value_max = value_center;
+    163                decay_count=0;
+    164              }
+    165              else if(((value_max*7/8) > value_center) || (value_center>=UI_SET_LT_MAX_LIGHT_VALUE))
+    166              {
+    167                decay_count++;
+    168              //  printf("decay_count = %d\r\n",decay_count,value_max);
+    169                if(decay_count==LIGHT_BUMP_DELAY_COUNT)
+    170                {
+    171                  if(touch_bump_onoff==FALSE)
+    172                  {
+    173                      lt_bump=3;
+    174                  }
+    175                  front_time_stp = timer_ms();   //this is to delete multiple trigger
+    176                }
+    177              }
+    178            }
+    179            else
+    180            {
+    181              value_max=value_center;
+    182              decay_count=0;
+    183              tb_on_sig=FALSE;
+    184            }
+    185          
+    186            {
+    187              time_now = timer_ms();
+    188          
+    189              if((time_now-front_time_stp)>TOTCH_BUMP_TIME_DELAY)   //when the front is in trigger, don't trigger the other touch
+    190              {
+    191                //center left
+    192                if((value_cl >= UI_SET_LT_BUMP_LEFT_RIGHT_THROD) && (timer_elapsed(cl_time_stp)>TOTCH_BUMP_TIME_DELAY))
+    193                {
+    194                  //printf("value_cl = %d\r\n",value_cl);
+    195                  if(((cl_value_max < value_cl)) && (value_cl<UI_SET_LT_MAX_LIGHT_VALUE))// || ((cl_value_max + cl_value_max>>3) < value_cl))
+    196                  {
+    197                    cl_value_max = value_cl;
+    198                    cl_decay_count=0;
+    199                  }
+    200                  else if((cl_value_max*7/8 > value_cl) || ((value_cl>=UI_SET_LT_MAX_LIGHT_VALUE)) || ((value_cl>=UI_SET_LT_MAX_LIGHT_VALUE*2)))
+    201                  {
+    202                    cl_decay_count++;
+    203                    if((cl_decay_count==(LIGHT_BUMP_DELAY_COUNT+3)))// || (value_l>=DOCK_LIGHT_TOUCH_THROD)) )
+    204                    {
+    205                      if(touch_bump_onoff==FALSE)
+    206                      {
+    207                        lt_bump |= 1;
+    208                      }
+    209                      cl_time_stp = timer_ms();   //this is to delete multiple trigger
+    210                    }
+    211                  }
+    212                  else
+    213                  {
+    214                    cl_value_max=value_cl;
+    215                    cl_decay_count=0;
+    216                  }
+    217                }
+    218                else
+    219                {
+    220                  cl_value_max=value_cl;
+    221                  cl_decay_count=0;
+    222                }
+    223                //center right
+    224                time_now = timer_ms();
+    225                if((time_now-cl_time_stp)>TOTCH_BUMP_TIME_DELAY)   //to make sure there is only one touch bump is trigger
+    226                {
+    227                  if((value_cr >= UI_SET_LT_BUMP_LEFT_RIGHT_THROD) && (timer_elapsed(cr_time_stp)>TOTCH_BUMP_TIME_DELAY))
+    228                  {
+    229                    //printf("value_cr = %d\r\n",value_cr);
+    230                    if(((cr_value_max <= value_cr) &&  (!wall_follow_is_running())) && (value_cr<UI_SET_LT_MAX_LIGHT_VALUE))// || ((cr_value_max + cr_value_max>>3) <= value_cr))
+    231                    {
+    232                      cr_value_max = value_cr;
+    233                      cr_decay_count=0;
+    234                    }
+    235                    else if(((cr_value_max*7/8)>value_cr) || ((value_cr >= UI_SET_LT_MAX_LIGHT_VALUE)) || ((value_cr >= UI_SET_LT_MAX_LIGHT_VALUE*2)))
+    236                    {
+    237                      cr_decay_count++;
+    238                      if(cr_decay_count==(LIGHT_BUMP_DELAY_COUNT+3))// || (value_r>=DOCK_LIGHT_TOUCH_THROD)))
+    239                      {
+    240                        if(touch_bump_onoff==FALSE)
+    241                        {
+    242                          lt_bump |=2;
+    243                        }
+    244                        cr_time_stp = timer_ms();   //this is to delete multiple trigger
+    245                      }
+    246                    }
+    247                    else
+    248                    {
+    249                      cr_value_max=value_cr;
+    250                      cr_decay_count=0;
+    251                    }
+    252                  }
+    253                  else
+    254                  {
+    255                    cr_value_max=value_cr;
+    256                    cr_decay_count=0;
+    257                  }
+    258                }
+    259              }
+    260          
+    261            }
+    262          return 0;
+    263            //return lt_bump;
+    264          }
+    265          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      24   touch_bump_run
+        24   -> mid_filter
+        24   -> robot_signal_distance
+        24   -> timer_elapsed
+        24   -> timer_ms
+       0   turn_off_touch_bump
+       0   turn_on_touch_bump
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+      36  touch_bump_onoff
+          tb_on_sig
+          decay_count
+          cl_decay_count
+          cr_decay_count
+          value_max
+          cl_value_max
+          cr_value_max
+          front_time_stp
+          cl_time_stp
+          cr_time_stp
+          cl_array
+          cr_array
+          c_array
+     304  touch_bump_run
+       8  turn_off_touch_bump
+      18  turn_on_touch_bump
+
+ 
+  36 bytes in section .bss
+ 334 bytes in section .text
+ 
+ 334 bytes of CODE memory
+  36 bytes of DATA memory
+
+Errors: none
+Warnings: 1

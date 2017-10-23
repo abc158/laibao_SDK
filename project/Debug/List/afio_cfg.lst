@@ -1,0 +1,370 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:06
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\cfg\afio_cfg.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\cfg\afio_cfg.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\afio_cfg.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\afio_cfg.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\cfg\afio_cfg.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*by liyongyong*/
+      6          #include "afio.h"
+      7          
+      8          
+      9          /****************************************************************
+     10          *Author     :  lyy    
+     11          *Date       :  2017.4.20
+     12          *Description:  adc 采样通道配置
+     13          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     14          *History    : //修改历史
+     15              <author>       <time>      <version>           <desc>
+     16              lyy            17.4.28       v1.0         build this function
+     17          ******************************************************************/
+     18          const afio_init_t adc_afio[] =
+     19          {
+     20              {GPIO_A,AFIO_PIN_ALL},
+     21              {GPIO_B,AFIO_PIN_0 | AFIO_PIN_1| AFIO_PIN_2 | AFIO_PIN_3 | AFIO_PIN_4},
+     22              {IO_NULL,IO_NULL},	
+     23          };
+     24          
+     25          /****************************************************************
+     26          *Author     :  lyy    
+     27          *Date       :  2017.4.20
+     28          *Description:  SPI0 的多功能引脚 配置
+     29          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     30          *History    : //修改历史
+     31              <author>       <time>      <version>           <desc>
+     32              lyy            17.4.28       v1.0         build this function
+     33          ******************************************************************/
+     34          const afio_init_t spi0_afio[] =
+     35          {
+     36              {GPIO_C,AFIO_PIN_10},
+     37              {GPIO_F,AFIO_PIN_13|AFIO_PIN_14|AFIO_PIN_15},
+     38              {IO_NULL,IO_NULL},  
+     39          };
+     40          
+     41          /****************************************************************
+     42          *Author     :  lyy    
+     43          *Date       :  2017.4.20
+     44          *Description:  SPI1 的多功能引脚 配置
+     45          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     46          *History    : //修改历史
+     47              <author>       <time>      <version>           <desc>
+     48              lyy            17.4.28       v1.0         build this function
+     49          ******************************************************************/
+     50          const afio_init_t spi1_afio[] =
+     51          {
+     52              {GPIO_F,AFIO_PIN_4 | AFIO_PIN_5 | AFIO_PIN_6 |AFIO_PIN_7 },//gyro 
+     53              {IO_NULL,IO_NULL},	
+     54          };
+     55          
+     56          /****************************************************************
+     57          *Author     :  lyy    
+     58          *Date       :  2017.4.20
+     59          *Description:  UART0 的多功能引脚 配置
+     60          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     61          *History    : //修改历史
+     62              <author>       <time>      <version>           <desc>
+     63              lyy            17.4.28       v1.0         build this function
+     64          ******************************************************************/
+     65          const afio_init_t uart0_afio[] =
+     66          {
+     67            {GPIO_D,AFIO_PIN_12|AFIO_PIN_13},  //wifi
+     68            {IO_NULL,IO_NULL},
+     69          };
+     70          
+     71          /****************************************************************
+     72          *Author     :  lyy    
+     73          *Date       :  2017.4.20
+     74          *Description:  UART1 的多功能引脚 配置
+     75          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     76          *History    : //修改历史
+     77              <author>       <time>      <version>           <desc>
+     78              lyy            17.4.28       v1.0         build this function
+     79          ******************************************************************/
+     80          const afio_init_t uart1_afio[] =
+     81          {
+     82                  {GPIO_E,AFIO_PIN_1|AFIO_PIN_2},  //debug
+     83          	{IO_NULL,IO_NULL},  	
+     84          };
+     85          
+     86          /****************************************************************
+     87          *Author     :  lyy    
+     88          *Date       :  2017.4.20
+     89          *Description:  UART2 的多功能引脚 配置
+     90          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+     91          *History    : //修改历史
+     92              <author>       <time>      <version>           <desc>
+     93              lyy            17.4.28       v1.0         build this function
+     94          ******************************************************************/
+     95          const afio_init_t uart2_afio[] =
+     96          {
+     97                  {GPIO_E,AFIO_PIN_7|AFIO_PIN_8},  //ui
+     98          	{IO_NULL,IO_NULL},
+     99          };
+    100          
+    101          /****************************************************************
+    102          *Author     :  lyy    
+    103          *Date       :  2017.4.20
+    104          *Description:  UART3 的多功能引脚 配置
+    105          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    106          *History    : //修改历史
+    107              <author>       <time>      <version>           <desc>
+    108              lyy            17.4.28       v1.0         build this function
+    109          ******************************************************************/
+    110          const afio_init_t uart3_afio[] =
+    111          {
+    112          	{IO_NULL,IO_NULL},
+    113          };
+    114          
+    115          /****************************************************************
+    116          *Author     :  lyy    
+    117          *Date       :  2017.4.20
+    118          *Description:  I2C0 的多功能引脚 配置
+    119          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    120          *History    : //修改历史
+    121              <author>       <time>      <version>           <desc>
+    122              lyy            17.4.28       v1.0         build this function
+    123          ******************************************************************/
+    124          const afio_init_t i2c0_afio[] =
+    125          {
+    126          	{IO_NULL,IO_NULL},
+    127          };
+    128          
+    129          /****************************************************************
+    130          *Author     :  lyy    
+    131          *Date       :  2017.4.20
+    132          *Description:  I2C1 的多功能引脚 配置
+    133          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    134          *History    : //修改历史
+    135              <author>       <time>      <version>           <desc>
+    136              lyy            17.4.28       v1.0         build this function
+    137          ******************************************************************/
+    138          const afio_init_t i2c1_afio[] =
+    139          {
+    140          	{IO_NULL,IO_NULL},
+    141          };
+    142          
+    143          /****************************************************************
+    144          *Author     :  lyy    
+    145          *Date       :  2017.4.20
+    146          *Description:  PID 的多功能引脚 配置
+    147          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    148          *History    : //修改历史
+    149              <author>       <time>      <version>           <desc>
+    150              lyy            17.4.28       v1.0         build this function
+    151          ******************************************************************/
+    152          const afio_init_t pid_afio[] =
+    153          {
+    154                  {GPIO_C,AFIO_PIN_7},//MOTOR L
+    155                  {GPIO_G,AFIO_PIN_0},//MOTOR R        
+    156          	{IO_NULL,IO_NULL},
+    157          };
+    158          
+    159          /****************************************************************
+    160          *Author     :  lyy    
+    161          *Date       :  2017.4.20
+    162          *Description:  MCTM0 的多功能引脚 配置
+    163          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    164          *History    : //修改历史
+    165              <author>       <time>      <version>           <desc>
+    166              lyy            17.4.28       v1.0         build this function
+    167          ******************************************************************/
+    168          const afio_init_t mctm0_afio[] =
+    169          {
+    170          	{IO_NULL,IO_NULL},
+    171          };
+    172          
+    173          /****************************************************************
+    174          *Author     :  lyy    
+    175          *Date       :  2017.4.20
+    176          *Description:  MCTM1 的多功能引脚 配置
+    177          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    178          *History    : //修改历史
+    179              <author>       <time>      <version>           <desc>
+    180              lyy            17.4.28       v1.0         build this function
+    181          ******************************************************************/
+    182          const afio_init_t mctm1_afio[] =
+    183          {
+    184                  {GPIO_F,AFIO_PIN_8},//charge
+    185          	{IO_NULL,IO_NULL},
+    186          };
+    187          
+    188          /****************************************************************
+    189          *Author     :  lyy    
+    190          *Date       :  2017.4.20
+    191          *Description:  GPTM0 的多功能引脚 配置
+    192          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    193          *History    : //修改历史
+    194              <author>       <time>      <version>           <desc>
+    195              lyy            17.4.28       v1.0         build this function
+    196          ******************************************************************/
+    197          const afio_init_t gptm0_afio[] =
+    198          {
+    199                  {GPIO_D,AFIO_PIN_7|AFIO_PIN_8},//vac PWM, RX
+    200          	{IO_NULL,IO_NULL},
+    201          };
+    202          
+    203          /****************************************************************
+    204          *Author     :  lyy    
+    205          *Date       :  2017.4.20
+    206          *Description:  GPTM1 的多功能引脚 配置
+    207          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    208          *History    : //修改历史
+    209              <author>       <time>      <version>           <desc>
+    210              lyy            17.4.28       v1.0         build this function
+    211          ******************************************************************/
+    212          const afio_init_t gptm1_afio[] =
+    213          {
+    214                  {GPIO_D,AFIO_PIN_14 | AFIO_PIN_15},//main/side
+    215          	{IO_NULL,IO_NULL},	
+    216          };
+    217          
+    218          /****************************************************************
+    219          *Author     :  lyy    
+    220          *Date       :  2017.4.20
+    221          *Description:  GPTM2 的多功能引脚 配置
+    222          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    223          *History    : //修改历史
+    224              <author>       <time>      <version>           <desc>
+    225              lyy            17.4.28       v1.0         build this function
+    226          ******************************************************************/
+    227          const afio_init_t gptm2_afio[] =
+    228          {
+    229          	{GPIO_E,AFIO_PIN_14},
+    230          };
+    231          
+    232          /****************************************************************
+    233          *Author     :  lyy    
+    234          *Date       :  2017.4.20
+    235          *Description:  IR 的多功能引脚 配置
+    236          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    237          *History    : //修改历史
+    238              <author>       <time>      <version>           <desc>
+    239              lyy            17.4.28       v1.0         build this function
+    240          ******************************************************************/
+    241          const afio_init_t ir_afio[] =
+    242          {
+    243              {IO_NULL,IO_NULL},
+    244          };
+    245          
+    246          /****************************************************************
+    247          *Author     :  lyy    
+    248          *Date       :  2017.4.20
+    249          *Description:  LED 的多功能引脚 配置
+    250          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    251          *History    : //修改历史
+    252              <author>       <time>      <version>           <desc>
+    253              lyy            17.4.28       v1.0         build this function
+    254          ******************************************************************/
+    255          const afio_init_t led_afio[] =
+    256          {
+    257          	{IO_NULL,IO_NULL},
+    258          };
+    259          
+    260          /****************************************************************
+    261          *Author     :  lyy    
+    262          *Date       :  2017.4.20
+    263          *Description:  DAC 的多功能引脚 配置
+    264          *Config Info:  GPIO_x (x = A,B,C,D,E,F,G):代表GPIO组,  AFIO_PIN_X(0~15)：代表PIN脚号
+    265          *History    : //修改历史
+    266              <author>       <time>      <version>           <desc>
+    267              lyy            17.4.28       v1.0         build this function
+    268          ******************************************************************/
+    269          const afio_init_t dac_afio[] =
+    270          {
+    271          	{IO_NULL,IO_NULL},
+    272          };
+    273          
+    274          const afio_init_t gpio0_afio[]=
+    275          {
+    276          	{IO_NULL,IO_NULL},	
+    277          };
+    278          const afio_init_t gpio1_afio[]=
+    279          {
+    280          	{IO_NULL,IO_NULL},	
+    281          };
+    282          const afio_init_t gpio2_afio[]=
+    283          {
+    284          	{IO_NULL,IO_NULL},	
+    285          };
+    286          const afio_init_t gpio3_afio[]=
+    287          {
+    288          	{IO_NULL,IO_NULL},	
+    289          };
+    290          const afio_init_t gpio4_afio[]=
+    291          {
+    292          	{IO_NULL,IO_NULL},	
+    293          };
+    294          const afio_init_t gpio5_afio[]=
+    295          {
+    296          	{IO_NULL,IO_NULL},	
+    297          };
+    298          const afio_init_t gpio6_afio[]=
+    299          {
+    300          	{IO_NULL,IO_NULL},	
+    301          };
+    302          
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      24  adc_afio
+       8  dac_afio
+       8  gpio0_afio
+       8  gpio1_afio
+       8  gpio2_afio
+       8  gpio3_afio
+       8  gpio4_afio
+       8  gpio5_afio
+       8  gpio6_afio
+      16  gptm0_afio
+      16  gptm1_afio
+       8  gptm2_afio
+       8  i2c0_afio
+       8  i2c1_afio
+       8  ir_afio
+       8  led_afio
+       8  mctm0_afio
+      16  mctm1_afio
+      24  pid_afio
+      24  spi0_afio
+      16  spi1_afio
+      16  uart0_afio
+      16  uart1_afio
+      16  uart2_afio
+       8  uart3_afio
+
+ 
+ 304 bytes in section .rodata
+ 
+ 304 bytes of CONST memory
+
+Errors: none
+Warnings: none

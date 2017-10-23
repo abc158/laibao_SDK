@@ -1,0 +1,108 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:08
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\motor\hardward_check.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\motor\hardward_check.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\hardward_check.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\hardward_check.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\motor\hardward_check.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include <am_type.h>
+      6          #include <syscall_api.h>
+      7          
+      8          /****************************************************************
+      9          *Function   :  wheel_motors_fault_check
+     10          *Author     :  lyy
+     11          *Date       :  2017.4.20
+     12          *Description:  检测轮子电机驱动是否fault异常
+     13          *CallBy     :  
+     14          *Input      :  无
+     15          *Output     :  无
+     16          *Return     :  无
+     17          *Others     :  
+     18          *History    : //修改历史
+     19              <author>       <time>      <version>           <desc>
+     20              lyy            17.4.28       v1.0         build this function
+     21          ******************************************************************/
+     22          void wheel_motors_fault_check(void)
+     23          {
+     24            if(get_ui_config()->funtion_info.clean_fun.bits.motor_driver == 1)
+     25            {
+     26              ;//do nothing
+     27            }
+     28            else
+     29            {
+     30              static u8 fault_times = 0;
+     31              if(!gpio_get_value(AM_IO_MOTOR_WHEEL_FAULT))
+     32              {
+     33                fault_times++;
+     34                if(fault_times >= 5) //连续50ms检测到
+     35                {
+     36                  int delay = 1000;  
+     37                  fault_times = 0;
+     38                  gpio_set_value( AM_IO_MOTOR_WHEEL_RESET , 0) ;
+     39                  while(delay--);
+     40                  gpio_set_value( AM_IO_MOTOR_WHEEL_RESET , 1) ;
+     41                  printf("motor reset\r\n");
+     42                }
+     43              }
+     44              else
+     45              {
+     46                fault_times = 0;
+     47              }
+     48            }
+     49          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      16   wheel_motors_fault_check
+         0   -- Indirect call
+        16   -- Indirect call
+        16   -> get_ui_config
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable1
+       4  ??DataTable1_1
+      16  ?_0
+       1  fault_times
+     100  wheel_motors_fault_check
+
+ 
+   1 byte  in section .bss
+ 124 bytes in section .text
+ 
+ 124 bytes of CODE memory
+   1 byte  of DATA memory
+
+Errors: none
+Warnings: none

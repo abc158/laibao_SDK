@@ -1,0 +1,676 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:11
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wifi\wifi_demo2\simwifi_demo2.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wifi\wifi_demo2\simwifi_demo2.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\simwifi_demo2.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\simwifi_demo2.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wifi\wifi_demo2\simwifi_demo2.c
+      1          #include <ui-config.h>
+      2          #include "ui-commands.h"
+      3          #include "am_date_base.h"
+      4          #include "am_config_macro.h"
+      5          #include "time.h"
+      6          #include "lib.h"
+      7          #include "local_key_check.h"
+      8          #include "syscall_api.h"
+      9          #include "remote.h"
+     10          #include "act.h"
+     11          #include "display.h"
+     12          #include "am_key.h"
+     13          #include "sensor/sensor.h"
+     14          #include "ui-manager/exception.h"
+     15          #include "motor/robot_suction.h"
+     16          #include "ui-song-player.h"
+     17          #include "display.h"
+     18          #include "ui_uart_handle/mqueue.h"
+     19          #include "simwifi_demo2.h"
+     20          #include "SimSweep_demo2.h"
+     21          #include "charge/charge.h"
+     22          #if defined(USE_WIFI_DEMO_2)
+     23          #define WIFI_UART 1
+     24          #define WIFI_RESET_HOLD_COUNT 10 //100ms
+     25          static U16 wifi_powerup_count = 0;
+     26          U8 wifi_enable_flag;
+     27          static sys_state_info sys_state_info_p; 
+     28          static sys_current_info sys_current_info_p;   /*系统电流*/
+     29          extern U8 send_map_flag;
+     30          
+     31          extern schedule_time_info  obj_schedule_info_msg_t;
+     32          
+     33          /*使能wifi功能 0不使能，1使能*/
+     34          //uint8_t  enable_wifi = 1;
+     35          
+     36          uint8_t  wifi_state = 0;
+     37          
+     38          /*复位wifi模块标志，0不复位，1复位，2中间状态*/
+     39          uint8_t  reset_wifi_flag = 0;
+     40          
+     41          
+     42          uint8_t UartTxBuf[UART_TX_BUF_SIZE];//UART发送缓冲器
+     43          //uint16_t error_count = 0;
+     44          //static uint16_t  check_count = 0;
+     45          
+     46          static wifi_uart_protocol_t pack;
+     47          static U8  totaLen=0;
+     48          static U8  revbuf[20];
+     49          
+     50                 U8  need_send_ack = 0;
+     51          
+     52          //static tm  rtc_tm;
+     53          U8 wificonnectok = 0;
+     54          
+     55          U8 send_config_cmd = 0;
+     56          U8 recive_connect_cmd_ok = 0;
+     57          void Usart_SendByte(uint8_t Value);
+     58          
+     59          
+     60          static void check_and_powerup_wifi_module(void)
+     61          {
+     62              if (wifi_powerup_count == 0) {
+     63                  gpio_request_one(AM_IO_WIFI_POWER,GPIO_F_DIR_OUT|GPIO_F_INIT_LOW);
+     64                  gpio_request_one(AM_IO_RESET_WIFI,GPIO_F_DIR_OUT|GPIO_F_INIT_LOW);
+     65                  gpio_set_value(AM_IO_WIFI_POWER,1);
+     66                  gpio_set_value(AM_IO_RESET_WIFI,0);
+     67              } else if (wifi_powerup_count == WIFI_RESET_HOLD_COUNT) {
+     68                  gpio_set_value(AM_IO_WIFI_POWER,1);
+     69                  gpio_set_value(AM_IO_RESET_WIFI,1);
+     70                  
+     71              }
+     72              
+     73              if (wifi_powerup_count <= WIFI_RESET_HOLD_COUNT) {
+     74                wifi_powerup_count++;
+     75              }
+     76          }
+     77          
+     78          void wifi_handle_sleep(void)
+     79          {
+     80              printf("wifi handle sleep###\r\n");
+     81              //gpio_request_one(AM_IO_WIFI_POWER,GPIO_F_DIR_OUT|GPIO_F_INIT_HIGH);
+     82              //gpio_request_one(AM_IO_RESET_WIFI,GPIO_F_DIR_OUT|GPIO_F_INIT_HIGH);
+     83              gpio_set_value(AM_IO_WIFI_POWER,1);
+     84              gpio_set_value(AM_IO_RESET_WIFI,1);
+     85          }
+     86          
+     87          void wifi_init(void)
+     88          {
+     89            //set_wifi_enable(1);
+     90            //delay_ms(8);
+     91            //uartwifi_init();
+     92            wificonnectok = 0;
+     93            recive_connect_cmd_ok = 0;
+     94            check_and_powerup_wifi_module();
+     95          }
+     96          
+     97          
+     98          /*****************************************************
+     99          **函数体名：Usart1_SendHexString
+    100          **功能描述：串口2发送二进制数据流
+    101          **输入参数：u8 *pData,u32 Long(数组大小)
+    102          **输出参数：无 
+    103          *****************************************************/
+    104          extern void set_wifi_uart_tx_fifo_empty_irq(void);
+    105          
+    106          void Usart_SendHexString(uint8_t *pHexBuf,uint32_t Long)
+    107          {
+    108            uint32_t i;
+    109           // printf("send:\r\n");
+    110            for(i=0;i<Long;i++)
+    111            {
+    112              //senduart2(pHexBuf[i]);
+    113             // printf("%x ",pHexBuf[i]);
+    114              uart_txrx_q_put(WIFI_TX_INDEX,pHexBuf[i]);
+    115            }
+    116            //printf("\r\n");
+    117            set_wifi_uart_tx_fifo_empty_irq();
+    118          }
+    119          
+    120          
+    121          
+    122          static U8 pack_gen_sum(U8 *p)
+    123          {
+    124              U8 sum = 0,i=0;
+    125          
+    126              wifi_uart_protocol_t *protocol_pack  = (wifi_uart_protocol_t *)p;
+    127            
+    128              if( (protocol_pack->msglen < LEN_MIN) )//长度的合法性
+    129              {
+    130                  return 0;
+    131              }
+    132          
+    133              sum = p[2];
+    134             // data_buf = (U8 *)(&p[3]);
+    135             // protocol_pack->data_buf = (U8 *)(&p[3]);
+    136              for(i = 0;(i<protocol_pack->msglen-1);i++)
+    137              {
+    138                 sum += protocol_pack->data_buf[i];
+    139              }
+    140           
+    141              //sum = ~sum;
+    142              //sum += 1;
+    143            
+    144              return sum;
+    145          
+    146          }
+    147          
+    148          U8 cal_pack_sum(U8 *p)
+    149          {
+    150              U8 sum = 0,i=0;
+    151          	  U8 *data_buf;
+    152          
+    153              wifi_uart_protocol_t *protocol_pack  = (wifi_uart_protocol_t *)p;
+    154            
+    155              if( (protocol_pack->msglen < LEN_MIN) )//长度的合法性
+    156              {
+    157                  return 0;
+    158              }
+    159          
+    160              sum = p[2];
+    161              data_buf = (U8 *)(&p[3]);
+    162             // protocol_pack->data_buf = (U8 *)(&p[3]);
+    163              for(i = 0;(i<protocol_pack->msglen-1);i++)
+    164              {
+    165            	sum += data_buf[i];
+    166              }
+    167           
+    168              //sum = ~sum;
+    169              //sum += 1;
+    170            
+    171              return sum;
+    172          }
+    173          
+    174          U8 send_pack(U8 cmd, U8 *data_buf, U8 datalen)
+    175          {
+    176              
+    177              U8 i;
+    178              U8 *p = (U8*)&pack;
+    179              memset((U8 *)p, 0, sizeof(wifi_uart_protocol_t));
+    180              pack.head        = PACK_HEAD;
+    181              pack.msglen      = datalen + 1;
+    182              pack.cmd         = cmd;
+    183              pack.data_buf    = data_buf;
+    184              pack.checksum    = pack_gen_sum((U8*)&pack);
+    185              memset(UartTxBuf,0x00,sizeof(UartTxBuf));
+    186              for(i = 0;i< LEN_OF_BASE_PACK;i++)
+    187              {
+    188                  UartTxBuf[i] = p[i];
+    189              }
+    190            
+    191              for(i = 0;i<datalen;i++)
+    192              {
+    193                  UartTxBuf[(i+LEN_OF_BASE_PACK)] = pack.data_buf[i];   
+    194              }
+    195            
+    196              UartTxBuf[(i+LEN_OF_BASE_PACK)] = pack.checksum ;
+    197          
+    198              Usart_SendHexString(UartTxBuf,(pack.msglen+3));
+    199              return 0;
+    200          }
+    201          
+    202          
+    203          
+    204          static U8 pack_parser(U8 *pack)
+    205          {
+    206          	U8 cmd;
+    207          	wifi_uart_protocol_t *protocol_pack  = (wifi_uart_protocol_t *)pack;
+    208          	cmd       = protocol_pack->cmd;
+    209          
+    210          
+    211              switch(cmd)
+    212              { 
+    213            	    //查询基础信息
+    214            	    case CMD_CHEACK_BASE_INFO:
+    215                  {
+    216                      //send_base_info();
+    217                  }
+    218                  break;
+    219             	    //控制指令下发
+    220                  case CMD_CONTROL:
+    221                  {
+    222                     // printf("control cmd\r\n");
+    223                      parser_control_cmd(&pack[3]);
+    224                      need_send_ack = 1;
+    225                  }
+    226               	break;
+    227             	    //地图指令
+    228                  case CMD_MAP:
+    229                  {
+    230                     // printf("parser map\r\n");
+    231                      parser_map_info(&pack[3]);
+    232                  }
+    233                  break;
+    234                  //WIFI网络状态查询
+    235                  case CMD_WIFI_STATE:
+    236                  {
+    237                    //  printf("parser wifi state\r\n");
+    238                      parser_wifi_state(&pack[3]);
+    239                  }
+    240                  break;
+    241                  //云平台状态查询,即查询扫地机当前的状态
+    242                  case CMD_GET_ROBOT_STATE:
+    243                  {
+    244                      send_robot_state_to_wifi();
+    245                      need_send_ack = 0;
+    246                  }
+    247                  break;  
+    248                  //配网命令
+    249                  case CMD_CONFIG_NETWORK:
+    250                  {
+    251                      //printf("wifi ACK ok\r\n");
+    252               	    recive_connect_cmd_ok = 1;
+    253                      send_config_cmd = 0;
+    254                  }
+    255                  break; 
+    256                  //进入厂测模式
+    257                  case CMD_ENTER_TEST:
+    258                  {
+    259               	    send_wifi_test_result();
+    260                  }
+    261                  break;        	 
+    262                  default:
+    263               	break;
+    264              }
+    265              return 0;
+    266          }
+    267          
+    268          
+    269          static U8  bat_state = 3;
+    270          static U8  last_bat_state = 0;
+    271          
+    272          U16 convert_to_adc( s16 voltage) 
+    273          {
+    274              U32 mv = voltage<<12;
+    275              mv = mv/18975;//0.18 ---> 18032; 0.174 --> 18975       
+    276              return (U16)mv;
+    277          }
+    278          
+    279          void check_bat_level(U16  voltage)
+    280          {
+    281              last_bat_state = bat_state;
+    282              if((LOW_POWER<(voltage))&&((voltage) <=MID_POWER))
+    283          	{
+    284                  bat_state = 2;
+    285              }
+    286          	else if((MID_POWER<(voltage))&&((voltage)<=FULL_POWER))
+    287          	{
+    288                  bat_state = 1;
+    289          	}
+    290              if((voltage)>FULL_POWER)//trick表示充电停止 //3887
+    291              {
+    292                  bat_state = 0;
+    293              }
+    294          
+    295              
+    296              if(((bat_state < last_bat_state) && (sys_state_info_p.robot_state == ROBOT_STATE_CHARGING))
+    297                  || ((bat_state > last_bat_state) && (sys_state_info_p.robot_state != ROBOT_STATE_CHARGING)))
+    298              {
+    299                  if(last_bat_state > 0)
+    300                  {
+    301                      bat_state = last_bat_state;
+    302                  }
+    303              }
+    304          
+    305              if(sys_state_info_p.charging_state == CHARGING_COMPLETE)
+    306              {
+    307                  bat_state = 2;
+    308              }
+    309          }
+    310          void handle_wifi_bat_level(void)
+    311          {
+    312              static U16   tmp_cnt = 0;
+    313              static U16  voltage_average = 0;
+    314              U16 tmp_voltage = 0;
+    315              
+    316              sys_info_get(SYS_CURRENT_INFO,(long)&sys_current_info_p);
+    317              sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    318          
+    319              tmp_voltage = convert_to_adc( sys_current_info_p.battery_voltage) ;
+    320          
+    321              if(voltage_average == 0)
+    322              {
+    323                  voltage_average = tmp_voltage*2;
+    324              }
+    325              else
+    326              {
+    327                  voltage_average += tmp_voltage; 
+    328              }
+    329              
+    330              if(voltage_average >= 3000)
+    331              {
+    332          	    voltage_average = (voltage_average>>1);
+    333              }
+    334             
+    335              tmp_cnt += 1;
+    336              if((tmp_cnt >= 2000)||((bat_state == 3)&&(tmp_cnt >= 50)))
+    337              {
+    338                  check_bat_level(voltage_average);
+    339                  tmp_cnt = 0;
+    340                  
+    341              }
+    342          }
+    343          U8 uart_server_routine(void)
+    344          {
+    345            U16 tmp=0;
+    346            static U8 tick_timeout = 0;
+    347           
+    348            static DECODE_STATE_E state = DECODE_PACK_WAIT;
+    349            static U8 i=0;
+    350          
+    351          
+    352            check_and_powerup_wifi_module();
+    353            if(wifi_powerup_count < WIFI_RESET_HOLD_COUNT)
+    354            {
+    355               return 0;
+    356            }
+    357            //接收超时
+    358            tick_timeout++;
+    359            if(tick_timeout >= 220)
+    360            {
+    361              uart_txrx_reset_writeptr(WIFI_RX_INDEX);
+    362              uart_txrx_reset_readptr(WIFI_RX_INDEX);
+    363              state = DECODE_PACK_WAIT;
+    364              tick_timeout = 0;
+    365            }
+    366          
+    367            
+    368            while(uart_txrx_q_empty(WIFI_RX_INDEX)==0)
+    369            {
+    370              tmp = uart_txrx_q_get(WIFI_RX_INDEX);
+    371          
+    372              switch(state)
+    373              {
+    374                case DECODE_PACK_WAIT:
+    375                  if(tmp == PACK_HEAD)
+    376                  {
+    377                    //  printf("aa\r\n");
+    378                  	i = 0;
+    379                  	totaLen= 0;
+    380                    state = DECODE_PACK_HEAD;
+    381                    revbuf[0]= tmp;
+    382                    i++;
+    383                  }     
+    384                  tick_timeout = 0;
+    385                	break;
+    386                case DECODE_PACK_HEAD:
+    387                	state = DECODE_PACK_READING;
+    388                	totaLen = tmp+3;
+    389                	revbuf[1] = tmp;
+    390                  tick_timeout = 0;
+    391                  //printf("bb=%x\r\n",tmp);
+    392                	i++;
+    393                	break;
+    394                case DECODE_PACK_READING:
+    395                  revbuf[i] = tmp;
+    396                  //printf("cc=%x\r\n",tmp);
+    397                	i++;
+    398                  tick_timeout = 0;
+    399                	if(i >= totaLen)
+    400                	{
+    401                      // printf("cc=%x\r\n",tmp);
+    402                       
+    403                	  tmp = cal_pack_sum(revbuf);
+    404                  //  printf("sum=%x\r\n",tmp);
+    405                	  if(tmp == revbuf[totaLen-1])
+    406                	  {
+    407                	    pack_parser(revbuf);
+    408                	  }	
+    409                	  i=0;
+    410                		totaLen = 0;
+    411                	  state = DECODE_PACK_WAIT;	
+    412                	  	
+    413                	}
+    414                	break;
+    415                case DECODE_PACK_OK  :
+    416                	break;
+    417                case DECODE_PACK_ERR :
+    418              	  break;
+    419              } 
+    420            }
+    421            handle_wifi_bat_level();
+    422            
+    423            return 0;
+    424          }
+    425          
+    426          
+    427          void map_data_process(void)
+    428          {
+    429             
+    430              static U8 time_cnt = 0;
+    431              static U8 last_song_state = 0;  
+    432          
+    433             
+    434              UI_STATE_E   s = get_ui_state();
+    435              
+    436            
+    437             // if(((local_map_point_available>0)||(send_map_flag > 0))/*&&(wifi_state == WIFI_CONNECT_OK)*/) 
+    438              {
+    439                  if(send_map_flag > 0)
+    440                  {
+    441                      
+    442                     // time_cnt++;
+    443                     // if(time_cnt >= 32)
+    444                      {
+    445                         // printf("send data\r\n");
+    446                         // send_map_data_to_wifi();
+    447                          send_map_flag = 0;
+    448                         // time_cnt = 0;
+    449                      }
+    450                  }
+    451                  //else
+    452                  {
+    453                     // printf("send data\r\n");
+    454                      time_cnt++;
+    455                      if(time_cnt >= 50)
+    456                      {
+    457                          time_cnt = 0;
+    458                          send_map_data_to_wifi();
+    459                      }
+    460                  }
+    461              }
+    462          
+    463              if(songplayer_is_playing() != last_song_state)
+    464              {
+    465                  if(songplayer_is_playing() == 1)
+    466                  {
+    467                      send_wifi_song_mute();
+    468                  }
+    469                  else
+    470                  {
+    471                      send_wifi_song_unmute();
+    472                  }
+    473              }
+    474             
+    475              last_song_state = songplayer_is_playing();
+    476          }
+    477          
+    478          U8 get_bat_level(void)
+    479          {
+    480              return bat_state;
+    481          }
+    482          
+    483          void set_wifi_enable(uint8_t value)
+    484          {
+    485          	if(value)
+    486          		wifi_enable_flag=1;
+    487          	else
+    488          		wifi_enable_flag=0;
+    489          
+    490          	
+    491          }
+    492          
+    493          uint8_t get_wifi_enable_state(void)
+    494          {
+    495              return wifi_enable_flag;
+    496          }
+    497          
+    498          void set_wifi_state(uint8_t value)
+    499          {
+    500              wifi_state = value;
+    501          }
+    502          
+    503          uint8_t get_wifi_state(void)
+    504          {
+    505              return wifi_state;
+    506          }
+    507          
+    508          
+    509          void set_reset_wifi_flag(uint8_t value)
+    510          {
+    511              reset_wifi_flag = value;
+    512          }
+    513          
+    514          uint8_t get_reset_wifi_flag(void)
+    515          {
+    516              return reset_wifi_flag;
+    517          }
+    518          void exit_wifi(void)
+    519          {   
+    520           //   set_wifi_enable(0);  
+    521          }
+    522          
+    523          #endif
+    524          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      16   Usart_SendHexString
+         0   -> set_wifi_uart_tx_fifo_empty_irq
+        16   -> uart_txrx_q_put
+      12   cal_pack_sum
+      16   check_and_powerup_wifi_module
+        16   -- Indirect call
+       8   check_bat_level
+       0   convert_to_adc
+       0   exit_wifi
+       0   get_bat_level
+       0   get_reset_wifi_flag
+       0   get_wifi_enable_state
+       0   get_wifi_state
+       8   handle_wifi_bat_level
+         8   -> check_bat_level
+         8   -> convert_to_adc
+         8   -> sys_info_get
+       8   map_data_process
+         8   -> get_ui_state
+         8   -> send_map_data_to_wifi
+         8   -> send_wifi_song_mute
+         8   -> send_wifi_song_unmute
+         8   -> songplayer_is_playing
+      16   send_pack
+        16   -> Usart_SendHexString
+        16   -> __aeabi_memclr4
+       0   set_reset_wifi_flag
+       0   set_wifi_enable
+       0   set_wifi_state
+      16   uart_server_routine
+        16   -> cal_pack_sum
+        16   -> check_and_powerup_wifi_module
+        16   -> handle_wifi_bat_level
+        16   -> parser_control_cmd
+        16   -> parser_map_info
+        16   -> parser_wifi_state
+        16   -> send_robot_state_to_wifi
+        16   -> send_wifi_test_result
+        16   -> uart_txrx_q_empty
+        16   -> uart_txrx_q_get
+        16   -> uart_txrx_reset_readptr
+        16   -> uart_txrx_reset_writeptr
+       8   wifi_handle_sleep
+         0   -- Indirect call
+         8   -- Indirect call
+       0   wifi_init
+         0   -> check_and_powerup_wifi_module
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable15
+       4  ??DataTable15_1
+       4  ??DataTable15_2
+       4  ??DataTable15_3
+       4  ??DataTable15_4
+       4  ??DataTable15_5
+       4  ??DataTable15_6
+       4  ??DataTable15_7
+       4  ??DataTable15_8
+       8  ?Subroutine0
+      24  ?_0
+      32  Usart_SendHexString
+      38  cal_pack_sum
+      74  check_and_powerup_wifi_module
+      86  check_bat_level
+      14  convert_to_adc
+       2  exit_wifi
+       6  get_bat_level
+       6  get_reset_wifi_flag
+       6  get_wifi_enable_state
+       6  get_wifi_state
+      88  handle_wifi_bat_level
+       1  last_bat_state
+      74  map_data_process
+     112  pack
+          UartTxBuf
+       1  reset_wifi_flag
+      30  revbuf
+          totaLen
+          need_send_ack
+          wificonnectok
+          send_config_cmd
+          recive_connect_cmd_ok
+          tick_timeout
+          state
+          i
+          wifi_powerup_count
+     124  send_pack
+       6  set_reset_wifi_flag
+      12  set_wifi_enable
+       6  set_wifi_state
+      44  sys_state_info_p
+          bat_state
+          sys_current_info_p
+          tmp_cnt
+          voltage_average
+       2  time_cnt
+          last_song_state
+     238  uart_server_routine
+       1  wifi_enable_flag
+      34  wifi_handle_sleep
+      10  wifi_init
+       1  wifi_state
+
+ 
+ 148 bytes in section .bss
+  44 bytes in section .data
+ 930 bytes in section .text
+ 
+ 930 bytes of CODE memory
+ 192 bytes of DATA memory
+
+Errors: none
+Warnings: none

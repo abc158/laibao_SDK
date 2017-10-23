@@ -1,0 +1,153 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  18:59:32
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\guardrail\dock-avoid.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\guardrail\dock-avoid.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\dock-avoid.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\dock-avoid.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\guardrail\dock-avoid.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          
+      6          #include "docking-new.h"
+      7          #include "sensor/sensor.h"
+      8          #include "dock-avoid.h"
+      9          #ifdef IR_WIRELESS
+     10          #include "dock_ir_signal.h"
+     11          #include "wireless/arf2496k.h"
+     12          #endif
+     13          
+     14          #define DOCK_AVOID_SIGNAL_TIME_THRD 500
+     15          #define DOCK_AVOID_SIGNAL_INIT_TIME_THRD 10000
+     16          #define DOCK_AVOID_SIGNAL_ACTIVE(time) (timer_elapsed(time) < DOCK_AVOID_SIGNAL_TIME_THRD)
+     17          #define DOCK_AVOID_SIGNAL_INIT_ACTIVE(time) (timer_elapsed(time) < DOCK_AVOID_SIGNAL_INIT_TIME_THRD)
+     18          
+     19          static dock_avoid_data_t dock_avoid_data;
+     20          
+     21          void dock_avoid_get_signals(U8 index, U8 signal)
+     22          {
+     23          	dock_config_t *dock_config = NULL;
+     24          
+     25          	dock_config = get_dock_config();
+     26          
+     27          	if ((1 << index) & dock_config->dock_avoid_chan)
+     28          	{
+     29          		if((signal & DOCK_CLOSE_BEACON) == DOCK_CLOSE_BEACON)
+     30          		{
+     31          			dock_avoid_data.see_avoid_signal_time = timer_ms();
+     32          		}
+     33          	}
+     34          
+     35          	if ((1 << index) & dock_config->binocular_see_avoid_chan)
+     36          	{
+     37          		if((signal & DOCK_CLOSE_BEACON == DOCK_CLOSE_BEACON))
+     38          		{
+     39          			dock_avoid_data.binocular_see_avoid_time = timer_ms();
+     40          		}
+     41          	}
+     42          
+     43          	return;
+     44          }
+     45          
+     46          static U32 get_avoid_signal_time(void)
+     47          {
+     48          	return dock_avoid_data.see_avoid_signal_time;
+     49          }
+     50          
+     51          /*min:TRUE,代表正常清扫时，避座行为是否触发；
+     52                FALSE,代表启动清扫时，初始化避座行为时，决策是否触发避障。*/
+     53          BOOLEAN dock_avoid_active(BOOLEAN min)
+     54          {
+     55          	if (min == TRUE)
+     56          	{
+     57              	return DOCK_AVOID_SIGNAL_ACTIVE(get_avoid_signal_time());
+     58          	}
+     59          	else
+     60          	{
+     61          		return DOCK_AVOID_SIGNAL_INIT_ACTIVE(get_avoid_signal_time());
+     62          	}
+     63          }
+     64          
+     65          /* 圆泡接收到的充电座圆泡信息的强度
+     66             避座行为确认是否避座成功 */
+     67          U8 dock_avoid_signal_quality(void)
+     68          {
+     69              U32 elapsed = timer_elapsed(get_avoid_signal_time());
+     70              if (elapsed >= DOCK_AVOID_SIGNAL_TIME_THRD)
+     71              {
+     72                  return 0;
+     73              }
+     74              return 255 - (U8)(elapsed*255/(DOCK_AVOID_SIGNAL_TIME_THRD*3));
+     75          }
+     76          
+     77          /* 双目接收到的充电座圆泡信息的强度
+     78             用于确认充电座在地图中的位置，同时用于避座行为确认是否避座成功 */
+     79          U8 dock_binocular_avoid_signal_quality(void)
+     80          {
+     81              U32 elapsed = timer_elapsed(dock_avoid_data.binocular_see_avoid_time);
+     82              if (elapsed >= DOCK_AVOID_SIGNAL_TIME_THRD)
+     83              {
+     84                  return 0;
+     85              }
+     86              return 255 - (U8)(elapsed*255/(DOCK_AVOID_SIGNAL_TIME_THRD*3));
+     87          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   dock_avoid_active
+         8   -> timer_elapsed
+      24   dock_avoid_get_signals
+        24   -> get_dock_config
+        24   -> timer_ms
+       8   dock_avoid_signal_quality
+         8   -> timer_elapsed
+       8   dock_binocular_avoid_signal_quality
+         8   -> timer_elapsed
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+      20  ?Subroutine0
+      38  dock_avoid_active
+       8  dock_avoid_data
+      60  dock_avoid_get_signals
+      22  dock_avoid_signal_quality
+      24  dock_binocular_avoid_signal_quality
+
+ 
+   8 bytes in section .bss
+ 168 bytes in section .text
+ 
+ 168 bytes of CODE memory
+   8 bytes of DATA memory
+
+Errors: none
+Warnings: none

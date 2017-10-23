@@ -1,0 +1,101 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:09
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\main.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\main.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\main.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\main.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\main.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          
+      7          #include "ui-manager.h"
+      8          #include "am_app_cfg.h"
+      9          #include "am_device.h"
+     10          #include "local_process/local_process.h"
+     11          #include "syscall_api.h"
+     12          #include "am_uart_api.h"
+     13          #include "am_tm_api.h"
+     14          #include "am_spi_cfg.h"
+     15          
+     16          
+     17          extern void init_irq_syscall(void);
+     18          static u32 AppTaskStk[APP_TASK_STK_SIZE];
+     19          
+     20          int main()
+     21          {
+     22            /*first call*/
+     23            init_irq_syscall();
+     24            /*driver init*/
+     25            sys_uart_cfg();
+     26            sys_tm_cfg();
+     27            sys_spi_cfg();
+     28            printf("welcome to app\r\n");
+     29            register_ui_config(get_ui_manager());
+     30            local_app_init();
+     31            pthread_create(main_app_task,&AppTaskStk[APP_TASK_STK_SIZE-1],APP_TASK_MAIN_PRIO,&AppTaskStk[0],APP_TASK_STK_SIZE);
+     32            printf("app-init-ok!\r\n");
+     33            return 0;
+     34          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      16   main
+        16   -- Indirect call
+        16   -> get_ui_manager
+        16   -> init_irq_syscall
+        16   -> local_app_init
+        16   -> pthread_create
+        16   -> register_ui_config
+        16   -> sys_spi_cfg
+        16   -> sys_tm_cfg
+        16   -> sys_uart_cfg
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+       4  ??DataTable2_1
+       4  ??DataTable2_2
+      20  ?_0
+      16  ?_1
+     512  AppTaskStk
+      76  main
+
+ 
+ 512 bytes in section .bss
+ 124 bytes in section .text
+ 
+ 124 bytes of CODE memory
+ 512 bytes of DATA memory
+
+Errors: none
+Warnings: none

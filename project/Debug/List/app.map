@@ -1,0 +1,1311 @@
+###############################################################################
+#
+# IAR ELF Linker V7.30.4.8167/W32 for ARM                 20/Oct/2017  20:01:42
+# Copyright 2007-2014 IAR Systems AB.
+#
+#    Output file  =  F:\1708\SDK - unlock\project\Debug\Exe\app.out
+#    Map file     =  F:\1708\SDK - unlock\project\Debug\List\app.map
+#    Command line =  
+#        "F:\1708\SDK - unlock\project\Debug\Obj\act.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\afio_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\ARF2496K.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\BK2425_Initialization_141015.o" "F:\1708\SDK
+#        - unlock\project\Debug\Obj\BK2425_TxRx.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\charge.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\current.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\display.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\dock-avoid.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\dock_ir_signal.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\docking-new.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\docking-sensors.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\exception.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\exti_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\gpio_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\hardward_check.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\ir_decode.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\led_drv.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\lib.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\local_key_check.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\local_process.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\lt_bump.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\main.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\motor.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\remote.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\remote_handle.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\robot-battery-monitor.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\robot_battery.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\robot_brush.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\robot_suction.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\robot_univrsal_wheel.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\sensor.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\sensor_comm.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\SimSweep.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\SimSweep_demo2.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\SimWifi.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\simwifi_demo2.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\song-player.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\spi_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\test_cmd_handle.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\Test_Func.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\tm_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\uart_cfg.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\uart_queue.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\uart_wifi_check.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\ui-config.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\ui-manager.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\ui-msg-handler.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\virtual-wall.o" "F:\1708\SDK -
+#        unlock\project\Debug\Obj\wall_follow_common.o" --redirect
+#        _Printf=_PrintfTiny --redirect _Scanf=_ScanfSmallNoMb -o "F:\1708\SDK
+#        - unlock\project\Debug\Exe\app.out" --map "F:\1708\SDK -
+#        unlock\project\Debug\List\app.map" --config "F:\1708\SDK -
+#        unlock\project\Amicro_R10_flash_release.icf" --semihosting
+#        "F:\1708\SDK - unlock\project\startup\startup.a" "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.a" --entry __iar_program_start --vfe
+#
+###############################################################################
+
+*******************************************************************************
+*** RUNTIME MODEL ATTRIBUTES
+***
+
+CppFlavor       = *
+__SystemLibrary = DLib
+
+
+*******************************************************************************
+*** PLACEMENT SUMMARY
+***
+
+"A1":  place at 0x0003fbf0 { section CODEINFO };
+"A2":  place at 0x0003f800 { ro section .CFGINFO };
+"A3":  place at 0x00033400 { ro section .appstart };
+"P1":  place in [from 0x00033400 to 0x0003fbff] { ro };
+"P2":  place in [from 0x2000a800 to 0x2000bfff] { rw, block CSTACK, block HEAP };
+
+  Section            Kind        Address    Size  Object
+  -------            ----        -------    ----  ------
+"A3":                                       0x10
+  .appstart          ro code  0x00033400    0x10  cstartup.o [7]
+                            - 0x00033410    0x10
+
+"P1", part 1 of 2:                        0x7a8e
+  .text              ro code  0x00033410  0x1038  act.o [1]
+  .text              ro code  0x00034448   0x14c  local_key_check.o [1]
+  .text              ro code  0x00034594   0x108  remote.o [1]
+  .text              ro code  0x0003469c    0xa4  uart_wifi_check.o [1]
+  .text              ro code  0x00034740   0x3e1  SimSweep_demo2.o [1]
+  .text              ro code  0x00034b22    0x26  zero_init3.o [7]
+  .text              ro code  0x00034b48   0x3a8  robot_univrsal_wheel.o [1]
+  .text              ro code  0x00034ef0    0xee  local_process.o [1]
+  .text              ro code  0x00034fe0    0xf8  sensor_comm.o [1]
+  .text              ro code  0x000350d8   0x1a8  lib.o [1]
+  .text              ro code  0x00035280    0x68  song-player.o [1]
+  .text              ro code  0x000352e8    0xe0  robot_brush.o [1]
+  .text              ro code  0x000353c8   0x200  exception.o [1]
+  CODE               ro code  0x000355c8    0xf2  syscall_api.o [8]
+  .text              ro code  0x000356bc   0x7bc  sensor.o [1]
+  .text              ro code  0x00035e78   0x498  charge.o [1]
+  .text              ro code  0x00036310   0x148  robot_battery.o [1]
+  .text              ro code  0x00036458   0xf54  test_cmd_handle.o [1]
+  .text              ro code  0x000373ac    0x90  robot_suction.o [1]
+  .text              ro code  0x0003743c   0x15c  remote_handle.o [1]
+  .text              ro code  0x00037598   0x340  simwifi_demo2.o [1]
+  .text              ro code  0x000378d8     0x6  ABImemclr4.o [5]
+  .text              ro code  0x000378e0    0x32  I32ToFlt.o [4]
+  .text              ro code  0x00037914    0xfc  FltDiv.o [4]
+  .text              ro code  0x00037a10    0x24  FltCmpGe.o [4]
+  .text              ro code  0x00037a34    0xd8  FltMul.o [4]
+  .text              ro code  0x00037b0c    0x44  FltToS32.o [4]
+  .text              ro code  0x00037b50     0x8  abs.o [3]
+  .text              ro code  0x00037b58    0x24  FltCmpLe.o [4]
+  .text              ro code  0x00037b7c   0x254  display.o [1]
+  .text              ro code  0x00037dd0    0x50  motor.o [1]
+  .text              ro code  0x00037e20   0x158  current.o [1]
+  .text              ro code  0x00037f78   0x15c  dock_ir_signal.o [1]
+  .text              ro code  0x000380d4   0x306  BK2425_Initialization_141015.o [1]
+  .text              ro code  0x000383dc    0x76  ABImemcpy_unaligned.o [5]
+  .text              ro code  0x00038454   0x274  tm_cfg.o [1]
+  .text              ro code  0x000386c8    0xd8  ui-config.o [1]
+  .text              ro code  0x000387a0    0x2c  I32ToDbl.o [4]
+  .text              ro code  0x000387cc   0x1a2  DblMul.o [4]
+  .text              ro code  0x00038970   0x180  DblSub.o [4]
+  .text              ro code  0x00038af0   0x246  DblDiv.o [4]
+  .text              ro code  0x00038d38    0x4c  DblToI32.o [4]
+  .text              ro code  0x00038d84   0x134  ui-manager.o [1]
+  .text              ro code  0x00038eb8   0x260  robot-battery-monitor.o [1]
+  .text              ro code  0x00039118   0x158  uart_cfg.o [1]
+  .text              ro code  0x00039270    0x2c  ir_decode.o [1]
+  .text              ro code  0x0003929c    0x5a  BK2425_TxRx.o [1]
+  .text              ro code  0x000392f8    0xf8  uart_queue.o [1]
+  .text              ro code  0x000393f0    0x32  ABImemset48.o [5]
+  .text              ro code  0x00039424    0xe6  FltSub.o [4]
+  .text              ro code  0x0003950c    0xd0  spi_cfg.o [1]
+  .text              ro code  0x000395dc    0xe8  DblAdd.o [4]
+  .text              ro code  0x000396c4    0x3c  ui-msg-handler.o [1]
+  .text              ro code  0x00039700    0x84  FltAdd.o [4]
+  .text              ro code  0x00039784   0x6ea  wall_follow_common.o [1]
+  .text              ro code  0x00039e70    0x34  floorf.o [4]
+  .text              ro code  0x00039ea4    0x4e  FltToDbl.o [4]
+  .text              ro code  0x00039ef4    0x90  DblToFlt.o [4]
+  .text              ro code  0x00039f84   0x41c  docking-new.o [1]
+  .text              ro code  0x0003a3a0   0x132  I64DivMod.o [5]
+  .text              ro code  0x0003a4d4   0x150  lt_bump.o [1]
+  .text              ro code  0x0003a624     0x2  I64DivZer.o [5]
+  .rodata            const    0x0003a628   0x130  afio_cfg.o [1]
+  .text              ro code  0x0003a758   0x124  exti_cfg.o [1]
+  .text              ro code  0x0003a87c    0xd0  packbits_init.o [5]
+  .text              ro code  0x0003a94c     0x6  abort.o [3]
+  .text              ro code  0x0003a954    0x14  exit.o [6]
+  .text              ro code  0x0003a968    0xbc  docking-sensors.o [1]
+  .text              ro code  0x0003aa24    0xa8  dock-avoid.o [1]
+  .text              ro code  0x0003aacc     0x6  virtual-wall.o [1]
+  .text              ro code  0x0003aad4    0x7c  main.o [1]
+  .text              ro code  0x0003ab50    0x38  irq_syscall.o [7]
+  .text              ro code  0x0003ab88    0x2a  cstartup.o [7]
+  .text              ro code  0x0003abb4    0x12  cmain.o [7]
+  .text              ro code  0x0003abc8    0x28  data_init3.o [7]
+  .iar.init_table    const    0x0003abf0    0x2c  - Linker created -
+  .intvec            ro code  0x0003ac1c     0x8  cstartup.o [7]
+  Initializer bytes  const    0x0003ac24   0x27a  <for P2 s0>
+                            - 0x0003ae9e  0x7a8e
+
+"A2":                                      0x2c4
+  .CFGINFO           const    0x0003f800    0xd8  gpio_cfg.o [1]
+  .CFGINFO           const    0x0003f8d8    0x28  gpio_cfg.o [1]
+  .CFGINFO           const    0x0003f900    0x34  gpio_cfg.o [1]
+  .CFGINFO           const    0x0003f934   0x190  gpio_cfg.o [1]
+                            - 0x0003fac4   0x2c4
+
+"P1", part 2 of 2:                           0x0
+  .rodata            const    0x0003fac4     0x0  copy_init3.o [7]
+  .rodata            const    0x0003fac4     0x0  packbits_init.o [5]
+
+"A1":                                       0x10
+  CODEINFO           ro code  0x0003fbf0    0x10  cstartup.o [7]
+                            - 0x0003fc00    0x10
+
+"P2":                                     0x11b8
+  P2 s0                       0x2000a800   0x590  <Init block>
+    .data            inited   0x2000a800    0xe8  uart_queue.o [1]
+    .data            inited   0x2000a8e8    0xb4  remote.o [1]
+    .data            inited   0x2000a99c    0x78  dock_ir_signal.o [1]
+    .data            inited   0x2000aa14    0x70  uart_wifi_check.o [1]
+    .data            inited   0x2000aa84    0x5c  BK2425_Initialization_141015.o [1]
+    .data            inited   0x2000aae0    0x50  local_key_check.o [1]
+    .data            inited   0x2000ab30    0x40  act.o [1]
+    .data            inited   0x2000ab70    0x3c  test_cmd_handle.o [1]
+    .data            inited   0x2000abac    0x34  charge.o [1]
+    .data            inited   0x2000abe0    0x34  remote_handle.o [1]
+    .data            inited   0x2000ac14    0x34  sensor.o [1]
+    .data            inited   0x2000ac48    0x30  robot_univrsal_wheel.o [1]
+    .data            inited   0x2000ac78    0x2c  simwifi_demo2.o [1]
+    .data            inited   0x2000aca4    0x28  robot_battery.o [1]
+    .data            inited   0x2000accc    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ace0    0x20  docking-new.o [1]
+    .data            inited   0x2000ad00    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ad14    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ad28    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ad3c    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ad50    0x14  docking-sensors.o [1]
+    .data            inited   0x2000ad64     0xc  display.o [1]
+    .data            inited   0x2000ad70     0x8  display.o [1]
+    .data            inited   0x2000ad78     0x8  spi_cfg.o [1]
+    .data            inited   0x2000ad80     0x6  robot_brush.o [1]
+    .data            inited   0x2000ad86     0x1  song-player.o [1]
+    .data            inited   0x2000ad88     0x4  local_process.o [1]
+    .data            inited   0x2000ad8c     0x4  robot_univrsal_wheel.o [1]
+  .bss               zero     0x2000ad90   0x280  remote_handle.o [1]
+  .bss               zero     0x2000b010   0x200  main.o [1]
+  .bss               zero     0x2000b210    0xc8  uart_queue.o [1]
+  .bss               zero     0x2000b2d8    0x80  sensor.o [1]
+  .bss               zero     0x2000b358    0x80  sensor.o [1]
+  .bss               zero     0x2000b3d8    0x78  lib.o [1]
+  .bss               zero     0x2000b450    0x70  simwifi_demo2.o [1]
+  .bss               zero     0x2000b4c0    0x54  SimSweep_demo2.o [1]
+  .bss               zero     0x2000b514    0x50  test_cmd_handle.o [1]
+  .bss               zero     0x2000b564    0x4c  SimSweep_demo2.o [1]
+  .bss               zero     0x2000b5b0    0x48  lib.o [1]
+  .bss               zero     0x2000b5f8    0x45  act.o [1]
+  .bss               zero     0x2000b63d     0x2  dock_ir_signal.o [1]
+  .bss               zero     0x2000b63f     0x1  act.o [1]
+  .bss               zero     0x2000b640    0x40  remote.o [1]
+  .bss               zero     0x2000b680    0x40  sensor.o [1]
+  .bss               zero     0x2000b6c0    0x40  sensor.o [1]
+  .bss               zero     0x2000b700    0x3c  exception.o [1]
+  .bss               zero     0x2000b73c    0x38  sensor.o [1]
+  .bss               zero     0x2000b774    0x38  test_cmd_handle.o [1]
+  .bss               zero     0x2000b7ac    0x34  remote_handle.o [1]
+  .bss               zero     0x2000b7e0    0x24  lt_bump.o [1]
+  .bss               zero     0x2000b804    0x24  wall_follow_common.o [1]
+  .bss               zero     0x2000b828    0x20  current.o [1]
+  .bss               zero     0x2000b848    0x20  exti_cfg.o [1]
+  .bss               zero     0x2000b868    0x20  ir_decode.o [1]
+  .bss               zero     0x2000b888    0x20  sensor.o [1]
+  .bss               zero     0x2000b8a8    0x1e  simwifi_demo2.o [1]
+  .bss               zero     0x2000b8c6     0x6  robot-battery-monitor.o [1]
+  .bss               zero     0x2000b8cc    0x18  display.o [1]
+  .bss               zero     0x2000b8e4    0x18  tm_cfg.o [1]
+  .bss               zero     0x2000b8fc    0x14  docking-new.o [1]
+  .bss               zero     0x2000b910    0x14  local_key_check.o [1]
+  .bss               zero     0x2000b924     0xc  uart_cfg.o [1]
+  .bss               zero     0x2000b930    0x10  docking-new.o [1]
+  .bss               zero     0x2000b940    0x10  docking-sensors.o [1]
+  .bss               zero     0x2000b950    0x10  SimSweep_demo2.o [1]
+  .bss               zero     0x2000b960     0x8  charge.o [1]
+  .bss               zero     0x2000b968     0x8  dock-avoid.o [1]
+  .bss               zero     0x2000b970     0x8  lib.o [1]
+  .bss               zero     0x2000b978     0x8  remote_handle.o [1]
+  .bss               zero     0x2000b980     0x6  robot_suction.o [1]
+  .bss               zero     0x2000b986     0x6  SimSweep_demo2.o [1]
+  .bss               zero     0x2000b98c     0x4  BK2425_Initialization_141015.o [1]
+  .bss               zero     0x2000b990     0x4  charge.o [1]
+  .bss               zero     0x2000b994     0x4  lib.o [1]
+  .bss               zero     0x2000b998     0x4  robot-battery-monitor.o [1]
+  .bss               zero     0x2000b99c     0x4  sensor_comm.o [1]
+  .bss               zero     0x2000b9a0     0x4  uart_wifi_check.o [1]
+  .bss               zero     0x2000b9a4     0x4  irq_syscall.o [7]
+  .bss               zero     0x2000b9a8     0x2  SimSweep_demo2.o [1]
+  .bss               zero     0x2000b9aa     0x2  simwifi_demo2.o [1]
+  .bss               zero     0x2000b9ac     0x1  act.o [1]
+  .bss               zero     0x2000b9ad     0x1  BK2425_Initialization_141015.o [1]
+  .bss               zero     0x2000b9ae     0x1  BK2425_Initialization_141015.o [1]
+  .bss               zero     0x2000b9af     0x1  current.o [1]
+  .bss               zero     0x2000b9b0     0x1  local_process.o [1]
+  .bss               zero     0x2000b9b1     0x1  motor.o [1]
+  .bss               zero     0x2000b9b2     0x1  sensor.o [1]
+  .bss               zero     0x2000b9b3     0x1  sensor.o [1]
+  .bss               zero     0x2000b9b4     0x1  simwifi_demo2.o [1]
+                            - 0x2000b9b5  0x11b5
+
+
+*******************************************************************************
+*** INIT TABLE
+***
+
+          Address     Size
+          -------     ----
+Zero (__iar_zero_init3)
+    1 destination range, total size 0xc25:
+          0x2000ad90  0xc25
+
+Copy/packbits (__iar_packbits_init3)
+    1 source range, total size 0x27a (44% of destination):
+          0x0003ac24  0x27a
+    1 destination range, total size 0x590:
+          0x2000a800  0x590
+
+
+
+*******************************************************************************
+*** MODULE SUMMARY
+***
+
+    Module                          ro code  ro data  rw data
+    ------                          -------  -------  -------
+F:\1708\SDK - unlock\project\Debug\Obj: [1]
+    BK2425_Initialization_141015.o      774       41       98
+    BK2425_TxRx.o                        90
+    SimSweep_demo2.o                    993               184
+    act.o                             4 152       28      135
+    afio_cfg.o                                   304
+    charge.o                          1 176       23       64
+    current.o                           344                33
+    display.o                           596        9       44
+    dock-avoid.o                        168                 8
+    dock_ir_signal.o                    348       53      122
+    docking-new.o                     1 052       14       68
+    docking-sensors.o                   188       54      136
+    exception.o                         512                60
+    exti_cfg.o                          292                32
+    gpio_cfg.o                                   708
+    ir_decode.o                          44                32
+    lib.o                               424               204
+    local_key_check.o                   332       36      100
+    local_process.o                     238        3        5
+    lt_bump.o                           336                36
+    main.o                              124               512
+    motor.o                              80                 1
+    remote.o                            264       80      244
+    remote_handle.o                     348       23      752
+    robot-battery-monitor.o             608                10
+    robot_battery.o                     328       18       40
+    robot_brush.o                       224        3        6
+    robot_suction.o                     144                 6
+    robot_univrsal_wheel.o              936       24       52
+    sensor.o                          1 980       23      526
+    sensor_comm.o                       248                 4
+    simwifi_demo2.o                     832       19      189
+    song-player.o                       104                 1
+    spi_cfg.o                           208        3        8
+    test_cmd_handle.o                 3 924       27      196
+    tm_cfg.o                            628                24
+    uart_cfg.o                          344                12
+    uart_queue.o                        248      103      432
+    uart_wifi_check.o                   164       50      116
+    ui-config.o                         216
+    ui-manager.o                        308
+    ui-msg-handler.o                     60
+    virtual-wall.o                        6
+    wall_follow_common.o              1 770                36
+    ---------------------------------------------------------
+    Total:                           26 155    1 646    4 528
+
+command line: [2]
+    ---------------------------------------------------------
+    Total:
+
+dl7M_tln.a: [3]
+    abort.o                               6
+    abs.o                                 8
+    ---------------------------------------------------------
+    Total:                               14
+
+m7M_tl.a: [4]
+    DblAdd.o                            232
+    DblDiv.o                            582
+    DblMul.o                            418
+    DblSub.o                            384
+    DblToFlt.o                          144
+    DblToI32.o                           76
+    FltAdd.o                            132
+    FltCmpGe.o                           36
+    FltCmpLe.o                           36
+    FltDiv.o                            252
+    FltMul.o                            216
+    FltSub.o                            230
+    FltToDbl.o                           78
+    FltToS32.o                           68
+    I32ToDbl.o                           44
+    I32ToFlt.o                           50
+    floorf.o                             52
+    ---------------------------------------------------------
+    Total:                            3 030
+
+rt7M_tl.a: [5]
+    ABImemclr4.o                          6
+    ABImemcpy_unaligned.o               118
+    ABImemset48.o                        50
+    I64DivMod.o                         306
+    I64DivZer.o                           2
+    packbits_init.o                     208
+    ---------------------------------------------------------
+    Total:                              690
+
+shb_l.a: [6]
+    exit.o                               20
+    ---------------------------------------------------------
+    Total:                               20
+
+startup.a: [7]
+    cmain.o                              18
+    copy_init3.o
+    cstartup.o                           82
+    data_init3.o                         40
+    irq_syscall.o                        56                 4
+    zero_init3.o                         38
+    ---------------------------------------------------------
+    Total:                              234                 4
+
+syscall_api.a: [8]
+    syscall_api.o                       242
+    ---------------------------------------------------------
+    Total:                              242
+
+    Gaps                                 37        2        1
+    Linker created                                44
+-------------------------------------------------------------
+    Grand Total:                     30 422    1 692    4 533
+
+
+*******************************************************************************
+*** ENTRY LIST
+***
+
+Entry                      Address   Size  Type      Object
+-----                      -------   ----  ----      ------
+.iar.init_table$$Base   0x0003abf0          --   Gb  - Linker created -
+.iar.init_table$$Limit  0x0003ac1c          --   Gb  - Linker created -
+AppTaskStk              0x2000b010  0x200  Data  Lc  main.o [1]
+BK2425_Initialize       0x00038277  0x102  Code  Gb  BK2425_Initialization_141015.o [1]
+Bank0_Reg               0x2000aa84   0x30  Data  Gb  BK2425_Initialization_141015.o [1]
+Bank1_Reg0_13           0x2000aab4   0x10  Data  Gb  BK2425_Initialization_141015.o [1]
+Bank1_Reg14             0x2000aac4    0xc  Data  Gb  BK2425_Initialization_141015.o [1]
+CodeInfo                0x0003fbf1         Code  Gb  cstartup.o [7]
+DelayMs                 0x000383c3   0x18  Code  Gb  BK2425_Initialization_141015.o [1]
+IR_STRONG               0x2000b63e    0x1  Data  Gb  dock_ir_signal.o [1]
+IR_WEAK                 0x2000b63d    0x1  Data  Gb  dock_ir_signal.o [1]
+InStream_Read           0x0003a87d   0x22  Code  Lc  packbits_init.o [5]
+InitBK2425              0x000380d5   0x1c  Code  Gb  BK2425_Initialization_141015.o [1]
+REC_IR_BUFF             0x2000b7ac    0xc  Data  Lc  remote_handle.o [1]
+REC_IR_DATA             0x2000b7d4    0xc  Data  Lc  remote_handle.o [1]
+RX0_Address             0x2000aad0    0x8  Data  Gb  BK2425_Initialization_141015.o [1]
+RX1_Address             0x2000aad8    0x8  Data  Gb  BK2425_Initialization_141015.o [1]
+Receive_Packet          0x0003929d   0x5a  Code  Gb  BK2425_TxRx.o [1]
+Region$$Table$$Base     0x0003abf0          --   Gb  - Linker created -
+Region$$Table$$Limit    0x0003ac1c          --   Gb  - Linker created -
+SET_IR_STATE            0x00038031   0x1a  Code  Gb  dock_ir_signal.o [1]
+SPI_GYRO_ID             0x2000ad7c    0x4  Data  Gb  spi_cfg.o [1]
+SPI_NOR_ID              0x2000ad78    0x4  Data  Gb  spi_cfg.o [1]
+SPI_RW                  0x000380f1   0x58  Code  Gb  BK2425_Initialization_141015.o [1]
+SPI_Read_Buf            0x000381a5   0x20  Code  Gb  BK2425_Initialization_141015.o [1]
+SPI_Read_Reg            0x00038177   0x2e  Code  Gb  BK2425_Initialization_141015.o [1]
+SPI_Write_Buf           0x000381db   0x22  Code  Gb  BK2425_Initialization_141015.o [1]
+SPI_Write_Reg           0x00038155   0x22  Code  Gb  BK2425_Initialization_141015.o [1]
+SwitchCFG               0x00038253   0x24  Code  Gb  BK2425_Initialization_141015.o [1]
+SwitchToRxMode          0x0003820b   0x28  Code  Gb  BK2425_Initialization_141015.o [1]
+UartTxBuf               0x2000b45c   0x64  Data  Gb  simwifi_demo2.o [1]
+Usart_SendHexString     0x000375f5   0x20  Code  Gb  simwifi_demo2.o [1]
+WfParames_p             0x2000b820    0x4  Data  Gb  wall_follow_common.o [1]
+__aeabi_cfcmple         0x00037b59         Code  Gb  FltCmpLe.o [4]
+__aeabi_cfrcmple        0x00037a11         Code  Gb  FltCmpGe.o [4]
+__aeabi_d2f             0x00039ef5         Code  Gb  DblToFlt.o [4]
+__aeabi_d2iz            0x00038d39         Code  Gb  DblToI32.o [4]
+__aeabi_dadd            0x000395dd         Code  Gb  DblAdd.o [4]
+__aeabi_ddiv            0x00038af1         Code  Gb  DblDiv.o [4]
+__aeabi_dmul            0x000387cd         Code  Gb  DblMul.o [4]
+__aeabi_dsub            0x00038971         Code  Gb  DblSub.o [4]
+__aeabi_f2d             0x00039ea5         Code  Gb  FltToDbl.o [4]
+__aeabi_f2iz            0x00037b0d         Code  Gb  FltToS32.o [4]
+__aeabi_fadd            0x00039701         Code  Gb  FltAdd.o [4]
+__aeabi_fdiv            0x00037915         Code  Gb  FltDiv.o [4]
+__aeabi_fmul            0x00037a35         Code  Gb  FltMul.o [4]
+__aeabi_fsub            0x00039425         Code  Gb  FltSub.o [4]
+__aeabi_i2d             0x000387a1         Code  Gb  I32ToDbl.o [4]
+__aeabi_i2f             0x000378e1         Code  Gb  I32ToFlt.o [4]
+__aeabi_ldiv0           0x0003a625         Code  Gb  I64DivZer.o [5]
+__aeabi_ldivmod         0x0003a3a1         Code  Gb  I64DivMod.o [5]
+__aeabi_memclr4         0x000378d9         Code  Gb  ABImemclr4.o [5]
+__aeabi_ui2f            0x000378f5         Code  Gb  I32ToFlt.o [4]
+__aeabi_uldivmod        0x0003a3e5         Code  Gb  I64DivMod.o [5]
+__cmain                 0x0003abb5         Code  Gb  cmain.o [7]
+__exit                  0x0003a955   0x14  Code  Gb  exit.o [6]
+__iar_Memset4_word      0x000393f1         Code  Gb  ABImemset48.o [5]
+__iar_Memset8_word      0x000393f1         Code  Gb  ABImemset48.o [5]
+__iar_SB                0x0003fac4         Data  Gb  copy_init3.o [7]
+__iar_d2uiz             0x00038d65         Code  Gb  DblToI32.o [4]
+__iar_dadd              0x000395f1         Code  Gb  DblAdd.o [4]
+__iar_data_init3        0x0003abc9   0x28  Code  Gb  data_init3.o [7]
+__iar_dsub              0x00038985         Code  Gb  DblSub.o [4]
+__iar_dsubStart         0x00038997         Code  Gb  DblSub.o [4]
+__iar_fadd              0x00039711         Code  Gb  FltAdd.o [4]
+__iar_floorf            0x00039e71         Code  Gb  floorf.o [4]
+__iar_fsub              0x00039435         Code  Gb  FltSub.o [4]
+__iar_fsubStart         0x00039445         Code  Gb  FltSub.o [4]
+__iar_packbits_init3    0x0003a89f   0xae  Code  Gb  packbits_init.o [5]
+__iar_program_start     0x0003ab89         Code  Gb  cstartup.o [7]
+__iar_ui2d              0x000387b5         Code  Gb  I32ToDbl.o [4]
+__iar_ui2f              0x000378f9         Code  Gb  I32ToFlt.o [4]
+__iar_unaligned___aeabi_memcpy
+                        0x000383dd         Code  Gb  ABImemcpy_unaligned.o [5]
+__iar_unaligned___aeabi_memcpy4
+                        0x000383fd         Code  Gb  ABImemcpy_unaligned.o [5]
+__iar_unaligned___aeabi_memcpy8
+                        0x000383fd         Code  Gb  ABImemcpy_unaligned.o [5]
+__iar_zero_init3        0x00034b23   0x26  Code  Gb  zero_init3.o [7]
+_act_init               0x00033443   0x20  Code  Gb  act.o [1]
+_batt_filter_init       0x2000acbc    0x1  Data  Lc  robot_battery.o [1]
+_battery_cut_cnt        0x2000b8c6    0x1  Data  Lc  robot-battery-monitor.o [1]
+_battery_cut_continue   0x2000b8ca    0x2  Data  Lc  robot-battery-monitor.o [1]
+_battery_low_continue   0x2000b8c8    0x2  Data  Lc  robot-battery-monitor.o [1]
+_battery_low_continue   0x2000acbd    0x1  Data  Lc  robot_battery.o [1]
+_battery_low_status     0x2000acbe    0x1  Data  Lc  robot_battery.o [1]
+_battery_status         0x2000aca4   0x10  Data  Lc  robot_battery.o [1]
+_battery_voltage        0x2000acc8    0x4  Data  Lc  robot_battery.o [1]
+_charge_update          0x00036329   0x88  Code  Lc  robot_battery.o [1]
+_display_init           0x00037bb1    0xe  Code  Gb  display.o [1]
+_key_init               0x0003447b   0x22  Code  Gb  local_key_check.o [1]
+_remote_init            0x00034595   0x2a  Code  Gb  remote.o [1]
+abort                   0x0003a94d    0x6  Code  Gb  abort.o [3]
+abs                     0x00037b51    0x8  Code  Gb  abs.o [3]
+act_command_q           0x000350d9   0x36  Code  Gb  lib.o [1]
+act_ctrl_cmd            0x00035615         Code  Gb  syscall_api.o [8]
+act_routine             0x000336c9   0x94  Code  Gb  act.o [1]
+adcCache                0x2000b688   0x34  Data  Lc  sensor.o [1]
+adc_afio                0x0003a628   0x18  Data  Gb  afio_cfg.o [1]
+adc_chan_table          0x0003f900   0x34  Data  Gb  gpio_cfg.o [1]
+adjust_handle           0x2000ab48    0x1  Data  Gb  act.o [1]
+adjust_side_brush_flag  0x2000ab4c    0x1  Data  Lc  act.o [1]
+afio_table              0x0003f800   0xd8  Data  Gb  gpio_cfg.o [1]
+allow_adjust            0x2000ab44    0x1  Data  Gb  act.o [1]
+allow_self_test         0x2000ab43    0x1  Data  Gb  act.o [1]
+any_key                 0x00034547   0x30  Code  Gb  local_key_check.o [1]
+arf2498_spi_id          0x2000b98c    0x4  Data  Gb  BK2425_Initialization_141015.o [1]
+auto_test_buf           0x2000b514   0x50  Data  Lc  test_cmd_handle.o [1]
+auto_test_data_size     0x2000b77c    0x1  Data  Lc  test_cmd_handle.o [1]
+auto_test_receive_data  0x2000b784    0x2  Data  Lc  test_cmd_handle.o [1]
+auto_test_rx_handle     0x00036cd3   0x22  Code  Gb  test_cmd_handle.o [1]
+auto_test_sending_index
+                        0x2000b77b    0x1  Data  Lc  test_cmd_handle.o [1]
+auto_test_time_count    0x2000b782    0x2  Data  Lc  test_cmd_handle.o [1]
+auto_test_tx_handle     0x00036ca9   0x2a  Code  Gb  test_cmd_handle.o [1]
+bat_state               0x2000ac88    0x1  Data  Lc  simwifi_demo2.o [1]
+battery_is_low          0x00036437    0x6  Code  Gb  robot_battery.o [1]
+battery_line_current    0x2000b830    0x2  Data  Gb  current.o [1]
+battery_switch_check    0x0003643d   0x14  Code  Gb  robot_battery.o [1]
+battery_temperature     0x2000b836    0x2  Data  Gb  current.o [1]
+battery_temperature_average
+                        0x00037f0b    0x6  Code  Gb  current.o [1]
+battery_temperature_get
+                        0x00037f1d   0x48  Code  Gb  current.o [1]
+battery_voltage         0x2000b834    0x2  Data  Gb  current.o [1]
+battery_voltage_average
+                        0x00037f05    0x6  Code  Gb  current.o [1]
+before_charging_volt    0x2000abbc    0x2  Data  Gb  charge.o [1]
+begin_charge_report     0x2000abaf    0x1  Data  Gb  charge.o [1]
+begin_monitor           0x2000ac49    0x1  Data  Lc  robot_univrsal_wheel.o [1]
+board_key               0x2000ab46    0x1  Data  Lc  act.o [1]
+bump_state              0x2000b774    0x1  Data  Lc  test_cmd_handle.o [1]
+bumper_bump_count       0x2000b71c    0x2  Data  Lc  exception.o [1]
+cal_pack_sum            0x00037615   0x26  Code  Gb  simwifi_demo2.o [1]
+calc_cur_duty           0x00037dd1   0x18  Code  Gb  motor.o [1]
+calculate_wheel_speed   0x00039985  0x11a  Code  Gb  wall_follow_common.o [1]
+capture_counter         0x2000abe8    0x8  Data  Gb  remote_handle.o [1]
+charge_current_get      0x00035f79   0x10  Code  Gb  charge.o [1]
+charge_maybe_full       0x000356a7         Code  Gb  syscall_api.o [8]
+charge_neg_cnt          0x2000b960    0x2  Data  Gb  charge.o [1]
+charge_overflow         0x2000abad    0x1  Data  Gb  charge.o [1]
+charge_pwm_id           0x2000b8f4    0x4  Data  Gb  tm_cfg.o [1]
+charge_stop_cnt         0x2000b964    0x4  Data  Gb  charge.o [1]
+chargerDetect           0x2000acb4    0x8  Data  Gb  robot_battery.o [1]
+charger_pwm_handler     0x00038455    0x2  Code  Gb  tm_cfg.o [1]
+charging_current_setpoint
+                        0x2000abba    0x2  Data  Gb  charge.o [1]
+charging_detect         0x00036423   0x14  Code  Gb  robot_battery.o [1]
+charging_dock           0x0003626b   0x14  Code  Gb  charge.o [1]
+charging_error          0x2000abac    0x1  Data  Gb  charge.o [1]
+charging_init           0x00035f4b   0x28  Code  Gb  charge.o [1]
+charging_jack           0x00036267    0x4  Code  Gb  charge.o [1]
+charging_on_counts      0x2000abd8    0x4  Data  Gb  charge.o [1]
+charging_print          0x00035ecf   0x7c  Code  Gb  charge.o [1]
+charging_start_complete_minutes
+                        0x2000abd0    0x4  Data  Gb  charge.o [1]
+charging_start_full_minutes
+                        0x2000abc4    0x4  Data  Gb  charge.o [1]
+charging_start_recover_minutes
+                        0x2000abc0    0x4  Data  Gb  charge.o [1]
+charging_state          0x2000abb6    0x2  Data  Gb  charge.o [1]
+charging_state_get      0x00035f73    0x6  Code  Gb  charge.o [1]
+charging_trickle_on_counts
+                        0x2000abd4    0x4  Data  Gb  charge.o [1]
+charging_trickle_ticks  0x2000abcc    0x4  Data  Gb  charge.o [1]
+charging_trickle_timeout
+                        0x2000abc8    0x4  Data  Gb  charge.o [1]
+charging_vol_count      0x2000abb2    0x2  Data  Gb  charge.o [1]
+check_and_powerup_wifi_module
+                        0x00037599   0x4a  Code  Lc  simwifi_demo2.o [1]
+check_bat_level         0x000376c5   0x56  Code  Gb  simwifi_demo2.o [1]
+check_battery_voltage   0x00037f11    0xc  Code  Gb  current.o [1]
+chipid_read             0x000356b9         Code  Gb  syscall_api.o [8]
+clean_out_key_flg       0x00035237   0x1c  Code  Gb  lib.o [1]
+cleaning_complete_handle
+                        0x00034185   0x22  Code  Gb  act.o [1]
+clear_debouncer         0x0003567f         Code  Gb  syscall_api.o [8]
+clear_map_index         0x00034aeb    0x8  Code  Gb  SimSweep_demo2.o [1]
+clear_ui_error_number   0x000353cf    0x8  Code  Gb  exception.o [1]
+cliff_filter            0x2000b74c    0x8  Data  Lc  sensor.o [1]
+cliff_index_off         0x2000b685    0x1  Data  Gb  sensor.o [1]
+cliff_index_on          0x2000b684    0x1  Data  Gb  sensor.o [1]
+cliff_onoff_swith       0x2000b9b3    0x1  Data  Lc  sensor.o [1]
+cliff_touch_turn_switch
+                        0x2000b99d    0x1  Data  Gb  sensor_comm.o [1]
+cmd_stasis_test         0x2000b777    0x1  Data  Lc  test_cmd_handle.o [1]
+comlete_charged         0x2000abae    0x1  Data  Gb  charge.o [1]
+convert_to_adc          0x000376b7    0xe  Code  Gb  simwifi_demo2.o [1]
+convert_to_current      0x00035e85   0x4a  Code  Gb  charge.o [1]
+convert_to_voltage      0x00035e79    0xc  Code  Gb  charge.o [1]
+correct_target_heading  0x2000b938    0x8  Data  Lc  docking-new.o [1]
+cur_duty                0x2000b982    0x2  Data  Gb  robot_suction.o [1]
+current_day_p           0x2000b958    0x8  Data  Gb  SimSweep_demo2.o [1]
+current_dock_behavior   0x00035679         Code  Gb  syscall_api.o [8]
+current_filter_routine  0x00037e21   0xb6  Code  Gb  current.o [1]
+current_ir_code         0x2000b7b8    0x1  Data  Gb  remote_handle.o [1]
+cycle_check_function    0x000397f5   0xf2  Code  Gb  wall_follow_common.o [1]
+dac_afio                0x0003a718    0x8  Data  Gb  afio_cfg.o [1]
+data_length             0x2000abf8    0x8  Data  Lc  remote_handle.o [1]
+data_length             0x2000a810    0x8  Data  Gb  uart_queue.o [1]
+debug_uart_handler      0x00039119   0x24  Code  Gb  uart_cfg.o [1]
+delayus                 0x00038fbb    0x2  Code  Gb  robot-battery-monitor.o [1]
+direction_key_recover_handle
+                        0x0003415d   0x28  Code  Gb  act.o [1]
+direction_key_up_flag   0x2000ab4a    0x1  Data  Gb  act.o [1]
+display_gpio_init       0x00037b81   0x30  Code  Gb  display.o [1]
+display_power_up        0x00037c49   0x8e  Code  Gb  display.o [1]
+display_power_up_flag   0x2000b8dc    0x1  Data  Gb  display.o [1]
+display_routine         0x00037ceb   0xb6  Code  Gb  display.o [1]
+display_testing         0x00037cd7   0x14  Code  Gb  display.o [1]
+dock_avoid_active       0x0003aa61   0x26  Code  Gb  dock-avoid.o [1]
+dock_avoid_data         0x2000b968    0x8  Data  Lc  dock-avoid.o [1]
+dock_avoid_get_signals  0x0003aa25   0x3c  Code  Gb  dock-avoid.o [1]
+dock_avoid_signal_quality
+                        0x0003aa87   0x16  Code  Gb  dock-avoid.o [1]
+dock_binocular_avoid_signal_quality
+                        0x0003aaa1   0x18  Code  Gb  dock-avoid.o [1]
+dock_config             0x2000b8fc   0x14  Data  Lc  docking-new.o [1]
+dock_core_disable       0x0003566d         Code  Gb  syscall_api.o [8]
+dock_core_enable        0x0003566b         Code  Gb  syscall_api.o [8]
+dock_correct_register   0x0003a0e1   0x24  Code  Gb  docking-new.o [1]
+dock_get_random_count   0x0003a1f7   0x56  Code  Gb  docking-new.o [1]
+dock_is_enable          0x00035661         Code  Gb  syscall_api.o [8]
+dock_left_register      0x00039fed   0x16  Code  Gb  docking-new.o [1]
+dock_new_end            0x0003a2f9   0x34  Code  Gb  docking-new.o [1]
+dock_new_init           0x0003a24d   0x84  Code  Gb  docking-new.o [1]
+dock_new_start          0x0003a2d1   0x28  Code  Gb  docking-new.o [1]
+dock_right_register     0x00039fa5   0x18  Code  Gb  docking-new.o [1]
+dock_signal_get_time    0x2000b94c    0x4  Data  Gb  docking-sensors.o [1]
+dock_signals            0x2000b940    0xc  Data  Gb  docking-sensors.o [1]
+docking_correct         0x0003a073   0x38  Code  Gb  docking-new.o [1]
+docking_correct_abort_code
+                        0x0003a06d    0x2  Code  Gb  docking-new.o [1]
+docking_correct_abort_when
+                        0x0003a06f    0x4  Code  Gb  docking-new.o [1]
+docking_correct_direction
+                        0x2000b930    0x1  Data  Lc  docking-new.o [1]
+docking_correct_start_when
+                        0x0003a0ab   0x36  Code  Gb  docking-new.o [1]
+docking_go_forward      0x0003a00f   0x18  Code  Gb  docking-new.o [1]
+docking_go_forward_register
+                        0x0003a03d   0x18  Code  Gb  docking-new.o [1]
+docking_go_forward_run_when
+                        0x0003a027   0x16  Code  Gb  docking-new.o [1]
+docking_left            0x00039fbd   0x12  Code  Gb  docking-new.o [1]
+docking_left_run_when   0x00039fd7   0x16  Code  Gb  docking-new.o [1]
+docking_line            0x0003a10d   0xa6  Code  Gb  docking-new.o [1]
+docking_line_register   0x0003a1e3   0x14  Code  Gb  docking-new.o [1]
+docking_line_run_when   0x0003a1df    0x4  Code  Gb  docking-new.o [1]
+docking_right           0x00039f8b   0x14  Code  Gb  docking-new.o [1]
+docking_right_run_when  0x00039f9f    0x6  Code  Gb  docking-new.o [1]
+docking_state           0x2000ace0   0x20  Data  Lc  docking-new.o [1]
+enable_lt_offset_adjust
+                        0x00035853    0xe  Code  Gb  sensor.o [1]
+enhance_mode            0x2000b63c    0x1  Data  Lc  act.o [1]
+enter_sleep_state       0x2000b63f    0x1  Data  Lc  act.o [1]
+exception_handle        0x00035559   0x66  Code  Gb  exception.o [1]
+exit_wakeup_cfg         0x0003a75b   0x24  Code  Gb  exti_cfg.o [1]
+ext_act_handle          0x000334ed  0x1bc  Code  Gb  act.o [1]
+feed_watchdog           0x00034f19   0x12  Code  Gb  local_process.o [1]
+floorf                  0x00039e71         Code  Gb  floorf.o [4]
+follow_wall_run         0x00039a9f   0xc6  Code  Gb  wall_follow_common.o [1]
+forbit_sys_handle_rebound
+                        0x0003568f         Code  Gb  syscall_api.o [8]
+free                    0x00035613         Code  Gb  syscall_api.o [8]
+front_time_stp          0x2000b7ec    0x4  Data  Lc  lt_bump.o [1]
+fullgo_cnt              0x2000ab56    0x2  Data  Lc  act.o [1]
+g_comlete_charging      0x2000abb4    0x2  Data  Gb  charge.o [1]
+g_error_id              0x2000b700    0x1  Data  Lc  exception.o [1]
+g_sensor_start_gather   0x2000b99c    0x1  Data  Lc  sensor_comm.o [1]
+g_static_voltage        0x2000abbe    0x2  Data  Gb  charge.o [1]
+get_adc_chan_val        0x000356a9         Code  Gb  syscall_api.o [8]
+get_bat_level           0x000378ab    0x6  Code  Gb  simwifi_demo2.o [1]
+get_bat_temp            0x000364a5   0x32  Code  Gb  test_cmd_handle.o [1]
+get_bump_state          0x00035655         Code  Gb  syscall_api.o [8]
+get_charge_stop_current
+                        0x00035f89   0x4c  Code  Lc  charge.o [1]
+get_charging_state      0x00035665         Code  Gb  syscall_api.o [8]
+get_cliff_state         0x00035653         Code  Gb  syscall_api.o [8]
+get_clocktime_days      0x0003569b         Code  Gb  syscall_api.o [8]
+get_clocktime_hours     0x00035695         Code  Gb  syscall_api.o [8]
+get_clocktime_minutes   0x00035693         Code  Gb  syscall_api.o [8]
+get_clocktime_seconds   0x00035691         Code  Gb  syscall_api.o [8]
+get_commanded_speeds    0x000356b7         Code  Gb  syscall_api.o [8]
+get_dock_config         0x00039f85    0x6  Code  Gb  docking-new.o [1]
+get_enter_sleep_state   0x00033421    0x8  Code  Gb  act.o [1]
+get_gyro_angle          0x00035663         Code  Gb  syscall_api.o [8]
+get_gyro_radian         0x00035669         Code  Gb  syscall_api.o [8]
+get_ir_local            0x00037527   0x14  Code  Gb  remote_handle.o [1]
+get_ir_state            0x0003467d    0x4  Code  Gb  remote.o [1]
+get_ir_test             0x0003753b   0x10  Code  Gb  remote_handle.o [1]
+get_irq_syscall         0x0003562b         Code  Gb  syscall_api.o [8]
+get_key_state           0x00034543    0x4  Code  Gb  local_key_check.o [1]
+get_local_ui_config     0x000386d1    0x6  Code  Gb  ui-config.o [1]
+get_main_software_version
+                        0x000356b3         Code  Gb  syscall_api.o [8]
+get_motor_speeds        0x0003564f         Code  Gb  syscall_api.o [8]
+get_pc_test_flag        0x00037219    0x6  Code  Gb  test_cmd_handle.o [1]
+get_random              0x00035681         Code  Gb  syscall_api.o [8]
+get_rec_ir_data         0x000374d9    0x6  Code  Gb  remote_handle.o [1]
+get_remote_state        0x0003413d    0x6  Code  Gb  act.o [1]
+get_reset_wifi_flag     0x000378b7    0x6  Code  Gb  simwifi_demo2.o [1]
+get_restore_lt_signal_offset_state
+                        0x0003584b    0x8  Code  Gb  sensor.o [1]
+get_robot_current_state
+                        0x00034149    0xa  Code  Gb  act.o [1]
+get_schedule_info       0x0003512d    0x4  Code  Gb  lib.o [1]
+get_songplayer_onoff    0x000352c5    0x6  Code  Gb  song-player.o [1]
+get_sum_ticks           0x00035699         Code  Gb  syscall_api.o [8]
+get_test_result         0x00036af9  0x184  Code  Gb  test_cmd_handle.o [1]
+get_total_seconds       0x00035697         Code  Gb  syscall_api.o [8]
+get_uart_cmd            0x00034ae1    0xa  Code  Gb  SimSweep_demo2.o [1]
+get_ui_config           0x000386cb    0x6  Code  Gb  ui-config.o [1]
+get_ui_error_num        0x000353c9    0x6  Code  Gb  exception.o [1]
+get_ui_manager          0x00038d85    0x6  Code  Gb  ui-manager.o [1]
+get_ui_state            0x00033411    0x8  Code  Gb  act.o [1]
+get_wifi_uart_cmd_state
+                        0x00034733    0x4  Code  Gb  uart_wifi_check.o [1]
+go_into_trickle_charging
+                        0x00035fdf   0x22  Code  Lc  charge.o [1]
+goto_sleep_cnt          0x2000ab52    0x2  Data  Lc  act.o [1]
+gpio0_afio              0x0003a720    0x8  Data  Gb  afio_cfg.o [1]
+gpio1_afio              0x0003a728    0x8  Data  Gb  afio_cfg.o [1]
+gpio2_afio              0x0003a730    0x8  Data  Gb  afio_cfg.o [1]
+gpio3_afio              0x0003a738    0x8  Data  Gb  afio_cfg.o [1]
+gpio4_afio              0x0003a740    0x8  Data  Gb  afio_cfg.o [1]
+gpio5_afio              0x0003a748    0x8  Data  Gb  afio_cfg.o [1]
+gpio6_afio              0x0003a750    0x8  Data  Gb  afio_cfg.o [1]
+gptm0_afio              0x0003a6e0   0x10  Data  Gb  afio_cfg.o [1]
+gptm1_afio              0x0003a6f0   0x10  Data  Gb  afio_cfg.o [1]
+gptm2_afio              0x0003a700    0x8  Data  Gb  afio_cfg.o [1]
+gtm0_id                 0x2000b8e4    0x4  Data  Gb  tm_cfg.o [1]
+gtm1_id                 0x2000b8e8    0x4  Data  Gb  tm_cfg.o [1]
+gtm2_id                 0x2000b8ec    0x4  Data  Gb  tm_cfg.o [1]
+gtm3_id                 0x2000b8f0    0x4  Data  Gb  tm_cfg.o [1]
+gyro_is_ok              0x000356b5         Code  Gb  syscall_api.o [8]
+gyro_radian_diff_f      0x00039785   0x70  Code  Gb  wall_follow_common.o [1]
+hal_isr                 0x00035cef   0x12  Code  Gb  sensor.o [1]
+handle_act              0x00033f8d  0x188  Code  Gb  act.o [1]
+handle_act_charging     0x00033c71   0xe0  Code  Gb  act.o [1]
+handle_act_common       0x00033db1  0x1aa  Code  Gb  act.o [1]
+handle_act_docking      0x00033bed   0x7c  Code  Gb  act.o [1]
+handle_act_pausing      0x0003389d   0x8a  Code  Gb  act.o [1]
+handle_act_remote_driving
+                        0x00033afb   0xd6  Code  Gb  act.o [1]
+handle_act_running      0x0003380d   0x88  Code  Gb  act.o [1]
+handle_act_spotting     0x00033945   0xba  Code  Gb  act.o [1]
+handle_act_testing      0x00033d59   0x34  Code  Gb  act.o [1]
+handle_act_ui_error     0x00033d8d   0x16  Code  Gb  act.o [1]
+handle_act_waiting      0x00033769   0x8e  Code  Gb  act.o [1]
+handle_act_wall_following
+                        0x00033a13   0x9c  Code  Gb  act.o [1]
+handle_remote           0x000345c9   0xb4  Code  Lc  remote.o [1]
+handle_test_cmd         0x000364ed  0x536  Code  Gb  test_cmd_handle.o [1]
+handle_wifi_bat_level   0x0003771b   0x58  Code  Gb  simwifi_demo2.o [1]
+i2c0_afio               0x0003a6a0    0x8  Data  Gb  afio_cfg.o [1]
+i2c1_afio               0x0003a6a8    0x8  Data  Gb  afio_cfg.o [1]
+in_cycle_go_forward_sig
+                        0x2000b81e    0x1  Data  Gb  wall_follow_common.o [1]
+init_irq_syscall        0x0003ab51   0x38  Code  Gb  irq_syscall.o [7]
+initialized             0x2000b9af    0x1  Data  Lc  current.o [1]
+initialized             0x2000b9b1    0x1  Data  Gb  motor.o [1]
+io_init_table           0x0003f934  0x190  Data  Gb  gpio_cfg.o [1]
+io_table                0x0003f8d8   0x28  Data  Gb  gpio_cfg.o [1]
+ir_afio                 0x0003a708    0x8  Data  Gb  afio_cfg.o [1]
+ir_decode               0x2000a9c4   0x50  Data  Gb  dock_ir_signal.o [1]
+ir_gpio                 0x2000ac00   0x14  Data  Gb  remote_handle.o [1]
+ir_gpio_init            0x0003743d   0x34  Code  Gb  remote_handle.o [1]
+ir_key                  0x2000ab47    0x1  Data  Lc  act.o [1]
+ir_press_off            0x2000b660   0x20  Data  Lc  remote.o [1]
+ir_press_on             0x2000b640   0x20  Data  Lc  remote.o [1]
+ir_press_state          0x2000a8e8   0xb4  Data  Lc  remote.o [1]
+ir_rx_decode            0x000374df   0x3a  Code  Gb  remote_handle.o [1]
+ir_rx_init              0x00037471   0x68  Code  Gb  remote_handle.o [1]
+ir_send_code            0x00037f81   0xa4  Code  Gb  dock_ir_signal.o [1]
+ir_send_gpio            0x2000a99c   0x28  Data  Gb  dock_ir_signal.o [1]
+ir_test_all_result      0x00036a8f   0x6a  Code  Gb  test_cmd_handle.o [1]
+ir_test_result          0x00036a43   0x4c  Code  Gb  test_cmd_handle.o [1]
+ir_tx_send_4khz         0x00038059   0x7c  Code  Gb  dock_ir_signal.o [1]
+ir_val                  0x2000b7bc    0xc  Data  Lc  remote_handle.o [1]
+ir_val_test             0x2000b7c8    0xc  Data  Lc  remote_handle.o [1]
+is_lt_offset_adjust_enable
+                        0x00035861    0x8  Code  Gb  sensor.o [1]
+key_check               0x2000b9a0    0x4  Data  Lc  uart_wifi_check.o [1]
+key_ir_p                0x2000ab5c    0x4  Data  Lc  act.o [1]
+key_press_cnt           0x2000b77d    0x1  Data  Lc  test_cmd_handle.o [1]
+key_press_off           0x2000b910    0x8  Data  Lc  local_key_check.o [1]
+key_press_on            0x2000b918    0xc  Data  Lc  local_key_check.o [1]
+key_press_state         0x2000aae0   0x50  Data  Lc  local_key_check.o [1]
+key_routine             0x0003449d   0xa6  Code  Gb  local_key_check.o [1]
+key_single_init         0x00034449   0x32  Code  Gb  local_key_check.o [1]
+key_state_p             0x2000ab58    0x4  Data  Lc  act.o [1]
+last_battery_line_current
+                        0x2000b840    0x2  Data  Gb  current.o [1]
+last_battery_temperature
+                        0x2000b846    0x2  Data  Gb  current.o [1]
+last_battery_voltage    0x2000b844    0x2  Data  Gb  current.o [1]
+last_dock_behavior      0x00035677         Code  Gb  syscall_api.o [8]
+last_flush_state        0x2000b8dd    0x1  Data  Gb  display.o [1]
+last_left_motor_current
+                        0x2000b83c    0x2  Data  Gb  current.o [1]
+last_main_brush_current
+                        0x2000b838    0x2  Data  Gb  current.o [1]
+last_right_motor_current
+                        0x2000b83e    0x2  Data  Gb  current.o [1]
+last_side_brush_current
+                        0x2000b83a    0x2  Data  Gb  current.o [1]
+last_state              0x2000ab50    0x1  Data  Gb  act.o [1]
+last_vaccum_motor_current
+                        0x2000b842    0x2  Data  Gb  current.o [1]
+led_afio                0x0003a710    0x8  Data  Gb  afio_cfg.o [1]
+led_gpio_group          0x2000ad64    0xc  Data  Gb  display.o [1]
+left_motor_current      0x2000b82c    0x2  Data  Gb  current.o [1]
+light_index_off         0x2000b682    0x2  Data  Gb  sensor.o [1]
+light_index_on          0x2000b680    0x2  Data  Gb  sensor.o [1]
+local_app_init          0x00034f2b   0x5c  Code  Gb  local_process.o [1]
+local_map_reset         0x00035619         Code  Gb  syscall_api.o [8]
+lock_irq                0x000355c9         Code  Gb  syscall_api.o [8]
+lt_onoff_swith          0x2000b9b2    0x1  Data  Lc  sensor.o [1]
+lt_signal_adjust_enable
+                        0x2000ac14    0x1  Data  Lc  sensor.o [1]
+main                    0x0003aad5   0x4c  Code  Gb  main.o [1]
+main_app_task           0x00034f9d   0x42  Code  Gb  local_process.o [1]
+main_brush_current      0x2000b828    0x2  Data  Gb  current.o [1]
+main_brush_current_is_stall
+                        0x000353d7   0x16  Code  Gb  exception.o [1]
+main_brush_current_over_count
+                        0x2000b714    0x2  Data  Lc  exception.o [1]
+main_brush_voltage      0x2000ad82    0x2  Data  Lc  robot_brush.o [1]
+malloc                  0x00035611         Code  Gb  syscall_api.o [8]
+map_data_process        0x00037861   0x4a  Code  Gb  simwifi_demo2.o [1]
+map_index               0x2000b98a    0x2  Data  Lc  SimSweep_demo2.o [1]
+map_points_data         0x2000b4c0   0x54  Data  Lc  SimSweep_demo2.o [1]
+mctm0_afio              0x0003a6c8    0x8  Data  Gb  afio_cfg.o [1]
+mctm1_afio              0x0003a6d0   0x10  Data  Gb  afio_cfg.o [1]
+memcpy                  0x0003560b         Code  Gb  syscall_api.o [8]
+memmove                 0x0003560f         Code  Gb  syscall_api.o [8]
+memset                  0x0003560d         Code  Gb  syscall_api.o [8]
+mid_filter              0x00034fe1   0x2a  Code  Gb  sensor_comm.o [1]
+mid_ir_strong           0x0003a969   0x20  Code  Gb  docking-sensors.o [1]
+mid_ir_strong_left      0x0003a9b3    0x4  Code  Gb  docking-sensors.o [1]
+mid_ir_strong_mid       0x0003a9ab    0x4  Code  Gb  docking-sensors.o [1]
+mid_ir_strong_right     0x0003a9bb    0x4  Code  Gb  docking-sensors.o [1]
+mid_ir_weak             0x0003a989   0x22  Code  Gb  docking-sensors.o [1]
+mid_ir_weak_left        0x0003a9b7    0x4  Code  Gb  docking-sensors.o [1]
+mid_ir_weak_mid         0x0003a9af    0x4  Code  Gb  docking-sensors.o [1]
+mid_ir_weak_right       0x0003a9bf    0x4  Code  Gb  docking-sensors.o [1]
+midbrush_off            0x2000ad81    0x1  Data  Lc  robot_brush.o [1]
+modeAndVersion          0x00037398   0x14  Data  Lc  test_cmd_handle.o [1]
+motor_encode_get        0x000356b1         Code  Gb  syscall_api.o [8]
+need_send_ack           0x2000b8bd    0x1  Data  Gb  simwifi_demo2.o [1]
+obj_schedule_info_msg_t
+                        0x2000b414   0x3c  Data  Gb  lib.o [1]
+op_status               0x2000b9ad    0x1  Data  Gb  BK2425_Initialization_141015.o [1]
+other_motor_test        0x2000b776    0x1  Data  Lc  test_cmd_handle.o [1]
+pack                    0x2000b450    0xc  Data  Lc  simwifi_demo2.o [1]
+parser_control_cmd      0x000347e3   0xb2  Code  Gb  SimSweep_demo2.o [1]
+parser_map_info         0x00034961   0x16  Code  Gb  SimSweep_demo2.o [1]
+parser_wifi_state       0x00034741   0x1e  Code  Gb  SimSweep_demo2.o [1]
+pc_test_dly             0x2000b7a8    0x4  Data  Lc  test_cmd_handle.o [1]
+pc_test_enableq         0x2000b779    0x1  Data  Lc  test_cmd_handle.o [1]
+pc_test_flag            0x2000b77a    0x1  Data  Gb  test_cmd_handle.o [1]
+pid_afio                0x0003a6b0   0x18  Data  Gb  afio_cfg.o [1]
+play_err_cnt            0x2000b71e    0x2  Data  Lc  exception.o [1]
+play_err_num            0x2000b720    0x2  Data  Lc  exception.o [1]
+play_song_cnt           0x2000abdc    0x4  Data  Lc  charge.o [1]
+play_song_flag          0x2000abb0    0x1  Data  Lc  charge.o [1]
+port_state              0x2000ad90  0x280  Data  Gb  remote_handle.o [1]
+process_charging        0x00036001  0x210  Code  Gb  charge.o [1]
+pthread_change_prio     0x000355d3         Code  Gb  syscall_api.o [8]
+pthread_create          0x000355cd         Code  Gb  syscall_api.o [8]
+pthread_delete          0x000355cf         Code  Gb  syscall_api.o [8]
+pthread_delete_req      0x000355d1         Code  Gb  syscall_api.o [8]
+pthread_query           0x000355d9         Code  Gb  syscall_api.o [8]
+pthread_resume          0x000355d5         Code  Gb  syscall_api.o [8]
+pthread_sched_lock      0x000355e3         Code  Gb  syscall_api.o [8]
+pthread_sched_unlock    0x000355e5         Code  Gb  syscall_api.o [8]
+pthread_suspend         0x000355d7         Code  Gb  syscall_api.o [8]
+pthread_wakeup          0x000355dd         Code  Gb  syscall_api.o [8]
+pwm_voltage             0x2000b984    0x2  Data  Gb  robot_suction.o [1]
+queue_len               0x2000a818    0x8  Data  Gb  uart_queue.o [1]
+quit_charging           0x00036233   0x34  Code  Gb  charge.o [1]
+read_ptr                0x2000b978    0x8  Data  Lc  remote_handle.o [1]
+read_ptr                0x2000a808    0x8  Data  Gb  uart_queue.o [1]
+receive_map_ok_flag     0x2000b987    0x1  Data  Gb  SimSweep_demo2.o [1]
+recently_mid_ir_strong_left
+                        0x2000ad14   0x14  Data  Gb  docking-sensors.o [1]
+recently_mid_ir_strong_mid
+                        0x2000accc   0x14  Data  Gb  docking-sensors.o [1]
+recently_mid_ir_strong_right
+                        0x2000ad3c   0x14  Data  Gb  docking-sensors.o [1]
+recently_mid_ir_weak_left
+                        0x2000ad28   0x14  Data  Gb  docking-sensors.o [1]
+recently_mid_ir_weak_mid
+                        0x2000ad00   0x14  Data  Gb  docking-sensors.o [1]
+recently_mid_ir_weak_right
+                        0x2000ad50   0x14  Data  Gb  docking-sensors.o [1]
+recive_connect_cmd_ok   0x2000b8c0    0x1  Data  Gb  simwifi_demo2.o [1]
+reg_temp                0x2000b9ae    0x1  Data  Gb  BK2425_Initialization_141015.o [1]
+register_adc_chan_table
+                        0x0003563d         Code  Gb  syscall_api.o [8]
+register_afio_table     0x0003563f         Code  Gb  syscall_api.o [8]
+register_debouncer      0x0003567b         Code  Gb  syscall_api.o [8]
+register_dock_function  0x00035671         Code  Gb  syscall_api.o [8]
+register_dock_signals   0x00035673         Code  Gb  syscall_api.o [8]
+register_io_init_table  0x00035643         Code  Gb  syscall_api.o [8]
+register_io_table       0x00035641         Code  Gb  syscall_api.o [8]
+register_random_conut   0x00035675         Code  Gb  syscall_api.o [8]
+register_ui_config      0x00035623         Code  Gb  syscall_api.o [8]
+reload_sensor_data      0x000398e7   0x2e  Code  Gb  wall_follow_common.o [1]
+remap                   0x00035e58   0x20  Data  Gb  sensor.o [1]
+remote_decode           0x2000b868   0x20  Data  Gb  ir_decode.o [1]
+remote_decode_init      0x00039279   0x1c  Code  Gb  ir_decode.o [1]
+remote_ir_get           0x00037519    0xe  Code  Gb  remote_handle.o [1]
+remote_resync_init      0x00039271    0x8  Code  Gb  ir_decode.o [1]
+remote_routine          0x000345bf    0xa  Code  Gb  remote.o [1]
+remote_state            0x2000ab49    0x1  Data  Lc  act.o [1]
+remote_timer            0x2000b7b9    0x1  Data  Gb  remote_handle.o [1]
+request_irq             0x000355f9         Code  Gb  syscall_api.o [8]
+reset_charge_stop_current
+                        0x00035fd5    0xa  Code  Lc  charge.o [1]
+reset_cliff_threshold   0x0003587d    0xc  Code  Gb  sensor.o [1]
+reset_led               0x00037bfd   0x3e  Code  Gb  display.o [1]
+reset_lt_auto_adjust_flag
+                        0x2000ac15    0x1  Data  Lc  sensor.o [1]
+reset_lt_auto_offset    0x00035d3f   0x1c  Code  Gb  sensor.o [1]
+reset_lt_signal_offset  0x000357cf   0x40  Code  Gb  sensor.o [1]
+reset_wifi_flag         0x2000b9b4    0x1  Data  Gb  simwifi_demo2.o [1]
+restore_lt_signal_offset
+                        0x00035767   0x68  Code  Gb  sensor.o [1]
+restore_lt_signal_offset_ok
+                        0x2000ac16    0x1  Data  Lc  sensor.o [1]
+revbuf                  0x2000b8a8   0x14  Data  Lc  simwifi_demo2.o [1]
+right_motor_current     0x2000b82e    0x2  Data  Gb  current.o [1]
+robot_battery_init      0x00036311   0x18  Code  Gb  robot_battery.o [1]
+robot_battery_monitor   0x00039003   0x9c  Code  Gb  robot-battery-monitor.o [1]
+robot_battery_monitor_routine
+                        0x000363b1   0x72  Code  Gb  robot_battery.o [1]
+robot_brush_init        0x00035343   0x16  Code  Gb  robot_brush.o [1]
+robot_brush_update      0x00035383   0x32  Code  Gb  robot_brush.o [1]
+robot_bump_mask         0x00036479   0x20  Code  Gb  test_cmd_handle.o [1]
+robot_close_sensor_led  0x00035cc9   0x26  Code  Gb  sensor.o [1]
+robot_current_init      0x00037eed   0x18  Code  Gb  current.o [1]
+robot_docking_kidnap_monitor
+                        0x00038eb9  0x102  Code  Gb  robot-battery-monitor.o [1]
+robot_drive_go          0x00035685         Code  Gb  syscall_api.o [8]
+robot_get_dock_signals  0x0003a9c3   0x4c  Code  Gb  docking-sensors.o [1]
+robot_ir_detection_init
+                        0x00035085   0x24  Code  Gb  sensor_comm.o [1]
+robot_ir_init           0x2000b687    0x1  Data  Lc  sensor.o [1]
+robot_is_cliff          0x00035d11    0x4  Code  Gb  sensor.o [1]
+robot_is_lighttouch     0x00035d15    0xa  Code  Gb  sensor.o [1]
+robot_is_maybe_not_bustbin
+                        0x000373ed   0x10  Code  Gb  robot_suction.o [1]
+robot_mid_brush_adjust_set
+                        0x000353bb    0x6  Code  Gb  robot_brush.o [1]
+robot_midbrush_vols_set
+                        0x00035365   0x1e  Code  Gb  robot_brush.o [1]
+robot_motor_init        0x00037df7   0x22  Code  Gb  motor.o [1]
+robot_motor_update      0x00037de9    0xe  Code  Gb  motor.o [1]
+robot_rear_lt_distance  0x00035d01    0x4  Code  Gb  sensor.o [1]
+robot_sensor_gather_start
+                        0x0003500b   0x10  Code  Gb  sensor_comm.o [1]
+robot_sensor_handler    0x0003501b   0x6a  Code  Gb  sensor_comm.o [1]
+robot_sensor_init       0x00035d5b   0x6a  Code  Gb  sensor.o [1]
+robot_set_action_funs   0x00035647         Code  Gb  syscall_api.o [8]
+robot_set_adc_adjust    0x00035649         Code  Gb  syscall_api.o [8]
+robot_set_clean_speed   0x0003564b         Code  Gb  syscall_api.o [8]
+robot_set_going_speed   0x00035645         Code  Gb  syscall_api.o [8]
+robot_set_slowdown_div  0x00035687         Code  Gb  syscall_api.o [8]
+robot_side_brush_adjust_set
+                        0x000353b5    0x6  Code  Gb  robot_brush.o [1]
+robot_sidebrush_vols_set
+                        0x00035359    0xc  Code  Gb  robot_brush.o [1]
+robot_signal_distance   0x00035d05    0xc  Code  Gb  sensor.o [1]
+robot_start_work        0x2000b9b0    0x1  Data  Gb  local_process.o [1]
+robot_stasis_test_clear
+                        0x00034b79    0x8  Code  Gb  robot_univrsal_wheel.o [1]
+robot_stasis_test_get   0x00034b81    0x6  Code  Gb  robot_univrsal_wheel.o [1]
+robot_suction_adjust_set
+                        0x0003742d    0x6  Code  Gb  robot_suction.o [1]
+robot_suction_init      0x000373fd   0x12  Code  Gb  robot_suction.o [1]
+robot_suction_update    0x000373cd   0x20  Code  Gb  robot_suction.o [1]
+robot_suction_vols_set  0x0003740f   0x1e  Code  Gb  robot_suction.o [1]
+robot_turn              0x00035683         Code  Gb  syscall_api.o [8]
+robot_universal_wheel_init
+                        0x00034b87    0xc  Code  Gb  robot_univrsal_wheel.o [1]
+robot_universal_wheel_monitor
+                        0x00034b4f   0x2a  Code  Lc  robot_univrsal_wheel.o [1]
+robot_universl_wheel_exit
+                        0x00034e5b    0xc  Code  Gb  robot_univrsal_wheel.o [1]
+robot_universl_wheel_init
+                        0x00034e19   0x42  Code  Gb  robot_univrsal_wheel.o [1]
+robot_wheel_drop_mask   0x00036459   0x20  Code  Gb  test_cmd_handle.o [1]
+robot_xy_dist           0x00035667         Code  Gb  syscall_api.o [8]
+save_lt_signal_offset   0x00035727   0x40  Code  Gb  sensor.o [1]
+schedule_info           0x2000b574   0x3c  Data  Lc  SimSweep_demo2.o [1]
+self_test_result        0x2000b788    0x4  Data  Lc  test_cmd_handle.o [1]
+self_test_routine       0x000371a7   0x72  Code  Gb  test_cmd_handle.o [1]
+sem_accept              0x000355e7         Code  Gb  syscall_api.o [8]
+sem_create              0x000355e9         Code  Gb  syscall_api.o [8]
+sem_del                 0x000355eb         Code  Gb  syscall_api.o [8]
+sem_pend                0x000355ed         Code  Gb  syscall_api.o [8]
+sem_post                0x000355ef         Code  Gb  syscall_api.o [8]
+sem_query               0x000355f1         Code  Gb  syscall_api.o [8]
+send_auto_test_data     0x00036cf5  0x47e  Code  Gb  test_cmd_handle.o [1]
+send_config_cmd         0x2000b8bf    0x1  Data  Gb  simwifi_demo2.o [1]
+send_config_network_cmd
+                        0x00034a8b   0x1c  Code  Gb  SimSweep_demo2.o [1]
+send_drive_backward_cmd
+                        0x2000b995    0x1  Data  Gb  lib.o [1]
+send_drive_forward_cmd  0x2000b994    0x1  Data  Gb  lib.o [1]
+send_drive_left_cmd     0x2000b996    0x1  Data  Gb  lib.o [1]
+send_drive_right_cmd    0x2000b997    0x1  Data  Gb  lib.o [1]
+send_forward_cmd        0x0003513b   0x40  Code  Gb  lib.o [1]
+send_left_cmd           0x00035181   0x44  Code  Gb  lib.o [1]
+send_map_data_to_wifi   0x00034977   0x9a  Code  Gb  SimSweep_demo2.o [1]
+send_map_flag           0x2000b986    0x1  Data  Gb  SimSweep_demo2.o [1]
+send_pack               0x0003763b   0x7c  Code  Gb  simwifi_demo2.o [1]
+send_right_cmd          0x000351f3   0x44  Code  Gb  lib.o [1]
+send_robot_state_to_wifi
+                        0x00034895   0xcc  Code  Gb  SimSweep_demo2.o [1]
+send_schedule_cmd       0x0003510f    0xa  Code  Gb  lib.o [1]
+send_time_cmd           0x00035119    0x8  Code  Gb  lib.o [1]
+send_wifi_song_mute     0x00034aa7    0x8  Code  Gb  SimSweep_demo2.o [1]
+send_wifi_song_unmute   0x00034aaf    0x6  Code  Gb  SimSweep_demo2.o [1]
+send_wifi_test_result   0x00034acd   0x14  Code  Gb  SimSweep_demo2.o [1]
+sensor_gather_cliff     0x00035889   0x50  Code  Gb  sensor.o [1]
+sensor_gather_touch     0x000358f3   0x9a  Code  Gb  sensor.o [1]
+sensor_handle_cliff     0x000359a9  0x17e  Code  Gb  sensor.o [1]
+sensor_handle_touch     0x00035b37  0x186  Code  Gb  sensor.o [1]
+sensor_threshold_update
+                        0x000356bd   0x6a  Code  Gb  sensor.o [1]
+set_38k_on              0x00037f79    0x2  Code  Gb  dock_ir_signal.o [1]
+set_adaptor_output_voltage
+                        0x000356a3         Code  Gb  syscall_api.o [8]
+set_adjust_adc_value_to_system
+                        0x00037173   0x2a  Code  Gb  test_cmd_handle.o [1]
+set_charge_current      0x000356a1         Code  Gb  syscall_api.o [8]
+set_charge_voltage      0x000356a5         Code  Gb  syscall_api.o [8]
+set_charging_enable     0x0003569d         Code  Gb  syscall_api.o [8]
+set_cliff_enable        0x00035d39    0x6  Code  Gb  sensor.o [1]
+set_cliff_threshold     0x00035869   0x14  Code  Gb  sensor.o [1]
+set_current_day         0x2000b970    0x8  Data  Lc  lib.o [1]
+set_current_time        0x00035131    0xa  Code  Gb  lib.o [1]
+set_debug_uart_tx_fifo_empty_irq
+                        0x0003922b    0xc  Code  Gb  uart_cfg.o [1]
+set_display_power_up_flag
+                        0x00037da5    0x6  Code  Gb  display.o [1]
+set_dock_new_end        0x0003a32d   0x18  Code  Gb  docking-new.o [1]
+set_led                 0x00037bbf   0x3e  Code  Gb  display.o [1]
+set_lighttouch_enable   0x00035d1f   0x1a  Code  Gb  sensor.o [1]
+set_motor_vels          0x0003564d         Code  Gb  syscall_api.o [8]
+set_power_callback      0x00035621         Code  Gb  syscall_api.o [8]
+set_remote_val          0x00035629         Code  Gb  syscall_api.o [8]
+set_reset_wifi_flag     0x000378b1    0x6  Code  Gb  simwifi_demo2.o [1]
+set_save_state          0x00034231   0x12  Code  Gb  act.o [1]
+set_schedule            0x0003475f   0x40  Code  Gb  SimSweep_demo2.o [1]
+set_self_diagnostics    0x000356af         Code  Gb  syscall_api.o [8]
+set_slip_high_throd     0x00035657         Code  Gb  syscall_api.o [8]
+set_slip_normal         0x0003565f         Code  Gb  syscall_api.o [8]
+set_songplayer_onoff    0x000352bf    0x6  Code  Gb  song-player.o [1]
+set_start_docking_state
+                        0x00033429   0x1a  Code  Gb  act.o [1]
+set_time                0x0003479f   0x44  Code  Gb  SimSweep_demo2.o [1]
+set_ui_state            0x00033419    0x8  Code  Gb  act.o [1]
+set_wifi_uart_tx_fifo_empty_irq
+                        0x00039237    0xc  Code  Gb  uart_cfg.o [1]
+side_brush_current      0x2000b82a    0x2  Data  Gb  current.o [1]
+side_brush_current_is_stall
+                        0x000353ed   0x2a  Code  Gb  exception.o [1]
+side_brush_current_over_count
+                        0x2000b716    0x2  Data  Lc  exception.o [1]
+side_brush_voltage      0x2000ad84    0x2  Data  Lc  robot_brush.o [1]
+side_pwm_id             0x2000b8f8    0x4  Data  Gb  tm_cfg.o [1]
+sidebrush_off           0x2000ad80    0x1  Data  Lc  robot_brush.o [1]
+signal_average_off      0x2000b6c0   0x20  Data  Lc  sensor.o [1]
+signal_average_on       0x2000b754   0x20  Data  Lc  sensor.o [1]
+signal_delta            0x2000b6e0   0x20  Data  Gb  sensor.o [1]
+signal_offset           0x2000ac38   0x10  Data  Lc  sensor.o [1]
+signal_queue_off        0x2000b358   0x80  Data  Lc  sensor.o [1]
+signal_queue_on         0x2000b2d8   0x80  Data  Lc  sensor.o [1]
+signal_result           0x2000b73c   0x10  Data  Lc  sensor.o [1]
+signal_threshold_off    0x2000b888   0x20  Data  Lc  sensor.o [1]
+signal_threshold_on     0x2000ac18   0x20  Data  Lc  sensor.o [1]
+sleep                   0x000355db         Code  Gb  syscall_api.o [8]
+sleep_funcs             0x2000ad70    0x8  Data  Lc  display.o [1]
+sleep_handle            0x00033463   0x74  Code  Gb  act.o [1]
+songplayer_en           0x2000ad86    0x1  Data  Gb  song-player.o [1]
+songplayer_init         0x00035281    0x4  Code  Gb  song-player.o [1]
+songplayer_is_playing   0x00035285    0x4  Code  Gb  song-player.o [1]
+songplayer_play_id      0x00035289   0x32  Code  Gb  song-player.o [1]
+songplayer_routine      0x000352bb    0x4  Code  Gb  song-player.o [1]
+spi0_afio               0x0003a640   0x18  Data  Gb  afio_cfg.o [1]
+spi0_id_get             0x000395c5    0x6  Code  Gb  spi_cfg.o [1]
+spi1_afio               0x0003a658   0x10  Data  Gb  afio_cfg.o [1]
+spi_nor_flash_erase     0x0003565d         Code  Gb  syscall_api.o [8]
+spi_nor_flash_read      0x00035659         Code  Gb  syscall_api.o [8]
+spi_nor_flash_write     0x0003565b         Code  Gb  syscall_api.o [8]
+spot_mode               0x2000ab45    0x1  Data  Lc  act.o [1]
+start_docking_flag      0x2000ab41    0x1  Data  Lc  act.o [1]
+start_motor_test        0x000356ad         Code  Gb  syscall_api.o [8]
+start_watchdog          0x00034ef1   0x28  Code  Gb  local_process.o [1]
+stasis_count            0x2000ac4c    0x4  Data  Gb  robot_univrsal_wheel.o [1]
+stasis_last_pos         0x2000ac6c    0xc  Data  Gb  robot_univrsal_wheel.o [1]
+stasis_test             0x2000ac50    0x4  Data  Gb  robot_univrsal_wheel.o [1]
+stasis_throd_bool       0x2000ac48    0x1  Data  Lc  robot_univrsal_wheel.o [1]
+state_recover           0x00034249   0x7e  Code  Gb  act.o [1]
+state_save              0x2000ab4b    0x1  Data  Gb  act.o [1]
+state_save_and_recover_grid
+                        0x000341ad   0x78  Code  Gb  act.o [1]
+statsis_id              0x2000ad8c    0x4  Data  Lc  robot_univrsal_wheel.o [1]
+stop_act_cnt            0x2000b722    0x2  Data  Lc  exception.o [1]
+stop_motor_test         0x000356ab         Code  Gb  syscall_api.o [8]
+suction_off             0x2000b980    0x1  Data  Gb  robot_suction.o [1]
+sys_current_info_p      0x2000ac8c   0x14  Data  Lc  simwifi_demo2.o [1]
+sys_exception_monitor   0x0003542d  0x12c  Code  Gb  exception.o [1]
+sys_info_get            0x00035617         Code  Gb  syscall_api.o [8]
+sys_set_pwm_out_duty    0x0003863d   0x5e  Code  Gb  tm_cfg.o [1]
+sys_shutdown            0x00038fbd   0x46  Code  Gb  robot-battery-monitor.o [1]
+sys_spi_cfg             0x0003950d   0x74  Code  Gb  spi_cfg.o [1]
+sys_spi_close           0x000395a5   0x20  Code  Gb  spi_cfg.o [1]
+sys_state_info_p        0x2000ab30   0x10  Data  Lc  act.o [1]
+sys_state_info_p        0x2000b8cc   0x10  Data  Lc  display.o [1]
+sys_state_info_p        0x2000b704   0x10  Data  Lc  exception.o [1]
+sys_state_info_p        0x2000b564   0x10  Data  Lc  SimSweep_demo2.o [1]
+sys_state_info_p        0x2000ac78   0x10  Data  Lc  simwifi_demo2.o [1]
+sys_tick_get            0x000355df         Code  Gb  syscall_api.o [8]
+sys_tick_set            0x000355e1         Code  Gb  syscall_api.o [8]
+sys_timer_register      0x00035625         Code  Gb  syscall_api.o [8]
+sys_tm_cfg              0x00038457  0x166  Code  Gb  tm_cfg.o [1]
+sys_tm_close            0x0003860b   0x32  Code  Gb  tm_cfg.o [1]
+sys_uart_cfg            0x00039175   0x6e  Code  Gb  uart_cfg.o [1]
+sys_uart_close          0x00039211   0x1a  Code  Gb  uart_cfg.o [1]
+syscall_irq             0x2000b9a4    0x4  Data  Gb  irq_syscall.o [7]
+system_reboot           0x0003561f         Code  Gb  syscall_api.o [8]
+tb_on_sig               0x2000b7e1    0x1  Data  Gb  lt_bump.o [1]
+temp_list               0x000364d8   0x14  Data  Gb  test_cmd_handle.o [1]
+test_item_table         0x2000ab70   0x3c  Data  Gb  test_cmd_handle.o [1]
+test_result_dly         0x2000b790    0x4  Data  Lc  test_cmd_handle.o [1]
+time_4khz_counter       0x2000b6bc    0x2  Data  Gb  sensor.o [1]
+time_4khz_counter_touch
+                        0x2000b6be    0x2  Data  Gb  sensor.o [1]
+timed_tasks_unregister  0x0003562d         Code  Gb  syscall_api.o [8]
+timer_elapsed           0x0003561d         Code  Gb  syscall_api.o [8]
+timer_ms                0x0003561b         Code  Gb  syscall_api.o [8]
+timer_task_register     0x00035627         Code  Gb  syscall_api.o [8]
+tmp_day                 0x2000b5f8    0x8  Data  Lc  act.o [1]
+tmp_day                 0x2000b950    0x8  Data  Lc  SimSweep_demo2.o [1]
+tmp_schedule_info       0x2000b600   0x3c  Data  Lc  act.o [1]
+tmp_schedule_info       0x2000b3d8   0x3c  Data  Gb  lib.o [1]
+totaLen                 0x2000b8bc    0x1  Data  Lc  simwifi_demo2.o [1]
+touch_bump_onoff        0x2000b7e0    0x1  Data  Gb  lt_bump.o [1]
+touch_bump_run          0x0003a4ef  0x130  Code  Gb  lt_bump.o [1]
+trickle_charging_time   0x2000abb8    0x2  Data  Gb  charge.o [1]
+turn_away_wall          0x00039915   0x70  Code  Gb  wall_follow_common.o [1]
+turn_off_touch_bump     0x0003a4d5    0x8  Code  Gb  lt_bump.o [1]
+turn_on_touch_bump      0x0003a4dd   0x12  Code  Gb  lt_bump.o [1]
+txrx_queue              0x2000b210   0xc8  Data  Gb  uart_queue.o [1]
+type_three_ok           0x2000b988    0x1  Data  Lc  SimSweep_demo2.o [1]
+uart0_afio              0x0003a668   0x10  Data  Gb  afio_cfg.o [1]
+uart1_afio              0x0003a678   0x10  Data  Gb  afio_cfg.o [1]
+uart2_afio              0x0003a688   0x10  Data  Gb  afio_cfg.o [1]
+uart3_afio              0x0003a698    0x8  Data  Gb  afio_cfg.o [1]
+uart_cmd                0x2000b9a8    0x2  Data  Lc  SimSweep_demo2.o [1]
+uart_cmd_ext_handle     0x0003469d   0x28  Code  Gb  uart_wifi_check.o [1]
+uart_debug              0x2000b924    0x4  Data  Gb  uart_cfg.o [1]
+uart_send_buf           0x2000b5b0   0x48  Data  Gb  lib.o [1]
+uart_server_routine     0x00037773   0xee  Code  Gb  simwifi_demo2.o [1]
+uart_txrx_q_empty       0x00039387   0x12  Code  Gb  uart_queue.o [1]
+uart_txrx_q_full        0x00039399   0x28  Code  Gb  uart_queue.o [1]
+uart_txrx_q_get         0x00039347   0x40  Code  Gb  uart_queue.o [1]
+uart_txrx_q_put         0x000392f9   0x4e  Code  Gb  uart_queue.o [1]
+uart_txrx_reset_readptr
+                        0x000393cb    0xc  Code  Gb  uart_queue.o [1]
+uart_txrx_reset_writeptr
+                        0x000393c1    0xa  Code  Gb  uart_queue.o [1]
+uart_wifi               0x2000b928    0x4  Data  Gb  uart_cfg.o [1]
+ui_config_default       0x00038738   0x68  Data  Lc  ui-config.o [1]
+ui_config_init          0x000386c9    0x2  Code  Gb  ui-config.o [1]
+ui_handle_idle          0x00034119   0x24  Code  Gb  act.o [1]
+ui_handle_sleep         0x00037b7d    0x4  Code  Gb  display.o [1]
+ui_local_config_default
+                        0x000386d8   0x60  Data  Lc  ui-config.o [1]
+ui_manager              0x00038dc4   0xf4  Data  Lc  ui-manager.o [1]
+ui_manager_clear_error_info
+                        0x00038da7    0x4  Code  Lc  ui-manager.o [1]
+ui_manager_deinit       0x00038d95    0x4  Code  Lc  ui-manager.o [1]
+ui_manager_get_config   0x00038d99    0x4  Code  Lc  ui-manager.o [1]
+ui_manager_init         0x00038d8b    0xa  Code  Lc  ui-manager.o [1]
+ui_manager_put_error_info
+                        0x00038da3    0x4  Code  Lc  ui-manager.o [1]
+ui_manager_put_massage  0x00038d9d    0x6  Code  Lc  ui-manager.o [1]
+ui_manager_put_real_map_point
+                        0x00038daf   0x12  Code  Lc  ui-manager.o [1]
+ui_manager_put_sensor_data
+                        0x00038dab    0x4  Code  Lc  ui-manager.o [1]
+ui_manager_quit_song    0x00038dc1    0x4  Code  Lc  ui-manager.o [1]
+ui_msg_handle           0x000396c5   0x3c  Code  Gb  ui-msg-handler.o [1]
+ui_put_map_point_info   0x00034a11   0x7a  Code  Gb  SimSweep_demo2.o [1]
+ui_state                0x2000ab40    0x1  Data  Lc  act.o [1]
+ui_test_cmd             0x2000ab64    0x4  Data  Gb  act.o [1]
+ui_test_index           0x2000ab42    0x1  Data  Gb  act.o [1]
+ui_test_last_ts         0x2000b78c    0x4  Data  Lc  test_cmd_handle.o [1]
+ui_test_last_ts2        0x2000b794   0x14  Data  Lc  test_cmd_handle.o [1]
+ui_test_num_last        0x2000b77e    0x2  Data  Lc  test_cmd_handle.o [1]
+universal_wheel_count   0x00034b49    0x6  Code  Gb  robot_univrsal_wheel.o [1]
+universal_wheel_monitor
+                        0x00034b93  0x26c  Code  Gb  robot_univrsal_wheel.o [1]
+unlock_irq              0x000355cb         Code  Gb  syscall_api.o [8]
+unregister_debouncer    0x0003567d         Code  Gb  syscall_api.o [8]
+unregister_dock_function
+                        0x0003566f         Code  Gb  syscall_api.o [8]
+update_dirt_level       0x00035651         Code  Gb  syscall_api.o [8]
+update_main_duty        0x00035315   0x2e  Code  Gb  robot_brush.o [1]
+update_side_duty        0x000352e9   0x2c  Code  Gb  robot_brush.o [1]
+update_suction_duty     0x000373ad   0x20  Code  Gb  robot_suction.o [1]
+useok                   0x2000b686    0x1  Data  Lc  sensor.o [1]
+v_ref_init              0x0003569f         Code  Gb  syscall_api.o [8]
+vac_current_null_count  0x2000b71a    0x2  Data  Lc  exception.o [1]
+vac_current_over_count  0x2000b718    0x2  Data  Lc  exception.o [1]
+vac_current_over_count  0x2000b780    0x2  Data  Lc  test_cmd_handle.o [1]
+vaccum_is_maybe_stall   0x00035417   0x16  Code  Gb  exception.o [1]
+vaccum_motor_current    0x2000b832    0x2  Data  Gb  current.o [1]
+virtual_wall_active     0x0003aacf    0x4  Code  Gb  virtual-wall.o [1]
+virtual_wall_get_signals
+                        0x0003aacd    0x2  Code  Gb  virtual-wall.o [1]
+voiceplayer_get_file_count
+                        0x00035633         Code  Gb  syscall_api.o [8]
+voiceplayer_get_file_version
+                        0x00035631         Code  Gb  syscall_api.o [8]
+voiceplayer_init        0x0003562f         Code  Gb  syscall_api.o [8]
+voiceplayer_is_playing  0x00035637         Code  Gb  syscall_api.o [8]
+voiceplayer_play_index  0x00035635         Code  Gb  syscall_api.o [8]
+voiceplayer_play_stream
+                        0x0003563b         Code  Gb  syscall_api.o [8]
+voiceplayer_quit_playing
+                        0x00035639         Code  Gb  syscall_api.o [8]
+vram_read               0x0003568b         Code  Gb  syscall_api.o [8]
+vram_write              0x00035689         Code  Gb  syscall_api.o [8]
+waiting_state_cnt       0x2000ab54    0x2  Data  Lc  act.o [1]
+wake_handler            0x0003a759    0x2  Code  Gb  exti_cfg.o [1]
+wakeup_id               0x2000b848   0x20  Data  Lc  exti_cfg.o [1]
+wakeup_pin_cfg          0x0003a77f   0xc0  Code  Gb  exti_cfg.o [1]
+wall_follow_callback    0x00039bf3  0x1d6  Code  Gb  wall_follow_common.o [1]
+wall_follow_is_running  0x0003568d         Code  Gb  syscall_api.o [8]
+wall_follow_start       0x00039b75   0x62  Code  Gb  wall_follow_common.o [1]
+wall_follow_stop        0x00039bd7   0x1c  Code  Gb  wall_follow_common.o [1]
+wdg_fd                  0x2000ad88    0x4  Data  Gb  local_process.o [1]
+wf_g_par                0x2000b804   0x18  Data  Gb  wall_follow_common.o [1]
+wf_turn_array_p         0x2000b824    0x4  Data  Gb  wall_follow_common.o [1]
+wf_turn_good_count      0x2000b81d    0x1  Data  Gb  wall_follow_common.o [1]
+wf_turn_index_i         0x2000b81c    0x1  Data  Gb  wall_follow_common.o [1]
+wheel_test_event        0x2000b775    0x1  Data  Lc  test_cmd_handle.o [1]
+wifi_flag               0x2000ab4d    0x1  Data  Lc  act.o [1]
+wifi_init               0x000375eb    0xa  Code  Gb  simwifi_demo2.o [1]
+wifi_powerup_count      0x2000b8c4    0x2  Data  Lc  simwifi_demo2.o [1]
+wifi_press_long_flag    0x2000ab4e    0x1  Data  Lc  act.o [1]
+wifi_rx_queue           0x2000a820   0xc8  Data  Gb  uart_queue.o [1]
+wifi_uart_cmd_rounte    0x000346c5   0x6e  Code  Gb  uart_wifi_check.o [1]
+wifi_uart_cmd_state     0x2000aa14   0x70  Data  Lc  uart_wifi_check.o [1]
+wifi_uart_cmd_state_p   0x2000ab60    0x4  Data  Lc  act.o [1]
+wifi_uart_handler       0x0003913d   0x38  Code  Gb  uart_cfg.o [1]
+wificonnectok           0x2000b8be    0x1  Data  Gb  simwifi_demo2.o [1]
+working_byte            0x2000abe0    0x8  Data  Gb  remote_handle.o [1]
+write_nvram_flag        0x2000b778    0x1  Data  Lc  test_cmd_handle.o [1]
+write_ptr               0x2000abf0    0x8  Data  Lc  remote_handle.o [1]
+write_ptr               0x2000a800    0x8  Data  Gb  uart_queue.o [1]
+
+
+[1] = F:\1708\SDK - unlock\project\Debug\Obj
+[2] = command line
+[3] = dl7M_tln.a
+[4] = m7M_tl.a
+[5] = rt7M_tl.a
+[6] = shb_l.a
+[7] = startup.a
+[8] = syscall_api.a
+
+  30 422 bytes of readonly  code memory
+   1 692 bytes of readonly  data memory
+   4 533 bytes of readwrite data memory
+
+Errors: none
+Warnings: none

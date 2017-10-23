@@ -1,0 +1,736 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:07
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\charge\charge.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\charge\charge.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\charge.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\charge.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\charge\charge.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          #include "charge.h"
+      7          #include "syscall_api.h"
+      8          #include "util/current.h"
+      9          #include "am_date_base.h"
+     10          #include "ui-song-player.h"
+     11          #include "am_config_macro.h"
+     12          
+     13          CHARGING_STATE_ERROR_E charging_error;
+     14          CHARGING_STATE_ERROR_E charging_record_error;
+     15          
+     16          u32 charge_stop_cnt;
+     17          u16 charge_neg_cnt;
+     18          u32 charging_start_recover_minutes;
+     19          u32 charging_start_full_minutes;
+     20          u32 charging_trickle_timeout;
+     21          u32 charging_trickle_ticks;
+     22          u32 charging_start_complete_minutes;
+     23          u16 charging_vol_count;
+     24          u32 charging_trickle_on_counts;
+     25          u32 charging_on_counts;
+     26          u16 charging_trickle_off_counts;
+     27          u16 g_comlete_charging;
+     28          u16 charging_state;
+     29          u16 trickle_charging_time = 0;
+     30          u16 charging_current_setpoint;
+     31          u16 before_charging_volt;
+     32          u8  charge_overflow;
+     33          u8  detect_debund;
+     34          u8  comlete_charged;
+     35          u8  charging_last;
+     36          u8  charge_detect_cnt;
+     37          
+     38          const u16 charging_voltage_max_allowed = CHARGING_MAXVOL;
+     39          
+     40          #define PURLING_TIME  100*5*60 /*开始充电时，涓流充电时间*/
+     41          #define MAX_VOLT      0xffff
+     42          
+     43          s16  g_static_voltage = MAX_VOLT;
+     44          
+     45          extern const IO_PIN_CFG io_table[];
+     46          
+     47          /****************************************************************
+     48          *Function   :  convert_to_voltage
+     49          *Author     :  lyy    
+     50          *Date       :  2017.4.20
+     51          *Description:  把电压adc值转成电压（单位mv）
+     52          *CallBy     :  
+     53          *Input      :  参数
+     54          *              v_adc ： 电压的adc
+     55          *Output     :  无
+     56          *Return     :  无
+     57          *Others     :  
+     58          *History    : //修改历史
+     59              <author>       <time>      <version>           <desc>
+     60              lyy            17.4.28       v1.0         build this function
+     61          ******************************************************************/
+     62          s16 convert_to_voltage( s16 v_adc) 
+     63          {
+     64            s32 mv= 18032*v_adc;//0.18 ---> 18032; 0.174 --> 18975
+     65            mv = (mv>>12);
+     66            return (s16)mv;
+     67          }
+     68          
+     69          /****************************************************************
+     70          *Function   :  convert_to_current
+     71          *Author     :  lyy    
+     72          *Date       :  2017.4.20
+     73          *Description:  把电流adc值转成电压（单位mA）
+     74          *CallBy     :  
+     75          *Input      :  参数
+     76          *              v_adc ： 电流的adc
+     77          *Output     :  无
+     78          *Return     :  无
+     79          *Others     :  
+     80          *History    : //修改历史
+     81              <author>       <time>      <version>           <desc>
+     82              lyy            17.4.28       v1.0         build this function
+     83          ******************************************************************/
+     84          s16 convert_to_current( s16 c_adc) 
+     85          {
+     86            s16 ret =  (s16)(((0.95 - c_adc*3.3/4096.0f)/0.41)*1000);
+     87            return ret;
+     88          }
+     89          
+     90          /****************************************************************
+     91          *Function   :  charging_print
+     92          *Author     :  lyy    
+     93          *Date       :  2017.4.20
+     94          *Description:  打印充电过程信息（电压，电流，充电状态）
+     95          *CallBy     :  一般在充电流程
+     96          *Input      :  无
+     97          *Output     :  无
+     98          *Return     :  无
+     99          *Others     :  可以在本地实现同样功能函数
+    100          *History    : //修改历史
+    101              <author>       <time>      <version>           <desc>
+    102              lyy            17.4.28       v1.0         build this function
+    103          ******************************************************************/
+    104          void charging_print(void)
+    105          {
+    106            static u32 one_second=0;
+    107            
+    108            if(get_total_seconds()>(one_second+10))
+    109            {
+    110              one_second = get_total_seconds();
+    111              int16_t adc=get_adc_chan_val( ADC_CHAN_BATTERY_CURRENT );                   
+    112              float current = (950 - ((adc*3300)/4096))/0.41f;
+    113              printf("charging state:%d",get_ui_manager()->charging_state());//charging_state);
+    114              printf(" v:%d c:%d mA t:%d\n",battery_voltage_average(),(int)current,battery_temperature_average());
+    115              
+    116            }
+    117          }
+    118          
+    119          /****************************************************************
+    120          *Function   :  charging_init
+    121          *Author     :  lyy
+    122          *Date       :  2017.4.20
+    123          *Description:  初始化充电参数
+    124          *CallBy     :  任何地方，中断除外
+    125          *Input      :  无
+    126          *Output     :  无
+    127          *Return     :  无
+    128          *Others     :  
+    129          *History    : //修改历史
+    130              <author>       <time>      <version>           <desc>
+    131              lyy            17.4.28       v1.0         build this function
+    132          ******************************************************************/
+    133          void charging_init(void)
+    134          {
+    135            charging_start_recover_minutes = 0;
+    136            charging_trickle_timeout = 0;
+    137            charging_start_full_minutes = 0;
+    138            charging_error = CHARGING_NONE;
+    139            charging_state = CHARGING_OFF;
+    140            charging_vol_count = 0;
+    141            g_comlete_charging = 0;
+    142            trickle_charging_time = 0;
+    143            set_charge_voltage(CHARGING_MAXVOL);
+    144            set_adaptor_output_voltage(ADAPTER_OUTPUT_VOL);
+    145          }
+    146          
+    147          /****************************************************************
+    148          *Function   :  charging_state_get
+    149          *Author     :  lyy
+    150          *Date       :  2017.4.20
+    151          *Description:  获取充电状态
+    152          *CallBy     :  任何地方，目前这个接口是必须实现，因为注册给SDK使用
+    153          *Input      :  无
+    154          *Output     :  无
+    155          *Return     :  返回 charging_state： 充电状态
+    156          *Others     :  
+    157          *History    : //修改历史
+    158              <author>       <time>      <version>           <desc>
+    159              lyy            17.4.28       v1.0         build this function
+    160          ******************************************************************/
+    161          u16 charging_state_get(void)
+    162          {
+    163            return charging_state;
+    164          }
+    165          
+    166          
+    167          /****************************************************************
+    168          *Function   :  charge_current_get
+    169          *Author     :  lyy    
+    170          *Date       :  2017.4.20
+    171          *Description:  获取当前实际的充电电流 (单位：mA)
+    172          *CallBy     :  任何地方，中断上下文除外
+    173          *Input      :  参数
+    174          *Output     :  无
+    175          *Return     :  返回 实际的充电电流值 (mA)
+    176          *Others     :  
+    177          *History    : //修改历史
+    178              <author>       <time>      <version>           <desc>
+    179              lyy            17.4.28       v1.0         build this function
+    180          ******************************************************************/
+    181          S16 charge_current_get(void)
+    182          {
+    183              return convert_to_current(get_adc_chan_val( ADC_CHAN_BATTERY_CURRENT ));   
+    184          }
+    185          
+    186          /****************************************************************
+    187          *Function   :  get_charge_stop_current
+    188          *Author     :  lyy
+    189          *Date       :  2017.4.20
+    190          *Description:  获取是否已经充电完毕
+    191          *CallBy     :  任何地方，中断除外
+    192          *Input      :  无
+    193          *Output     :  无
+    194          *Return     :  返回 1： 充满电   0：未充满
+    195          *Others     :  
+    196          *History    : //修改历史
+    197              <author>       <time>      <version>           <desc>
+    198              lyy            17.4.28       v1.0         build this function
+    199          ******************************************************************/
+    200          static S8 get_charge_stop_current(void)
+    201          {
+    202            if(charge_current_get() <= 200)
+    203            {
+    204              charge_stop_cnt++;
+    205            }
+    206            else
+    207            {
+    208              if(charge_stop_cnt>0)
+    209                charge_stop_cnt--;
+    210            }
+    211            if(charge_stop_cnt > 120000)//if low current charge for 20min,  complete it
+    212            {
+    213              return 1;
+    214            }
+    215            ///////////////////////////////
+    216            if(charge_current_get() < 0)
+    217            {
+    218              charge_neg_cnt++;
+    219            }
+    220            else
+    221            {
+    222              if(charge_neg_cnt>0)
+    223                charge_neg_cnt--;
+    224            }
+    225            
+    226            if(charge_neg_cnt > 6000)//60s is neg continue
+    227            {
+    228              return -1;
+    229            }
+    230            
+    231            return 0;
+    232          }
+    233          
+    234          
+    235          /****************************************************************
+    236          *Function   :  reset_charge_stop_current
+    237          *Author     :  lyy
+    238          *Date       :  2017.4.20
+    239          *Description:  恢复判断充电是否满的状态
+    240          *CallBy     :  任何地方
+    241          *Input      :  无
+    242          *Output     :  无
+    243          *Return     :  无
+    244          *Others     :  
+    245          *History    : //修改历史
+    246              <author>       <time>      <version>           <desc>
+    247              lyy            17.4.28       v1.0         build this function
+    248          ******************************************************************/
+    249          static void reset_charge_stop_current(void)
+    250          {
+    251            charge_stop_cnt = 0;
+    252            charge_neg_cnt  = 0;
+    253          }
+    254          
+    255          /****************************************************************
+    256          *Function   :  go_into_trickle_charging
+    257          *Author     :  lyy
+    258          *Date       :  2017.4.20
+    259          *Description:  进入涓流充电模式
+    260          *CallBy     :  任何地方，中断除外
+    261          *Input      :  无
+    262          *Output     :  无
+    263          *Return     :  无
+    264          *Others     :  
+    265          *History    : //修改历史
+    266              <author>       <time>      <version>           <desc>
+    267              lyy            17.4.28       v1.0         build this function
+    268          ******************************************************************/
+    269          static void go_into_trickle_charging(void)
+    270          {
+    271            v_ref_init();
+    272            set_charging_enable(1);//close charging
+    273            charging_start_full_minutes = get_total_seconds()/60;
+    274            charging_start_recover_minutes = get_total_seconds()/60;        
+    275            charging_state = CHARGING_PURLING;//进入涓流重新充电  
+    276          }
+    277          
+    278          /****************************************************************
+    279          *Function   :  process_charging
+    280          *Author     :  lyy
+    281          *Date       :  2017.4.20
+    282          *Description:  充电控制流程
+    283          *CallBy     :  目前是给SDK调用
+    284          *Input      :  无
+    285          *Output     :  无
+    286          *Return     :  无
+    287          *Others     :  
+    288          *History    : //修改历史
+    289              <author>       <time>      <version>           <desc>
+    290              lyy            17.4.28       v1.0         build this function
+    291          ******************************************************************/
+    292          u8 begin_charge_report = 0;
+    293          static int play_song_cnt = 0;
+    294          static u8 play_song_flag = 0;
+    295          void process_charging(void)
+    296          {
+    297            //充电过程控制
+    298            
+    299            if(!begin_charge_report)
+    300            {
+    301              play_song_cnt++;
+    302              if( (play_song_cnt > 200) && (!play_song_flag) )//2s后报语音
+    303              {
+    304                if( sys_runing_mode_get()==ROBOT_STATE_CHARGING) 
+    305                {
+    306                  songplayer_play_id(SONG_ID_CHARGING_START, 0);
+    307          		printf("begin_charging\r\n");
+    308                  begin_charge_report = 1;
+    309                  play_song_flag = 1;
+    310                }
+    311              }       
+    312            }
+    313            
+    314            if(before_charging_volt == 0)
+    315            {
+    316                before_charging_volt = battery_voltage_average();
+    317                printf("before volt = %d \r\n",before_charging_volt);
+    318            }  
+    319            
+    320            {
+    321              if(check_battery_voltage(charging_voltage_max_allowed+100)) 
+    322              {
+    323                charging_state = CHARGING_OFF;
+    324                g_comlete_charging = 1;
+    325                set_charging_enable(0);//close charging
+    326                charging_print();
+    327                return;
+    328              }
+    329              
+    330              //这里的作用只是给ui的状态
+    331              if(g_comlete_charging)
+    332              {
+    333                if(check_battery_voltage((charging_voltage_max_allowed-15)))
+    334                {
+    335                  set_charging_enable(0);
+    336                  charging_state = CHARGING_COMPLETE;//充满
+    337                  comlete_charged = 1;
+    338                  charging_print();
+    339                  return;
+    340                }
+    341                else if(check_battery_voltage((charging_voltage_max_allowed-30)))
+    342                {
+    343                  g_comlete_charging = 0;
+    344                  go_into_trickle_charging();
+    345                }
+    346                else
+    347                {
+    348                  charging_state = CHARGING_OFF;
+    349                  g_comlete_charging = 0;
+    350                }
+    351              }
+    352              else 
+    353              {
+    354                if( (before_charging_volt > (g_static_voltage-15)) && (before_charging_volt >(charging_voltage_max_allowed-25)) )//如果之前是充满过，但是被马上拉开放回来，这个时候应该是已充满的状态充
+    355                {
+    356                  g_static_voltage = MAX_VOLT;
+    357                  go_into_trickle_charging();
+    358                  comlete_charged = 1;
+    359                }
+    360              }
+    361          
+    362              if(trickle_charging_time < PURLING_TIME)
+    363              {
+    364                trickle_charging_time++;
+    365              }
+    366          
+    367              charging_print();
+    368              switch(charging_state)
+    369              {
+    370              case CHARGING_OFF:
+    371                charging_vol_count = 0;
+    372                comlete_charged   = 0;
+    373                charging_start_full_minutes = get_total_seconds()/60;
+    374                charging_start_recover_minutes = get_total_seconds()/60;
+    375                v_ref_init();
+    376          //      if(check_battery_available()) //电池是否可用，比如温度是否过高，是否有插入电池
+    377          //      {
+    378          //        charging_error = CHARGING_NOBATTERY;
+    379          //        charging_record_error = CHARGING_NOBATTERY;
+    380          //      }
+    381          //      else 
+    382                if (!(check_battery_voltage(CHARGING_RECOVERYVOL)))
+    383                {
+    384                  charging_state = CHARGING_RECOVERY;
+    385                  set_charging_enable(1);//close charging
+    386                  charging_trickle_on_counts = get_total_seconds(); 
+    387                }
+    388                else
+    389                {
+    390                  charging_state = CHARGING_ON;
+    391                  set_charging_enable(1);//close charging
+    392                  charging_on_counts = get_sum_ticks();
+    393                  charging_trickle_on_counts = get_total_seconds();			  
+    394                }
+    395                break;
+    396              case CHARGING_RECOVERY:
+    397                //300ma charging
+    398                charging_current_setpoint = 300;
+    399                set_charge_current(charging_current_setpoint);
+    400                if(check_battery_voltage(CHARGING_RECOVERYVOL))
+    401                {
+    402                  charging_state = CHARGING_ON;
+    403                }
+    404                if(((get_total_seconds()/60)-charging_start_recover_minutes)>CHARGING_TIME_RECOVERY_MINUTES)
+    405                {
+    406                  charging_start_complete_minutes = get_total_seconds()/60;
+    407                  charging_state = CHARGING_COMPLETE;
+    408                  comlete_charged = 1;
+    409                }
+    410          	  			
+    411                break;
+    412              case CHARGING_ON:
+    413                {
+    414                  //1000ma
+    415                  if(trickle_charging_time < PURLING_TIME)
+    416                  {
+    417                    charging_current_setpoint = 220;//0.1C 充电
+    418                  }
+    419                  else
+    420                  {
+    421                    charging_current_setpoint = 800;
+    422                  }
+    423                  set_charge_current(charging_current_setpoint);
+    424                  if((charge_maybe_full()  && (get_charge_stop_current() > 0)) || (get_charge_stop_current()<0))//current < 250ma && voltage >= 16.8v
+    425                  {            
+    426                      charge_overflow = 1;
+    427                  }
+    428                    
+    429                  if(charge_overflow)//如果电压大于最大允许值
+    430                  {
+    431                    charge_overflow = 0;
+    432                    reset_charge_stop_current();
+    433                    charging_trickle_timeout = get_total_seconds()/60; //记录开始值
+    434                    charging_trickle_ticks = get_sum_ticks();
+    435                    charging_state = CHARGING_COMPLETE;//CHARGING_PURLING;
+    436                    comlete_charged = 1;
+    437                  }
+    438                  else
+    439                  {
+    440                    ;//set_charging_enable(1);
+    441                  }
+    442                  //vol max
+    443                  if(((get_total_seconds()/60)-charging_start_full_minutes)>CHARGING_TIME_ALLOW_MINUTES)
+    444                  {
+    445                    charging_start_complete_minutes = get_total_seconds()/60;
+    446                    charging_state = CHARGING_COMPLETE;
+    447                    comlete_charged = 1;
+    448                  }
+    449                }
+    450                break;
+    451              case CHARGING_PURLING:
+    452                //50ma
+    453                if(trickle_charging_time < PURLING_TIME)
+    454                {
+    455                  charging_current_setpoint = 220;//0.1C 充电
+    456                }
+    457                else   
+    458                {
+    459                  charging_current_setpoint = 800;
+    460                }
+    461                
+    462                if((charge_maybe_full()  && (get_charge_stop_current()>0)) || (get_charge_stop_current()<0))//current < 300ma && voltage >= 16.8v
+    463                {     
+    464                  charge_overflow = 1;
+    465                }
+    466                
+    467                if(charge_overflow)//如果电压大于最大允许值
+    468                {
+    469                  charge_overflow = 0;
+    470                  comlete_charged = 1;
+    471                  reset_charge_stop_current();           
+    472                  charging_state = CHARGING_COMPLETE;
+    473                }
+    474                else
+    475                {
+    476                  ;
+    477                }
+    478                
+    479                if(((get_total_seconds()/60)-charging_start_full_minutes)>CHARGING_TIME_PURLING_MINUTES)
+    480                {
+    481                    charging_start_complete_minutes = get_total_seconds()/60;
+    482                    charging_state = CHARGING_COMPLETE;
+    483                }      
+    484          
+    485                break;
+    486              case CHARGING_WAITING:
+    487                break;
+    488              case CHARGING_COMPLETE:
+    489                g_comlete_charging = 1;
+    490                break;
+    491              }
+    492            }
+    493             
+    494          }
+    495          
+    496          
+    497          /****************************************************************
+    498          *Function   :  process_charging
+    499          *Author     :  lyy
+    500          *Date       :  2017.4.20
+    501          *Description:  退出充电控制流程
+    502          *CallBy     :  目前是给SDK调用
+    503          *Input      :  无
+    504          *Output     :  无
+    505          *Return     :  无
+    506          *Others     :  
+    507          *History    : //修改历史
+    508              <author>       <time>      <version>           <desc>
+    509              lyy            17.4.28       v1.0         build this function
+    510          ******************************************************************/
+    511          void quit_charging(void)
+    512          {
+    513            begin_charge_report  = 0;
+    514            before_charging_volt = 0;
+    515            play_song_cnt = 0;
+    516            play_song_flag = 0;
+    517            if(comlete_charged)
+    518            {
+    519              g_static_voltage = battery_voltage_average();
+    520              printf("after volt:%d\r\n",g_static_voltage);
+    521              comlete_charged  = 0;
+    522            }
+    523            else
+    524            {
+    525              g_static_voltage = MAX_VOLT;
+    526            }
+    527            
+    528          }
+    529          
+    530          /****************************************************************
+    531          *Function   :  charging_jack
+    532          *Author     :  lyy
+    533          *Date       :  2017.4.20
+    534          *Description:  检查是否插入适配器
+    535          *CallBy     :  任何地方
+    536          *Input      :  无
+    537          *Output     :  无
+    538          *Return     :  1：充电器插入 0：无
+    539          *Others     :  
+    540          *History    : //修改历史
+    541              <author>       <time>      <version>           <desc>
+    542              lyy            17.4.28       v1.0         build this function
+    543          ******************************************************************/
+    544          U16 charging_jack(void)
+    545          {
+    546            //return (gpio_get_value(IO_CHARGER_HIGH)==0); 
+    547            return 0;
+    548          }
+    549          
+    550          /****************************************************************
+    551          *Function   :  charging_dock
+    552          *Author     :  lyy
+    553          *Date       :  2017.4.20
+    554          *Description:  检查是否在充电座上
+    555          *CallBy     :  任何地方
+    556          *Input      :  无
+    557          *Output     :  无
+    558          *Return     :  1：充电器插入 0：无
+    559          *Others     :  
+    560          *History    : //修改历史
+    561              <author>       <time>      <version>           <desc>
+    562              lyy            17.4.28       v1.0         build this function
+    563          ******************************************************************/
+    564          U16 charging_dock(void)
+    565          {
+    566            return (gpio_get_value(IO_CHARGER_LOW)==0);
+    567          }
+    568          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   charge_current_get
+         0   -> convert_to_current
+         8   -> get_adc_chan_val
+       8   charging_dock
+         8   -- Indirect call
+       8   charging_init
+         0   -> set_adaptor_output_voltage
+         8   -> set_charge_voltage
+       0   charging_jack
+      24   charging_print
+        24   -- Indirect call
+        24   -> __aeabi_f2iz
+        24   -> __aeabi_fdiv
+        24   -> __aeabi_i2f
+        24   -> battery_temperature_average
+        24   -> battery_voltage_average
+        24   -> get_adc_chan_val
+        24   -> get_total_seconds
+        24   -> get_ui_manager
+       0   charging_state_get
+       8   convert_to_current
+         8   -> __aeabi_d2iz
+         8   -> __aeabi_ddiv
+         8   -> __aeabi_dmul
+         8   -> __aeabi_dsub
+         8   -> __aeabi_i2d
+       0   convert_to_voltage
+       8   get_charge_stop_current
+         8   -> charge_current_get
+       8   go_into_trickle_charging
+         8   -> get_total_seconds
+         8   -> set_charging_enable
+         8   -> v_ref_init
+      16   process_charging
+        16   -- Indirect call
+        16   -> battery_voltage_average
+        16   -> charge_maybe_full
+         0   -> charging_print
+        16   -> charging_print
+        16   -> check_battery_voltage
+        16   -> get_charge_stop_current
+        16   -> get_sum_ticks
+        16   -> get_total_seconds
+        16   -> go_into_trickle_charging
+        16   -> reset_charge_stop_current
+        16   -> set_charge_current
+        16   -> set_charging_enable
+        16   -> songplayer_play_id
+        16   -> v_ref_init
+       8   quit_charging
+         8   -- Indirect call
+         8   -> battery_voltage_average
+       0   reset_charge_stop_current
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable15
+       4  ??DataTable15_1
+       4  ??DataTable15_10
+       4  ??DataTable15_11
+       4  ??DataTable15_2
+       4  ??DataTable15_3
+       4  ??DataTable15_4
+       4  ??DataTable15_5
+       4  ??DataTable15_6
+       4  ??DataTable15_7
+       4  ??DataTable15_8
+       4  ??DataTable15_9
+      12  ?Subroutine0
+      14  ?Subroutine1
+       8  ?Subroutine2
+      20  ?_0
+      20  ?_1
+      20  ?_2
+      20  ?_3
+      16  ?_4
+      16  charge_current_get
+       1  charge_detect_cnt
+       8  charge_neg_cnt
+          charge_stop_cnt
+      20  charging_dock
+      52  charging_error
+          charge_overflow
+          comlete_charged
+          begin_charge_report
+          play_song_flag
+          charging_vol_count
+          g_comlete_charging
+          charging_state
+          trickle_charging_time
+          charging_current_setpoint
+          before_charging_volt
+          g_static_voltage
+          charging_start_recover_minutes
+          charging_start_full_minutes
+          charging_trickle_timeout
+          charging_trickle_ticks
+          charging_start_complete_minutes
+          charging_trickle_on_counts
+          charging_on_counts
+          play_song_cnt
+      40  charging_init
+       4  charging_jack
+       1  charging_last
+     124  charging_print
+       1  charging_record_error
+       6  charging_state_get
+       2  charging_trickle_off_counts
+       2  charging_voltage_max_allowed
+      74  convert_to_current
+      12  convert_to_voltage
+       1  detect_debund
+      76  get_charge_stop_current
+      34  go_into_trickle_charging
+       4  one_second
+     528  process_charging
+      52  quit_charging
+      10  reset_charge_stop_current
+
+ 
+    18 bytes in section .bss
+    52 bytes in section .data
+     2 bytes in section .rodata
+ 1 174 bytes in section .text
+ 
+ 1 174 bytes of CODE  memory
+     2 bytes of CONST memory
+    70 bytes of DATA  memory
+
+Errors: none
+Warnings: none

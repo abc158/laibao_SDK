@@ -1,0 +1,542 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:07
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\display.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\display.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\display.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\display.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\display.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include <ui-config.h>
+      6          #include "ui-commands.h"
+      7          #include "am_date_base.h"
+      8          #include "am_config_macro.h"
+      9          #include "time.h"
+     10          #include "lib.h"
+     11          #include  <am_config_macro.h>
+     12          #include "local_key_check.h"
+     13          #include "remote.h"
+     14          #include "act.h"
+     15          #include "display.h"
+     16          #include "syscall_api.h"
+     17          #include "led_drv.h"
+     18          #include "charge/charge.h"
+     19          
+     20          U8 display_power_up_flag = 0;           /*上电显示标志*/
+     21          U8 last_flush_state = 0;                /*灯闪烁状态*/
+     22          static sys_state_info sys_state_info_p; /*系统状态*/
+     23          
+     24          int led_gpio_group[LED_GPIO_NUM]=
+     25          {
+     26            AM_I0_CLEAN_LED  ,
+     27            AM_I0_DOCK_LED   ,
+     28            AM_I0_SPOT_LED    
+     29          };
+     30          
+     31          /****************************************************************
+     32          *Function   :  ui_handle_sleep
+     33          *Description:  发送sys_power后，系统的回调函数  
+     34          *Input      :  handle_time
+     35          *Output     :  无
+     36          *Return     :  无
+     37          *Others     :  
+     38          ******************************************************************/
+     39          void ui_handle_sleep(u8 handle_time)
+     40          {
+     41            U8 sleep_state = get_enter_sleep_state();
+     42            //if(handle_time == 1)
+     43            {
+     44              //if(sleep_state == SLEEP_MODE_S1)
+     45              {
+     46                //set_led(ALL_LED);
+     47              }
+     48            }
+     49           // wifi_handle_sleep();
+     50            
+     51          }
+     52          
+     53          static power_ctrl_t sleep_funcs = {
+     54            .sleep = ui_handle_sleep,
+     55            .wake  = NULL,
+     56          };
+     57          
+     58          /****************************************************************
+     59          *Function   :  display_gpio_init
+     60          *Description:  申请显示需要的IO  
+     61          *Input      :  无
+     62          *Output     :  无
+     63          *Return     :  无
+     64          *Others     :  
+     65          ******************************************************************/
+     66          U8 display_gpio_init(void)
+     67          {
+     68            int ret = -1;
+     69            for( int i=0; i<LED_GPIO_NUM; i++ )
+     70            {
+     71              ret = gpio_request_one(led_gpio_group[i],GPIO_F_DIR_OUT|GPIO_F_INIT_LOW);
+     72              
+     73              if(ret != -1)
+     74              {
+     75                ;
+     76              }
+     77              else
+     78              {
+     79                printf("display io not ok\r\n");
+     80              }
+     81            }  
+     82            return 0;
+     83          }
+     84          
+     85          /****************************************************************
+     86          *Function   :  _display_init
+     87          *Description:  显示初始化  
+     88          *Input      :  无
+     89          *Output     :  无
+     90          *Return     :  无
+     91          *Others     :  
+     92          ******************************************************************/
+     93          void _display_init(void)
+     94          {
+     95            set_power_callback(&sleep_funcs);   
+     96            display_gpio_init();
+     97          #ifdef USE_SPI_DISPLAY
+     98            led_drv_init(); 
+     99          #endif
+    100          }
+    101          
+    102          /****************************************************************
+    103          *Function   :  _display_exit
+    104          *Description:  显示退出  
+    105          *Input      :  无
+    106          *Output     :  无
+    107          *Return     :  无
+    108          *Others     :  
+    109          ******************************************************************/
+    110          void _display_exit(void)
+    111          {
+    112            ;
+    113          }
+    114          
+    115          /****************************************************************
+    116          *Function   :  set_led
+    117          *Description:  点亮某个颜色的灯  
+    118          *Input      :  led_id：需要点亮的那个灯
+    119          *Output     :  无
+    120          *Return     :  无
+    121          *Others     :  
+    122          ******************************************************************/
+    123          void set_led(U8 led_id)
+    124          {
+    125            switch(led_id)
+    126            {
+    127            case CLEAN_LED:
+    128              {
+    129                gpio_set_value(AM_I0_CLEAN_LED, 1);
+    130              }
+    131              break;
+    132            case DOCK_LED:
+    133              {
+    134                gpio_set_value(AM_I0_DOCK_LED,1);
+    135              }
+    136              break;
+    137            case SPOT_LED:
+    138              {
+    139                //gpio_set_value(AM_I0_SPOT_LED,1);
+    140                gpio_set_value(AM_I0_CLEAN_LED,1);
+    141              }
+    142              break;
+    143            case ALL_LED:
+    144              {
+    145                gpio_set_value(AM_I0_CLEAN_LED,1);
+    146                gpio_set_value(AM_I0_DOCK_LED,1);
+    147                gpio_set_value(AM_I0_SPOT_LED,1);
+    148              }     
+    149              break;
+    150            }
+    151          }
+    152          
+    153          /****************************************************************
+    154          *Function   :  reset_led
+    155          *Description:  熄灭某个颜色的灯  
+    156          *Input      :  led_id：需要熄灭的那个灯
+    157          *Output     :  无
+    158          *Return     :  无
+    159          *Others     :  
+    160          ******************************************************************/
+    161          void reset_led(U8 led_id)
+    162          {
+    163            switch(led_id)
+    164            {
+    165            case CLEAN_LED:
+    166              {
+    167                gpio_set_value(AM_I0_CLEAN_LED,0);
+    168              }
+    169              break;
+    170            case DOCK_LED:
+    171              {
+    172                gpio_set_value(AM_I0_DOCK_LED,0);
+    173              }
+    174              break;
+    175            case SPOT_LED:
+    176              {
+    177                gpio_set_value(AM_I0_SPOT_LED,0);
+    178              }
+    179              break;
+    180            case ALL_LED:
+    181              {
+    182                gpio_set_value(AM_I0_CLEAN_LED,0);
+    183                gpio_set_value(AM_I0_DOCK_LED,0);
+    184                gpio_set_value(AM_I0_SPOT_LED,0);
+    185              }
+    186              break;
+    187              
+    188            }
+    189          }
+    190          
+    191          /****************************************************************
+    192          *Function   :  display_power_up
+    193          *Description:  开机时的显示  
+    194          *Input      :  无
+    195          *Output     :  无
+    196          *Return     :  无
+    197          *Others     :  
+    198          ******************************************************************/
+    199          void display_power_up(void)
+    200          {
+    201            static U8 time_cnt = 0;
+    202            static U8 display_step = 0;
+    203            
+    204            if(time_cnt > 0)
+    205            {
+    206              time_cnt--;
+    207              if(time_cnt == 0)
+    208              {
+    209                //AM_DEBUG_INFO("display_step=%d\r\n",display_step);
+    210                if(++display_step >= 7)
+    211                {
+    212                  display_power_up_flag = 0;
+    213                }
+    214              }
+    215            }
+    216            switch(display_step)
+    217            {
+    218            case 0:
+    219              reset_led(ALL_LED);  
+    220              set_led(DOCK_LED); 
+    221              if(time_cnt == 0)
+    222                time_cnt = FAST_TIME;
+    223              break;
+    224            case 1:
+    225              reset_led(ALL_LED);  
+    226              //set_led(SPOT_LED); 
+    227              set_led(CLEAN_LED); 
+    228              if(time_cnt == 0)
+    229                time_cnt = SLOW_TIME;
+    230              break;
+    231            case 2:
+    232              reset_led(ALL_LED);  
+    233              //set_led(CLEAN_LED); 
+    234              set_led(DOCK_LED); 
+    235              if(time_cnt == 0)
+    236                time_cnt = SLOW_TIME;
+    237              break;
+    238            case 3:
+    239              reset_led(ALL_LED);  
+    240              //set_led(DOCK_LED); 
+    241              set_led(CLEAN_LED); 
+    242              if(time_cnt == 0)
+    243                time_cnt = SLOW_TIME;
+    244              break; 
+    245            case 4:
+    246              reset_led(ALL_LED);  
+    247              set_led(DOCK_LED); 
+    248              set_led(SPOT_LED); 
+    249              if(time_cnt == 0)
+    250                time_cnt = SLOW_TIME;
+    251              break; 
+    252            case 5:
+    253              reset_led(ALL_LED);  
+    254              set_led(CLEAN_LED); 
+    255              set_led(SPOT_LED); 
+    256              if(time_cnt == 0)
+    257                time_cnt = SLOW_TIME+20;
+    258              break; 
+    259            case 6:
+    260              reset_led(ALL_LED);  
+    261              set_led(ALL_LED);  
+    262              if(time_cnt == 0)
+    263                time_cnt = SLOW_TIME;
+    264              break;
+    265              
+    266            }
+    267          }
+    268          
+    269          /****************************************************************
+    270          *Function   :  display_testing
+    271          *Description:  UI状态为UI_TEST时的显示  
+    272          *Input      :  无
+    273          *Output     :  无
+    274          *Return     :  无
+    275          *Others     :  
+    276          ******************************************************************/
+    277          void display_testing(void)
+    278          {
+    279          	if (get_test_result() != 0)
+    280            {
+    281            	set_led(GREEN_LED);
+    282            }
+    283            else
+    284            {
+    285            	set_led(DOCK_LED);
+    286            }
+    287          }
+    288          
+    289          /****************************************************************
+    290          *Function   :  display_routine
+    291          *Description:  显示处理函数，根据UI和系统的不同状态作相应的处理
+    292          *Input      :  无
+    293          *Output     :  无
+    294          *Return     :  无
+    295          *Others     :  
+    296          ******************************************************************/
+    297          void display_routine(void)
+    298          {  
+    299            static int led_flash_cnt = 0;	 
+    300            
+    301            UI_STATE_E s = get_ui_state();
+    302            U8 sleep_state = get_enter_sleep_state();
+    303            sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    304            if((sys_state_info_p.robot_state != ROBOT_STATE_WAITING)&&(display_power_up_flag == 1))
+    305            {
+    306              display_power_up_flag = 0;
+    307            }
+    308            
+    309            if(display_power_up_flag == 1)
+    310            {
+    311              display_power_up();
+    312              return;
+    313            }
+    314          
+    315            led_flash_cnt++;
+    316                
+    317            reset_led(ALL_LED); 
+    318            
+    319            if (s == UI_TEST)
+    320            {
+    321            	display_testing();
+    322              return;
+    323            }
+    324            else if(s == UI_ENTER_SLEEPING)
+    325            {
+    326              return;
+    327            }
+    328            else if (s == UI_ERROR)
+    329            {
+    330              set_led(RED_LED);
+    331              return;
+    332            }  
+    333            
+    334            switch(sys_state_info_p.robot_state)
+    335            {
+    336              
+    337            case ROBOT_STATE_WAITING:
+    338              { 
+    339                set_led(ALL_LED);
+    340              }
+    341              break;
+    342            case ROBOT_STATE_REMOTE_DRIVE:
+    343            case ROBOT_STATE_CLEANING_ROOM:
+    344              {
+    345                if(sys_state_info_p.flush_state)
+    346                {
+    347                  if(last_flush_state == 0)
+    348                    led_flash_cnt = HALF_LED_FLASH_TIME + 1;
+    349                  if(led_flash_cnt>HALF_LED_FLASH_TIME)
+    350                  {
+    351                    set_led(ALL_LED); 
+    352                  }
+    353                }
+    354                else
+    355                {
+    356                      set_led(CLEAN_LED);
+    357                }
+    358              }
+    359              break;
+    360          
+    361            case ROBOT_STATE_DOCK:
+    362              {
+    363                if(sys_state_info_p.flush_state)
+    364                {
+    365                  if(last_flush_state == 0)
+    366                    led_flash_cnt = HALF_LED_FLASH_TIME + 1;
+    367                  if(led_flash_cnt>HALF_LED_FLASH_TIME)
+    368                  {
+    369                    set_led(ALL_LED); 
+    370                  }
+    371                } 
+    372                else
+    373                {
+    374                  set_led(DOCK_LED);
+    375                }
+    376              }
+    377              break;
+    378              
+    379            case ROBOT_STATE_SPOTTING:
+    380            case ROBOT_STATE_WALLFOLLOW:
+    381              {
+    382                   set_led(SPOT_LED);
+    383              }
+    384              break;
+    385              
+    386            case ROBOT_STATE_TESTING:
+    387              {
+    388                set_led(ALL_LED);
+    389              }
+    390              break;  
+    391            case ROBOT_STATE_CHARGING:
+    392              {
+    393                if(sys_state_info_p.charging_state == CHARGING_ON)
+    394                {
+    395                  if(led_flash_cnt>HALF_LED_FLASH_TIME)
+    396                  {
+    397                      set_led(DOCK_LED);           
+    398                  }
+    399                }
+    400                else
+    401                {
+    402                    set_led(CLEAN_LED); //A3要求充满电显示绿色
+    403                }
+    404              }
+    405              break;         
+    406            case ROBOT_STATE_PAUSE:
+    407              {
+    408                   set_led(ALL_LED);
+    409              }
+    410              break;
+    411            default:
+    412              set_led(ALL_LED);  
+    413              break;
+    414              
+    415            }
+    416            
+    417            if(led_flash_cnt > LED_FLASH_TIME)
+    418              led_flash_cnt = 0;
+    419            
+    420            last_flush_state = sys_state_info_p.flush_state;
+    421            
+    422          }
+    423          
+    424          /****************************************************************
+    425          *Function   :  set_display_power_up_flag
+    426          *Description:  设置开机显示状态标志
+    427          *Input      :  是否开机状态
+    428          *Output     :  无
+    429          *Return     :  无
+    430          *Others     :  
+    431          ******************************************************************/
+    432          void set_display_power_up_flag(U8 state)
+    433          {
+    434            display_power_up_flag = state;
+    435          }
+    436          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   _display_exit
+       8   _display_init
+         0   -> display_gpio_init
+         8   -> set_power_callback
+      24   display_gpio_init
+        24   -- Indirect call
+       8   display_power_up
+         8   -> reset_led
+         8   -> set_led
+      16   display_routine
+         0   -> display_power_up
+         0   -> display_testing
+        16   -> get_enter_sleep_state
+        16   -> get_ui_state
+        16   -> reset_led
+         0   -> set_led
+        16   -> set_led
+        16   -> sys_info_get
+       8   display_testing
+         8   -> get_test_result
+         0   -> set_led
+       8   reset_led
+         0   -- Indirect call
+         8   -- Indirect call
+       0   set_display_power_up_flag
+       8   set_led
+         0   -- Indirect call
+         8   -- Indirect call
+       0   ui_handle_sleep
+         0   -> get_enter_sleep_state
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable7
+       4  ??DataTable7_1
+       4  ??DataTable7_2
+       4  ??DataTable7_3
+      10  ?Subroutine0
+       4  ?Subroutine1
+      20  ?_0
+       2  _display_exit
+      14  _display_init
+      48  display_gpio_init
+     142  display_power_up
+     182  display_routine
+      20  display_testing
+      12  led_gpio_group
+      62  reset_led
+       6  set_display_power_up_flag
+      62  set_led
+       8  sleep_funcs
+      24  sys_state_info_p
+          display_power_up_flag
+          last_flush_state
+          time_cnt
+          display_step
+          led_flash_cnt
+       4  ui_handle_sleep
+
+ 
+  24 bytes in section .bss
+  20 bytes in section .data
+ 592 bytes in section .text
+ 
+ 592 bytes of CODE memory
+  44 bytes of DATA memory
+
+Errors: none
+Warnings: none

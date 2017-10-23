@@ -1,0 +1,480 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:03:04
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui-manager\remote_handle.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui-manager\remote_handle.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\remote_handle.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\remote_handle.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui-manager\remote_handle.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "ui-config.h"
+      6          #include "ui-ir.h"
+      7          #include "syscall_api.h"
+      8          #include "am_tm_api.h"
+      9          
+     10          U8 port_state[IR_DECODER_MAX][IR_QUEUE_LEN];      /*存放IO电平的队列*/
+     11          U8 working_byte[IR_DECODER_MAX];                  /*存放采集到的IO电平,满8bit存入队列*/          
+     12          U8 capture_counter[IR_DECODER_MAX];               /*采集IO电平的计数*/
+     13          U8 current_ir_code = 0;                           /*遥控按键值*/
+     14          U8 remote_timer = 0;                              /*接收到遥控按键的持续时间*/
+     15          static U8 write_ptr[IR_DECODER_MAX];              /*队列的写入指针*/
+     16          static U8 read_ptr[IR_DECODER_MAX];               /*队列的读取指针*/
+     17          static U8 data_length[IR_DECODER_MAX];            /*队列里数据的长度*/
+     18          static uint16_t ir_val[IR_DECODER_MAX]={0};        /*接收到的充电座的数据*/
+     19          static uint16_t ir_val_test[IR_DECODER_MAX]={0};   /*接收到的红外数据*/
+     20          
+     21          extern REMOTE_DECODE remote_decode[];
+     22          extern int16_t remote_decode_ir( u16 instance,  u16 ir_state );
+     23          extern u16 remote_decode_init( u16 instance );
+     24           
+     25          
+     26          int ir_gpio[IR_DECODER_MAX] = 
+     27          {
+     28            AM_IO_IR_REC_MIDDLE_LEFT,
+     29            AM_IO_IR_REC_MIDDLE_RIGHT,
+     30            AM_IO_IR_REC_LEFT,
+     31            AM_IO_IR_REC_RIGHT,
+     32            AM_IO_IR_REC_BACK_LEFT,
+     33          };
+     34          
+     35          /****************************************************************
+     36          *Function   :  ir_gpio_init
+     37          *Description:  申请红外接收的IO  
+     38          *Input      :  无
+     39          *Output     :  无
+     40          *Return     :  无
+     41          *Others     :  
+     42          ******************************************************************/
+     43          U8 ir_gpio_init(void)
+     44          {
+     45            int ret = -1;
+     46            for( int i=0; i<IR_DECODER_MAX; i++ )
+     47            {
+     48              ret = gpio_request_one(ir_gpio[i],GPIO_F_DIR_IN);
+     49              
+     50              if(ret != -1)
+     51              {
+     52                ;
+     53              }
+     54              else
+     55              {
+     56                printf("ir io not ok i=%d\r\n",i);
+     57              }
+     58            }  
+     59            return 0;
+     60          }
+     61          
+     62          /****************************************************************
+     63          *Function   :  ir_rx_init
+     64          *Description:  红外接收初始化  
+     65          *Input      :  无
+     66          *Output     :  无
+     67          *Return     :  无
+     68          *Others     :  
+     69          ******************************************************************/
+     70          void ir_rx_init(void)
+     71          {
+     72            U8 i;
+     73            printf("ir_rx_init\r\n");
+     74            memset(port_state, 0, sizeof(port_state));
+     75            memset(write_ptr, 0, sizeof(write_ptr));
+     76            memset(read_ptr, 0, sizeof(read_ptr));
+     77            memset(data_length, 0, sizeof(data_length));
+     78            memset(working_byte, 0, sizeof(working_byte));
+     79            memset(capture_counter, 0, sizeof(capture_counter));
+     80            ir_gpio_init();
+     81            for(i=0;i<REMOTE_DECODER_MAX;i++)
+     82            {
+     83              remote_decode_init(i);
+     84              #ifdef USE_VIRTUAL_WALL
+     85                aovw_decode_init(i);
+     86              #endif
+     87            }
+     88          
+     89            printf("ir_rx_init ok!!\r\n");
+     90          }
+     91          
+     92          /****************************************************************
+     93          *Function   :  ir_rx_q_put
+     94          *Description:  将数据存入队列  
+     95          *Input      :  U8 index:接收头ID
+     96          *              U8 value:存入的数据
+     97          *Output     :  无
+     98          *Return     :  无
+     99          *Others     :  
+    100          ******************************************************************/
+    101          void ir_rx_q_put(U8 index, U8 value)
+    102          {
+    103            port_state[index][write_ptr[index]] = value;
+    104            write_ptr[index]++;
+    105            if (write_ptr[index] >= IR_QUEUE_LEN)
+    106            {
+    107              write_ptr[index] = 0;
+    108            }
+    109            data_length[index]++;
+    110          }
+    111          
+    112          /****************************************************************
+    113          *Function   :  ir_rx_q_get
+    114          *Description:  从接收队列中取出数据  
+    115          *Input      :  U8 index:接收头ID            
+    116          *Output     :  取出的数据
+    117          *Return     :  无
+    118          *Others     :  
+    119          ******************************************************************/
+    120          U8 ir_rx_q_get(U8 index)
+    121          {
+    122            U8 state;
+    123            //hal_ints_off( );
+    124            state = port_state[index][read_ptr[index]];
+    125            read_ptr[index]++;
+    126            if (read_ptr[index] >= IR_QUEUE_LEN)
+    127            {
+    128              read_ptr[index] = 0;
+    129            }
+    130            data_length[index]--;
+    131            //hal_ints_on( );
+    132            
+    133            return state;    
+    134          }
+    135          
+    136          /****************************************************************
+    137          *Function   :  ir_rx_q_empty
+    138          *Description:  接收队列是否为空  
+    139          *Input      :  U8 index:接收头ID            
+    140          *Output     :  1:接收队列里还有数据 0:接收队列为空
+    141          *Return     :  无
+    142          *Others     :  
+    143          ******************************************************************/
+    144          U8 ir_rx_q_empty(U8 index)
+    145          {
+    146            if (data_length[index] == 0)
+    147            {
+    148              return 1;
+    149            }
+    150            else
+    151            {
+    152              return 0;
+    153            }
+    154          }
+    155          
+    156          /****************************************************************
+    157          *Function   :  ir_rx_q_full
+    158          *Description:  接收队列是否已满 
+    159          *Input      :  U8 index:接收头ID            
+    160          *Output     :  1:接收队列已满 0:接收队列未满
+    161          *Return     :  无
+    162          *Others     :  
+    163          ******************************************************************/
+    164          U8 ir_rx_q_full(U8 index)
+    165          {
+    166            if (data_length[index] == IR_QUEUE_LEN)
+    167            {
+    168              return 1;
+    169            }
+    170            else
+    171            {
+    172              return 0;
+    173            }
+    174          }
+    175          
+    176          /****************************************************************
+    177          *Function   :  ir_rx_capture_4khz
+    178          *Description:  采集各个接收头的电平,将结果存到接收队列里,4K中断里执行 
+    179          *Input      :  无            
+    180          *Output     :  无
+    181          *Return     :  无
+    182          *Others     :  
+    183          ******************************************************************/
+    184          void ir_rx_capture_4khz(void)
+    185          {
+    186            U8 index;
+    187            U8 state;
+    188            
+    189            for (index=0; index<IR_DECODER_MAX; index++)
+    190            {
+    191              //printf("ir rx gpio:%x\r\n",ir_gpio[index]);
+    192              // state = gpio_get_value(ir_gpio[index]);
+    193              state = gpio_get_value(ir_gpio[index]);
+    194              state = (~state) & 0x01;
+    195              working_byte[index] = (working_byte[index] << 1) | state;
+    196              capture_counter[index]++;
+    197              if (capture_counter[index] == 8)
+    198              {
+    199                if (ir_rx_q_full(index) != 1)
+    200                {
+    201                  ir_rx_q_put(index, working_byte[index]);
+    202                  working_byte[index] = 0;
+    203                  capture_counter[index] = 0;
+    204                }
+    205              }
+    206            }
+    207          }
+    208          /****************************************************************
+    209          *Function   :  
+    210          *Description:  
+    211          *Input      :  无            
+    212          *Output     :  无
+    213          *Return     :  无
+    214          *Others     :  
+    215          ******************************************************************/
+    216          static  U8 REC_IR_BUFF[IR_DECODER_MAX*2];
+    217          static  U16 REC_IR_DATA[IR_DECODER_MAX];
+    218          void get_rec_ir_data(U8 index,U8 data)
+    219          {
+    220            REC_IR_BUFF[index]=data;
+    221          }
+    222          
+    223          /****************************************************************
+    224          *Function   :  ir_rx_decode
+    225          *Description:  从接收队列里取出数据,按照编码格式进行解码 
+    226          *Input      :  无            
+    227          *Output     :  无
+    228          *Return     :  无
+    229          *Others     :  
+    230          ******************************************************************/
+    231          extern void Receive_Packet();
+    232          void ir_rx_decode(void)
+    233          {
+    234            U8 state, value;
+    235            U8 index, i;
+    236            int16_t result;
+    237            Receive_Packet();
+    238            for (index=0; index<IR_DECODER_MAX; index++)
+    239            {
+    240              REC_IR_DATA[index]=REC_IR_BUFF[index*2+1];
+    241              REC_IR_DATA[index]=(REC_IR_DATA[index]<<8)|REC_IR_BUFF[index*2];
+    242             // printf("%d REC %x  %x  \r\n",((REC_IR_BUFF[index*2+1]>>4)&0x0f),((REC_IR_BUFF[index*2+1])&0x0f),((REC_IR_BUFF[index])));
+    243            //  printf("data  %x \r\n",REC_IR_DATA[index]);
+    244              ir_val[index]=REC_IR_DATA[index];
+    245              ir_val_test[index] = ir_val[index];
+    246              if(REC_IR_BUFF[index])
+    247              { 
+    248                 //printf("REC %d  IR %d  STA  %d\r\n",((REC_IR_BUFF[index]>>5)&0x07),((REC_IR_BUFF[index]>>2)&0x07),((REC_IR_BUFF[index])&0x03));
+    249              }
+    250              //    while (ir_rx_q_empty(index) != 1)
+    251          //    { 
+    252          //      value = ir_rx_q_get(index);	
+    253          //      if (value != 0x00)
+    254          //      { 
+    255          //        //printf("0x%x ", value);
+    256          //      }
+    257          //      for(i=0; i<8; i++)
+    258          //      {	  	
+    259          //        state = (value >> (7-i))&0x01; 
+    260          //        if (value != 0x00)
+    261          //        {   
+    262          //          //printf("i=%d state=%d ", i, state); 
+    263          //        }
+    264          //
+    265          //        //if (index == IR_POSITION_OMNI) 
+    266          //        {     
+    267          //        	/*遥控器和充电座的解码,如果遥控器和充电座的编码方式不一致,需要分开解释*/
+    268          //          result = remote_decode_ir(index, state);
+    269          //          if ((result == 0)&&(remote_decode[index].rxByte != 0))
+    270          //          {
+    271          //            current_ir_code = remote_decode[index].rxByte;//存放遥控器的数据
+    272          //            remote_timer  = REMOTE_DATA_KEEP_COUNT;
+    273          //            ir_val[index] = remote_decode[index].rxByte;  //存放充电座的信号
+    274          //            ir_val_test[index] = ir_val[index];            
+    275          //          }
+    276          //          
+    277                    #ifdef USE_VIRTUAL_WALL
+    278                    result = aovw_decode_ir(index, state);//虚拟墙解码
+    279          		      if (result == 0)
+    280          		      {
+    281                      ir_val[index] = AOVW_BYTE;       //检测到虚拟墙
+    282                      ir_val_test[index] = AOVW_BYTE;
+    283          		        //printf("aovw\r\n");	                        
+    284          		      }
+    285          		      #endif
+    286          //        }
+    287          //      }
+    288          //    }
+    289            }
+    290            memset((U8 *)REC_IR_BUFF,0,sizeof(REC_IR_BUFF));
+    291            memset((U8 *)REC_IR_DATA,0,sizeof(REC_IR_DATA));
+    292          }
+    293          
+    294          /****************************************************************
+    295          *Function   :  remote_ir_get
+    296          *Description:  获取接收头接收到的充电座的信号 
+    297          *Input      :  IR_REMOT_POSITION_E index 接收头ID            
+    298          *Output     :  无
+    299          *Return     :  接收头接收到的数据
+    300          *Others     :  
+    301          ******************************************************************/
+    302          uint16_t remote_ir_get(IR_REMOT_POSITION_E index)
+    303          {
+    304            uint16_t val;
+    305            val = ir_val[index];
+    306            ir_val[index] = 0;
+    307            return val;
+    308          }
+    309          
+    310          /****************************************************************
+    311          *Function   :  get_ir_local
+    312          *Description:  获取接收头接收到遥控器的数据 
+    313          *Input      :  IR_REMOT_POSITION_E index 接收头ID            
+    314          *Output     :  无
+    315          *Return     :  接收头接收到的数据
+    316          *Others     :  
+    317          ******************************************************************/
+    318          uint8_t get_ir_local(void)
+    319          {
+    320            uint8_t val;
+    321            val = current_ir_code;
+    322            if (remote_timer > 0)
+    323            {
+    324              remote_timer--;
+    325              if (remote_timer == 0)
+    326              {
+    327                current_ir_code = 0;
+    328              } 
+    329            }    
+    330            return val;
+    331          }
+    332          
+    333          /****************************************************************
+    334          *Function   :  get_ir_test
+    335          *Description:  获取接收头接收到的数据
+    336          *Input      :  IR_REMOT_POSITION_E index 接收头ID            
+    337          *Output     :  无
+    338          *Return     :  接收头接收到的数据
+    339          *Others     :  
+    340          ******************************************************************/
+    341          uint8_t get_ir_test(IR_REMOT_POSITION_E index)
+    342          {
+    343            uint8_t val;
+    344            val = ir_val_test[index];
+    345            ir_val_test[index] = 0;
+    346            return val;
+    347          }
+    348          
+    349          /****************************************************************
+    350          *Function   :  ir_rx_code_get
+    351          *Description:  将其他方式接收到的数据写到遥控和充电座所使用的变量 
+    352          *Input      :  uint8_t chan 接收通道
+    353          *              uint8_t val  接收到的数据        
+    354          *Output     :  无
+    355          *Return     :  无
+    356          *Others     :  
+    357          ******************************************************************/
+    358          void ir_rx_code_get(uint8_t chan, uint8_t val)
+    359          {
+    360              ir_val_test[chan] = val;
+    361          
+    362              current_ir_code = val;
+    363              ir_val[chan]=val;
+    364              
+    365             //if(chan == 1)
+    366             //    local_ir_code = val;
+    367          
+    368             remote_timer = 16;
+    369          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   get_ir_local
+       0   get_ir_test
+       0   get_rec_ir_data
+      16   ir_gpio_init
+        16   -- Indirect call
+      24   ir_rx_capture_4khz
+        24   -- Indirect call
+        24   -> ir_rx_q_full
+        24   -> ir_rx_q_put
+       0   ir_rx_code_get
+       8   ir_rx_decode
+         8   -> Receive_Packet
+         0   -> __aeabi_memclr4
+         8   -> __aeabi_memclr4
+      16   ir_rx_init
+         0   -- Indirect call
+        16   -- Indirect call
+        16   -> __aeabi_memclr4
+        16   -> ir_gpio_init
+        16   -> remote_decode_init
+       0   ir_rx_q_empty
+       0   ir_rx_q_full
+       0   ir_rx_q_get
+       8   ir_rx_q_put
+       0   remote_ir_get
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable15
+       4  ??DataTable15_1
+       4  ??DataTable15_2
+       4  ??DataTable15_3
+       4  ??DataTable15_4
+      20  ?_0
+      16  ?_1
+      20  ?_2
+      52  REC_IR_BUFF
+          current_ir_code
+          remote_timer
+          ir_val
+          ir_val_test
+          REC_IR_DATA
+      20  get_ir_local
+      16  get_ir_test
+       6  get_rec_ir_data
+      52  ir_gpio_init
+      84  ir_rx_capture_4khz
+      18  ir_rx_code_get
+      58  ir_rx_decode
+     104  ir_rx_init
+      16  ir_rx_q_empty
+      18  ir_rx_q_full
+      40  ir_rx_q_get
+      38  ir_rx_q_put
+     640  port_state
+       8  read_ptr
+      14  remote_ir_get
+      52  working_byte
+          capture_counter
+          write_ptr
+          data_length
+          ir_gpio
+
+ 
+ 700 bytes in section .bss
+  52 bytes in section .data
+ 560 bytes in section .text
+ 
+ 560 bytes of CODE memory
+ 752 bytes of DATA memory
+
+Errors: none
+Warnings: 4

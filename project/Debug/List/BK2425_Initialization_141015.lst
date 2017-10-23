@@ -1,0 +1,572 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:00:16
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  
+#        F:\1708\SDK - unlock\src\wireless\BK2425_Initialization_141015.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wireless\BK2425_Initialization_141015.c"
+#        -lcN "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  
+#        F:\1708\SDK -
+#        unlock\project\Debug\List\BK2425_Initialization_141015.lst
+#    Object file  =  
+#        F:\1708\SDK - unlock\project\Debug\Obj\BK2425_Initialization_141015.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wireless\BK2425_Initialization_141015.c
+      1          ////////////////////////头文件////////////////////////////////////
+      2          #include "syscall_api.h"
+      3          #include "am_exti_cfg.h"
+      4          #include "am_device.h"
+      5          #include "ui-ir.h"
+      6          #include "ARF2496K.H"
+      7          #include "ui-config.H"
+      8          #include "act.h"
+      9          #include "syscall_api.h"
+     10          #include "docking-new.h"
+     11          #include "am_spi_cfg.h"
+     12          #include "bk2425.h"
+     13          #define         SPI_FLASH_CS_LOW()        gpio_set_value(AM_IO_BK2425_SPI_EN, 0)  
+     14          #define         SPI_FLASH_CS_HIGH()       gpio_set_value(AM_IO_BK2425_SPI_EN, 1)  
+     15          #define         SPI_WIRELESS_CE_LOW()     gpio_set_value(AM_IO_BK2425_SPI_CE, 0)
+     16          #define         SPI_WIRELESS_CE_HIGH()    gpio_set_value(AM_IO_BK2425_SPI_CE, 1)
+     17          UINT8 op_status;
+     18          extern void Delay_us(UINT32 nTime);
+     19          /* RF channel table,updated on May 30,2012 */
+     20          UINT16 RF_TABLE[16]={
+     21          2402,2405,2413,
+     22          2415,2417,2420,
+     23          2423,2428,2432,
+     24          2435,2438,2440,
+     25          2442,2446,2457,2459,//for 16 channels,use above frequency 
+     26          };
+     27          
+     28          /* Bank1 register initialization value,updated on May 17,2012 */
+     29          
+     30          //In the array Bank1_Reg0_13[],all the register values are the byte reversed!!!!!!!!!!!!!!!!!!!!!
+     31          unsigned long Bank1_Reg0_13[]={
+     32          0x1B8296f9,
+     33          /*REG4,
+     34          ----------------------------------------------------------------
+     35          |			               1Mbps      | 2Mbps	          |	250Kbps		|
+     36          |     Normal Mode		 0x1B8296f9	|	0xdB8296f9      | 0xdB8a96f9
+     37          |     CW Normal Mode 0x218296f9	
+     38          |     外部PA         0xDB8A96C1 | 0x1B8296C1      | 0xDB8296C1
+     39          ----------------------------------------------------------------
+     40          */
+     41          0xA60F0624,
+     42          /*REG5,
+     43          ----------------------------------------------------------------
+     44          |			1Mbps:0xA60F0624      disable rssi
+     45          |     2Mbps:0xB60F0624			disable rssi
+     46          |     259kbps:0xB60F0624		disable rssi
+     47          ----------------------------------------------------------------
+     48          */
+     49          0x00127300,
+     50          /*REG12,120517
+     51          0x00127300:PLL locking time 120us 
+     52          0x00127305(chip default):PLL locking time 130us compatible with nRF24L01;
+     53          */
+     54          0x36B48000,//REG13
+     55          };
+     56          
+     57          UINT8 Bank1_Reg14[]=
+     58          {
+     59          0x41,0x20,0x08,0x04,0x81,0x20,0xcf,0xF7,0xfe,0xff,0xff
+     60          };
+     61          
+     62          //Bank0 register initialization value
+     63            UINT8 Bank0_Reg[][2]={
+     64          {0,0x0F},
+     65          {1,0x3F},
+     66          {2,0x3F},
+     67          {3,0x03},
+     68          {4,0xff},
+     69          {5,0x17},
+     70          {6,0x0F},	//REG6,120517,0x0F or 0x2F:2Mbps; 0x07:1Mbps ; 0x27:250Kbps
+     71          {7,0x07},
+     72          {8,0x00},
+     73          {9,0x00},
+     74          {12,0xc3},
+     75          {13,0xc4},
+     76          {14,0xc5},
+     77          {15,0xc6},
+     78          {17,0x20},
+     79          {18,0x20},
+     80          {19,0x20},
+     81          {20,0x20},
+     82          {21,0x20},
+     83          {22,0x20},
+     84          {23,0x00},
+     85          {28,0x3F},
+     86          {29,0x07}
+     87          };
+     88          
+     89          
+     90            UINT8 RX0_Address[]={0x15,0x59,0x23,0xC6,0x29};
+     91            UINT8 RX1_Address[]={0x10,0x56,0x24,0xCD,0x78};
+     92          
+     93          ///////////////////////////////////////////////////////////////////////////////
+     94          //                  SPI access                                               //
+     95          ///////////////////////////////////////////////////////////////////////////////
+     96          
+     97          /**************************************************         
+     98          Function: SPI_RW();                                         
+     99                                                                      
+    100          Description:                                                
+    101          	Writes one UINT8 to BK2425, and return the UINT8 read 
+    102          **************************************************/     
+    103          extern UINT8 SPI_RW_Byte(UINT8 byte);	
+    104          int arf2498_spi_id = 0;
+    105          extern void BK2425_Initialize(void);
+    106          void InitBK2425(void)
+    107          {
+    108            arf2498_spi_id = spi0_id_get();
+    109            SPI_FLASH_CS_HIGH();
+    110            BK2425_Initialize();
+    111          }
+    112          static u8 spi_ARF2498_transmit_byte(u8 data)
+    113          {
+    114              volatile u8 arg = 0;
+    115              ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+    116          
+    117              while(!arg)
+    118              {
+    119                ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+    120              }
+    121          
+    122              write(arf2498_spi_id,(u8 *)&data,1);
+    123          
+    124          
+    125              ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+    126              while(!arg)
+    127              {
+    128                ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+    129              }
+    130              read(arf2498_spi_id,(u8*)&arg,1);
+    131              return arg;
+    132          }
+    133          UINT8 SPI_RW(UINT8 value)                                    
+    134          {                                                           
+    135          	UINT8 rec_data;
+    136          //	for(bit_ctr=0;bit_ctr<8;bit_ctr++)   // output 8-bit
+    137          //	{
+    138          //		if(value & 0x80)
+    139          //		{
+    140          //			MOSI=1;
+    141          //		}
+    142          //		else
+    143          //		{
+    144          //			MOSI=0;		
+    145          //		}
+    146          
+    147          //		value = (value << 1);           // shift next bit into MSB..
+    148          //		SCK = 1;                      // Set SCK high..
+    149          //		value |= MISO;       		  // capture current MISO bit
+    150          //		SCK = 0;            		  // ..then set SCK low again
+    151          //	}
+    152                  rec_data=spi_ARF2498_transmit_byte(value);
+    153          	return(rec_data);           		  // return read UINT8
+    154          }                                                           
+    155          /**************************************************/        
+    156                                                                      
+    157          /**************************************************         
+    158          Function: SPI_Write_Reg();                                  
+    159                                                                      
+    160          Description:                                                
+    161          	Writes value 'value' to register 'reg'              
+    162          **************************************************/        
+    163          void SPI_Write_Reg(UINT8 reg, UINT8 value)                 
+    164          {
+    165          	SPI_FLASH_CS_LOW();                   // CSN low, init SPI transaction
+    166          	op_status = SPI_RW(reg);      // select register
+    167          	SPI_RW(value);             // ..and write value to it..
+    168          	SPI_FLASH_CS_HIGH();                   // CSN high again
+    169          }                                                           
+    170          /**************************************************/        
+    171                                                                      
+    172          /**************************************************         
+    173          Function: SPI_Read_Reg();                                   
+    174                                                                      
+    175          Description:                                                
+    176          	Read one UINT8 from BK2425 register, 'reg'           
+    177          **************************************************/        
+    178          UINT8 SPI_Read_Reg(UINT8 reg)                               
+    179          {                                                           
+    180          	UINT8 value;
+    181          	SPI_FLASH_CS_LOW();                // CSN low, initialize SPI communication...
+    182          	op_status=SPI_RW(reg);            // Select register to read from..
+    183          	value = SPI_RW(0);    // ..then read register value
+    184          	SPI_FLASH_CS_HIGH();                // CSN high, terminate SPI communication
+    185          	return(value);        // return register value
+    186          }                                                           
+    187          /**************************************************/        
+    188                                                                      
+    189          /**************************************************         
+    190          Function: SPI_Read_Buf();                                   
+    191                                                                      
+    192          Description:                                                
+    193          	Reads 'length' #of length from register 'reg'         
+    194          **************************************************/        
+    195          void SPI_Read_Buf(UINT8 reg, UINT8 *pBuf, UINT8 length)     
+    196          {                                                           
+    197          	UINT8 byte_ctr;                              
+    198                                                                      
+    199          	SPI_FLASH_CS_LOW();                    		// Set CSN l
+    200          	SPI_RW(reg);       		// Select register to write, and read status UINT8
+    201                                                                      
+    202          	for(byte_ctr=0;byte_ctr<length;byte_ctr++)           
+    203          		pBuf[byte_ctr] = SPI_RW(0);    // Perform SPI_RW to read UINT8 from BK2425
+    204                                                                      
+    205          	SPI_FLASH_CS_HIGH();                           // Set CSN high again
+    206                         
+    207          }                                                           
+    208          /**************************************************/        
+    209                                                                      
+    210          /**************************************************         
+    211          Function: SPI_Write_Buf();                                  
+    212                                                                      
+    213          Description:                                                
+    214          	Writes contents of buffer '*pBuf' to BK2425         
+    215          **************************************************/        
+    216          void SPI_Write_Buf(UINT8 reg, UINT8 *pBuf, UINT8 length)    
+    217          {                                                           
+    218          	UINT8 byte_ctr;                              
+    219                                                                      
+    220          	SPI_FLASH_CS_LOW();                   // Set CSN low, init SPI tranaction
+    221          	op_status = SPI_RW(reg);    // Select register to write to and read status UINT8
+    222          	for(byte_ctr=0; byte_ctr<length; byte_ctr++) // then write all UINT8 in buffer(*pBuf) 
+    223          		SPI_RW(*pBuf++);                                    
+    224          	SPI_FLASH_CS_HIGH();                 // Set CSN high again      
+    225          
+    226          }                                                           
+    227          /**************************************************/        
+    228          
+    229          
+    230          /**************************************************
+    231          Function: SwitchToRxMode();
+    232          Description:
+    233          	switch to Rx mode
+    234          **************************************************/
+    235          void SwitchToRxMode()
+    236          {
+    237          	  UINT8 value;
+    238          
+    239          	SPI_Write_Reg(FLUSH_RX,0);//flush Rx
+    240          
+    241          	value=SPI_Read_Reg(STATUS);	// read register STATUS's value
+    242          	SPI_Write_Reg(WRITE_REG|STATUS,value);// clear RX_DR or TX_DS or MAX_RT interrupt flag
+    243          
+    244          	SPI_WIRELESS_CE_LOW();
+    245          
+    246          	value=SPI_Read_Reg(CONFIG);	// read register CONFIG's value
+    247          //PRX
+    248          	value=value|0x01;//set bit 1
+    249            	SPI_Write_Reg(WRITE_REG | CONFIG, value); // Set PWR_UP bit, enable CRC(2 length) & Prim:RX. RX_DR enabled..
+    250          
+    251          	SPI_WIRELESS_CE_HIGH();
+    252          }
+    253          
+    254          /**************************************************
+    255          Function: SwitchToTxMode();
+    256          Description:
+    257          	switch to Tx mode
+    258          **************************************************/
+    259          void SwitchToTxMode()
+    260          {
+    261          	  UINT8 value;
+    262          	SPI_Write_Reg(FLUSH_TX,0);//flush Tx
+    263          
+    264          	SPI_WIRELESS_CE_LOW();
+    265          	value=SPI_Read_Reg(CONFIG);	// read register CONFIG's value
+    266          //PTX
+    267          	value=value&0xfe;//set bit 1
+    268            	SPI_Write_Reg(WRITE_REG | CONFIG, value); // Set PWR_UP bit, enable CRC(2 length) & Prim:RX. RX_DR enabled.
+    269          
+    270          	SPI_WIRELESS_CE_HIGH();
+    271          }
+    272          
+    273          /**************************************************
+    274          Function: SwitchCFG();
+    275                                                                      
+    276          Description:
+    277          	 access switch between Bank1 and Bank0 
+    278          
+    279          Parameter:
+    280          	_cfg      1:register bank1
+    281          	          0:register bank0
+    282          Return:
+    283               None
+    284          **************************************************/
+    285          UINT8 reg_temp;
+    286          void SwitchCFG(char _cfg)//1:Bank1 0:Bank0
+    287          {
+    288          	UINT8 Tmp;
+    289          
+    290          	reg_temp=Tmp=SPI_Read_Reg(7);
+    291          	Tmp=Tmp&0x80;
+    292          
+    293          	if( ( (Tmp)&&(_cfg==0) )
+    294          	||( ((Tmp)==0)&&(_cfg) ) )
+    295          	{
+    296          		SPI_Write_Reg(ACTIVATE_CMD,0x53);
+    297          	}
+    298          }
+    299          
+    300          /**************************************************
+    301          Function: SetChannelNum();
+    302          Description:
+    303          	set channel number
+    304          
+    305          **************************************************/
+    306          void SetChannelNum(UINT8 ch)
+    307          {
+    308          	SPI_Write_Reg((UINT8)(WRITE_REG|5),(UINT8)(ch));
+    309          }
+    310          
+    311          
+    312          
+    313          ///////////////////////////////////////////////////////////////////////////////
+    314          //                  BK2425 initialization                                    //
+    315          ///////////////////////////////////////////////////////////////////////////////
+    316          /**************************************************         
+    317          Function: BK2425_Initialize();                                  
+    318          
+    319          Description:                                                
+    320          	register initialization
+    321          **************************************************/   
+    322          void BK2425_Initialize(void)
+    323          {
+    324          	INT8 i,j;
+    325           	UINT8 WriteArr[4];
+    326          
+    327          	DelayMs(100);//delay more than 50ms.
+    328          	
+    329          	SwitchCFG(0);
+    330          
+    331          //********************Write Bank0 register******************
+    332          	for(i=20;i>=0;i--)
+    333          	{
+    334          		SPI_Write_Reg((WRITE_REG|Bank0_Reg[i][0]),Bank0_Reg[i][1]);
+    335          		if(i==0)break;
+    336          	}
+    337          
+    338          //reg 10 - Rx0 addr
+    339          	SPI_Write_Buf((WRITE_REG|10),RX0_Address,5);
+    340          	
+    341          //REG 11 - Rx1 addr
+    342          	SPI_Write_Buf((WRITE_REG|11),RX1_Address,5);
+    343          
+    344          //REG 16 - TX addr
+    345          	SPI_Write_Buf((WRITE_REG|16),RX0_Address,5);
+    346          //	printf("\nEnd Load Reg");
+    347          
+    348          	i=SPI_Read_Reg(29);
+    349          
+    350          	if(i==0) // i!=0 showed that chip has been actived.so do not active again.
+    351          		SPI_Write_Reg(ACTIVATE_CMD,0x73);// Active
+    352          
+    353          	for(i=22;i>=21;i--)
+    354          		SPI_Write_Reg((WRITE_REG|Bank0_Reg[i][0]),Bank0_Reg[i][1]);
+    355          
+    356          //********************Write Bank1 register******************
+    357          	SwitchCFG(1);
+    358          
+    359          	for(i=0;i<=1;i++)//reverse
+    360          	{
+    361          		for(j=0;j<4;j++)
+    362          			WriteArr[j]=(Bank1_Reg0_13[i]>>(8*(j) ) )&0xff;
+    363          
+    364          		SPI_Write_Buf((WRITE_REG|(i+4)),&(WriteArr[0]),4);
+    365          	}
+    366          
+    367          	for(i=2;i<=3;i++)
+    368          	{
+    369          		for(j=0;j<4;j++)
+    370          			WriteArr[j]=(Bank1_Reg0_13[i]>>(8*(3-j) ) )&0xff;
+    371          
+    372          		SPI_Write_Buf((WRITE_REG|(i+10)),&(WriteArr[0]),4);
+    373          	}
+    374          
+    375          	SPI_Write_Buf((WRITE_REG|14),&(Bank1_Reg14[0]),11);
+    376          
+    377          //toggle REG4<25,26>
+    378          	for(j=0;j<4;j++)
+    379          		WriteArr[j]=(Bank1_Reg0_13[0]>>(8*(j) ) )&0xff;
+    380          
+    381          	WriteArr[0]=WriteArr[0]|0x06;
+    382          	SPI_Write_Buf((WRITE_REG|4),&(WriteArr[0]),4);
+    383          
+    384          	WriteArr[0]=WriteArr[0]&0xf9;
+    385          	SPI_Write_Buf((WRITE_REG|4),&(WriteArr[0]),4);
+    386          
+    387          
+    388          	DelayMs(10);
+    389          	
+    390          //********************switch back to Bank0 register access******************
+    391          	SwitchCFG(0);
+    392          
+    393                  SwitchToRxMode();//switch to RX mode
+    394          
+    395          }
+    396          
+    397          /**************************************************         
+    398          Function: DelayMs();                                  
+    399          
+    400          Description:                                                
+    401          	delay ms,please implement this function according to your MCU.
+    402          **************************************************/  
+    403          //延时程序
+    404          static void delay(u32 dl)
+    405          {
+    406          	 /*
+    407            dl = dl*3;
+    408            for(; dl != 0; dl--);
+    409            */
+    410            u16 i;
+    411            for(i=0;i<0xD56;i++)//1us
+    412            {
+    413              ;
+    414            }
+    415          }
+    416          static void delay_us(u16 us)
+    417          {
+    418             u16 i;
+    419             for(i=0;i<us;i++)
+    420             delay(1);
+    421          }
+    422          static void delay_ms(u8 ms)
+    423          {
+    424            delay_us(ms*1000);
+    425          }
+    426          void DelayMs(UINT16 ms)
+    427          {
+    428          delay_ms(ms);
+    429          
+    430          }
+    431          
+    432          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      24   BK2425_Initialize
+        24   -> DelayMs
+        24   -> SPI_Read_Reg
+        24   -> SPI_Write_Buf
+        24   -> SPI_Write_Reg
+        24   -> SwitchCFG
+        24   -> SwitchToRxMode
+       0   DelayMs
+       8   InitBK2425
+         8   -- Indirect call
+         0   -> BK2425_Initialize
+         8   -> spi0_id_get
+      24   SPI_RW
+        24   -- Indirect call
+      24   SPI_Read_Buf
+         0   -- Indirect call
+        24   -- Indirect call
+        24   -> SPI_RW
+      16   SPI_Read_Reg
+        16   -- Indirect call
+        16   -> SPI_RW
+      24   SPI_Write_Buf
+         0   -- Indirect call
+        24   -- Indirect call
+        24   -> SPI_RW
+      16   SPI_Write_Reg
+         0   -- Indirect call
+        16   -- Indirect call
+        16   -> SPI_RW
+       0   SetChannelNum
+         0   -> SPI_Write_Reg
+       8   SwitchCFG
+         8   -> SPI_Read_Reg
+         0   -> SPI_Write_Reg
+       8   SwitchToRxMode
+         0   -- Indirect call
+         8   -- Indirect call
+         8   -> SPI_Read_Reg
+         8   -> SPI_Write_Reg
+       8   SwitchToTxMode
+         0   -- Indirect call
+         8   -- Indirect call
+         8   -> SPI_Read_Reg
+         8   -> SPI_Write_Reg
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable6
+       4  ??DataTable6_1
+       4  ??DataTable6_2
+       4  ??DataTable6_3
+       4  ??DataTable6_4
+       4  ??DataTable6_5
+       4  ??DataTable6_6
+      12  ??Subroutine10_0
+       6  ??Subroutine11_0
+      20  ?Subroutine0
+       8  ?Subroutine1
+       6  ?Subroutine2
+      12  ?Subroutine3
+      12  ?Subroutine4
+      12  ?Subroutine5
+      12  ?Subroutine6
+       6  ?Subroutine7
+       4  ?Subroutine8
+      12  ?Subroutine9
+     258  BK2425_Initialize
+      92  Bank0_Reg
+          Bank1_Reg0_13
+          Bank1_Reg14
+          RX0_Address
+          RX1_Address
+      24  DelayMs
+      28  InitBK2425
+      64  RF_TABLE
+      88  SPI_RW
+      32  SPI_Read_Buf
+      46  SPI_Read_Reg
+      34  SPI_Write_Buf
+      34  SPI_Write_Reg
+       6  SetChannelNum
+      36  SwitchCFG
+      40  SwitchToRxMode
+      24  SwitchToTxMode
+       4  arf2498_spi_id
+       1  op_status
+       1  reg_temp
+
+ 
+   6 bytes in section .bss
+ 156 bytes in section .data
+ 800 bytes in section .text
+ 
+ 800 bytes of CODE memory
+ 162 bytes of DATA memory
+
+Errors: none
+Warnings: 1

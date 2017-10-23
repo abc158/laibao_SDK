@@ -1,0 +1,235 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:00:16
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\remote.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\remote.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\remote.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\remote.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\remote.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "ui-config.h"
+      6          #include "local_key_check.h"
+      7          #include "remote.h"
+      8          #include "ui-commands.h"
+      9          #include "am_config_macro.h"
+     10          #include "act.h"
+     11          #include "syscall_api.h"
+     12          #include "docking-new.h"
+     13          #include "ui-ir.h"
+     14          static U16 ir_press_on[TOTAL_IR_NUM];  /*遥控按键按下的次数*/
+     15          static U16 ir_press_off[TOTAL_IR_NUM]; /*遥控按键释放的次数*/
+     16          
+     17          /*遥控按键定义*/
+     18          static ir_state_t ir_press_state[TOTAL_IR_NUM]=
+     19          {	
+     20            {KEY_NULL, (U32) IR_CLEAN,       KEY_CLEAN},
+     21            {KEY_NULL, (U32) IR_DOCK,        KEY_DOCK},
+     22            {KEY_NULL, (U32) IR_SPOT,        KEY_SPOT},
+     23            {KEY_NULL, (U32) IR_POWER,       KEY_POWER},
+     24            {KEY_NULL, (U32) IR_LEFT,        KEY_LEFT},
+     25            {KEY_NULL, (U32) IR_RIGHT,       KEY_RIGHT},
+     26            {KEY_NULL, (U32) IR_FORWARD,     KEY_FORWARD},
+     27            {KEY_NULL, (U32) IR_SCHEDULE,    KEY_PA},
+     28            {KEY_NULL, (U32) IR_DIRT,        KEY_DIRT},
+     29            {KEY_NULL, (U32) IR_DRIVERSTOP,  KEY_STOP}, 
+     30            {KEY_NULL, (U32) IR_BACKWARD,    KEY_WIFI} ,
+     31            {KEY_NULL, (U32) IR_ADJUST,      KEY_ADJUST} ,  
+     32            {KEY_NULL, (U32) IR_WALLFOLLOW,  KEY_WALLFLOW} ,
+     33            {KEY_NULL, (U32) IR_GRID,        KEY_GRID} , 
+     34            {KEY_NULL, (U32) IR_SOUND,       KEY_SOS} ,     
+     35          };
+     36          
+     37          extern void ir_rx_init(void);
+     38          extern uint8_t get_ir_local(void);
+     39          
+     40          /****************************************************************
+     41          *Function   :  _remote_init
+     42          *Description:  遥控按键初始化  
+     43          *Input      :  无
+     44          *Output     :  无
+     45          *Return     :  无
+     46          *Others     :  
+     47          ******************************************************************/
+     48          void _remote_init(void)
+     49          {
+     50            U8 i;
+     51            
+     52            for(i = 0; i < TOTAL_IR_NUM; i++)
+     53            {
+     54              ir_press_state[i].state = KEY_NULL;
+     55              ir_press_on[i]  = 0;
+     56              ir_press_off[i] = 0;
+     57            } 
+     58            ir_rx_init();
+     59          }
+     60          
+     61          /****************************************************************
+     62          *Function   :  _remote_exit
+     63          *Description:  遥控按键退出 
+     64          *Input      :  无
+     65          *Output     :  无
+     66          *Return     :  无
+     67          *Others     :  
+     68          ******************************************************************/
+     69          void _remote_exit(void)
+     70          {
+     71            ;
+     72          }
+     73          
+     74          /****************************************************************
+     75          *Function   :  remote_routine
+     76          *Description:  遥控按键的解码和处理  
+     77          *Input      :  无
+     78          *Output     :  无
+     79          *Return     :  无
+     80          *Others     :  
+     81          ******************************************************************/
+     82          void remote_routine(void)
+     83          {
+     84            ir_rx_decode();
+     85            handle_remote();
+     86          }
+     87          
+     88          
+     89          /****************************************************************
+     90          *Function   :  handle_remote
+     91          *Description:  遥控按键检测，记录按键消息 
+     92          *Input      :  无
+     93          *Output     :  无
+     94          *Return     :  无
+     95          *Others     :  
+     96          ******************************************************************/
+     97          static void handle_remote( void )
+     98          {
+     99            U16 ir_val = KEY_NULL;  
+    100            U8 i = 0;
+    101            
+    102            ir_val = get_ir_local();
+    103            for(i=0; i<TOTAL_IR_NUM; i++)
+    104            {
+    105              if (ir_val == ir_press_state[i].ir_code)
+    106              {
+    107          	  printf("re_ir:%x\r\n",ir_val);
+    108                ir_press_on[i]++; 
+    109                ir_press_off[i] = 0;    
+    110                if (ir_press_on[i] >= (REMOTE_DATA_KEEP_COUNT+1) && ir_press_on[i] < 200)
+    111                {
+    112                  ir_press_state[i].state = KEY_DOWN;
+    113                }
+    114                else if (ir_press_on[i] >= 200 && ir_press_on[i] < 400)
+    115                {
+    116                  ir_press_state[i].state = KEY_LONG;
+    117                }
+    118                else if (ir_press_on[i] >= 400)
+    119                {
+    120                  ir_press_state[i].state = KEY_HOLD;
+    121                  ir_press_on[i] = 400;
+    122                }
+    123              }
+    124              else
+    125              {
+    126                ir_press_off[i]++;
+    127                if (ir_press_off[i] >= 15)
+    128                {
+    129                  if (ir_press_on[i] >= (REMOTE_DATA_KEEP_COUNT+1) && ir_press_on[i] < 200)
+    130                  {
+    131                    ir_press_state[i].state = KEY_SHORT_UP;          
+    132                  } 
+    133                  else if (ir_press_on[i] >= 200 && ir_press_on[i] < 400)
+    134                  {
+    135                    ir_press_state[i].state = KEY_LONG_UP; 
+    136                  }
+    137                  else if (ir_press_on[i] >= 400)
+    138                  {
+    139                    ir_press_state[i].state = KEY_HOLD_UP; 
+    140                  }
+    141                  ir_press_on[i] = 0;         
+    142                }
+    143              }
+    144            }
+    145          } 
+    146          
+    147          /****************************************************************
+    148          *Function   :  get_ir_state
+    149          *Description:  返回遥控按键存放的地址
+    150          *Input      :  无
+    151          *Output     :  遥控按键消息存放的地址
+    152          *Return     :  无
+    153          *Others     :  
+    154          ******************************************************************/
+    155          ir_state_t *get_ir_state(void)
+    156          {
+    157            return &ir_press_state[0];
+    158          }
+    159          
+    160          
+    161          
+    162          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   _remote_exit
+       8   _remote_init
+         0   -> ir_rx_init
+       0   get_ir_state
+      40   handle_remote
+        40   -- Indirect call
+        40   -> get_ir_local
+       8   remote_routine
+         0   -> handle_remote
+         8   -> ir_rx_decode
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+      12  ?_0
+       2  _remote_exit
+      42  _remote_init
+       4  get_ir_state
+     180  handle_remote
+      64  ir_press_on
+          ir_press_off
+     180  ir_press_state
+      10  remote_routine
+
+ 
+  64 bytes in section .bss
+ 180 bytes in section .data
+ 262 bytes in section .text
+ 
+ 262 bytes of CODE memory
+ 244 bytes of DATA memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,195 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wifi\uart_wifi_check.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wifi\uart_wifi_check.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  
+#        F:\1708\SDK - unlock\project\Debug\List\uart_wifi_check.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\uart_wifi_check.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wifi\uart_wifi_check.c
+      1          #include <ui-config.h>
+      2          #include "ui-commands.h"
+      3          #include "am_date_base.h"
+      4          #include "am_config_macro.h"
+      5          #include "time.h"
+      6          #include "lib.h"
+      7          #include "local_key_check.h"
+      8          #include "syscall_api.h"
+      9          
+     10          #include "am_date_base.h"
+     11          #include "ui-commands.h"
+     12          #include "display.h"
+     13          
+     14          #if defined(USE_WIFI_DEMO_1)
+     15          #include "wifi_demo1/simwifi.h"
+     16          #elif defined(USE_WIFI_DEMO_2)
+     17          #include "wifi_demo2/simwifi_demo2.h"
+     18          #endif
+     19          #include "act.h"
+     20          
+     21          #if defined(USE_UART_WIFI)
+     22          static U8 key_check[4];
+     23          
+     24          static cmd_state_t wifi_uart_cmd_state[UART_CMD_MAX]=
+     25          {	
+     26              {KEY_NULL, UART_START,       KEY_CLEAN},
+     27              {KEY_NULL, UART_DOCK,        KEY_DOCK},
+     28              {KEY_NULL, UART_STOP,        KEY_CLEAN},//
+     29              {KEY_NULL, UART_LEFT,        KEY_LEFT},
+     30              {KEY_NULL, UART_RIGHT,       KEY_RIGHT},
+     31              {KEY_NULL, UART_FORWARD,     KEY_FORWARD},
+     32              {KEY_NULL, UART_BACK,        KEY_BACKWARD},
+     33              {KEY_NULL, UART_SPOT,        KEY_SPOT},
+     34              {KEY_NULL, UART_QUIT,        KEY_POWER},
+     35              {KEY_NULL, UART_POWER_ON,    KEY_POWER},
+     36              {KEY_NULL, UART_POWER_DOWN,  KEY_POWER},
+     37              {KEY_NULL, UART_WALL_FOLLOW, KEY_WALLFLOW},
+     38              {KEY_NULL, UART_ENHANCE,     KEY_DIRT},
+     39              {KEY_NULL, UART_GRID1,       KEY_GRID},
+     40                  
+     41          };
+     42          
+     43          
+     44          void uart_cmd_ext_handle(void)
+     45          {
+     46              U8 i;
+     47              for(i=0;i<4;i++)
+     48              {
+     49                  if(key_check[i] >= 32)
+     50                  {
+     51                      wifi_uart_cmd_state[i+3].state = KEY_SHORT_UP;
+     52                      key_check[i] = 0;
+     53                  }
+     54                  else if((key_check[i]>=1)&&(key_check[i]<32))
+     55                  {
+     56                      key_check[i]++;
+     57                  }
+     58              }
+     59          }
+     60          
+     61          //64Hz call
+     62          U16 get_tmp_cmd(void)
+     63          {
+     64            return 0;
+     65          }
+     66          void wifi_uart_cmd_rounte(void)
+     67          {
+     68              int i = 0;
+     69              #if defined(USE_WIFI_DEMO_1) || defined(USE_WIFI_DEMO_2)
+     70              U16 cmd = get_uart_cmd();
+     71              #elif defined(USE_UART_WIFI)
+     72              U16 cmd = get_tmp_cmd();
+     73              #endif
+     74              for(i = 0;i<UART_CMD_MAX;i++)
+     75              {
+     76                if(cmd == wifi_uart_cmd_state[i].cmd_code)
+     77                {
+     78                    if((i==3)||(i==4)||(i==5)||(i==6)) //方向键处理
+     79                    {
+     80                        if(key_check[(i-3)] > 0)
+     81                        {
+     82                            wifi_uart_cmd_state[i].state = PRESS_NULL;
+     83                        }
+     84                        else
+     85                        {
+     86                            wifi_uart_cmd_state[i].state = KEY_DOWN;
+     87                        }
+     88                        key_check[0] = 0;
+     89                        key_check[1] = 0;
+     90                        key_check[2] = 0;
+     91                        key_check[3] = 0;
+     92                        key_check[(i-3)] = 1;
+     93                        #if defined(USE_WIFI_DEMO_2)
+     94                        if((get_ui_state() == UI_ENTER_SLEEPING))
+     95                        {
+     96                            set_ui_state(UI_IDLE);
+     97                           // return 0;
+     98                        }
+     99                        #endif
+    100                    }
+    101                    else
+    102                    {
+    103                        key_check[0] = 0;
+    104                        key_check[1] = 0;
+    105                        key_check[2] = 0;
+    106                        key_check[3] = 0;
+    107                       // printf("uart_cmd i=%d\r\n",i);
+    108                        wifi_uart_cmd_state[i].state = KEY_SHORT_UP;
+    109                    }
+    110                     
+    111                }
+    112                else
+    113                {
+    114                    wifi_uart_cmd_state[i].state = PRESS_NULL;
+    115                }
+    116              }
+    117              uart_cmd_ext_handle();
+    118          }
+    119          
+    120          
+    121          
+    122          cmd_state_t *get_wifi_uart_cmd_state(void)
+    123          {
+    124              return &wifi_uart_cmd_state[0];
+    125          }
+    126          
+    127          #endif
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   get_tmp_cmd
+       0   get_wifi_uart_cmd_state
+       8   uart_cmd_ext_handle
+      24   wifi_uart_cmd_rounte
+        24   -> get_uart_cmd
+        24   -> get_ui_state
+        24   -> set_ui_state
+         0   -> uart_cmd_ext_handle
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+       4  ??DataTable2_1
+       4  get_tmp_cmd
+       4  get_wifi_uart_cmd_state
+       4  key_check
+      40  uart_cmd_ext_handle
+     110  wifi_uart_cmd_rounte
+     112  wifi_uart_cmd_state
+
+ 
+   4 bytes in section .bss
+ 112 bytes in section .data
+ 166 bytes in section .text
+ 
+ 166 bytes of CODE memory
+ 116 bytes of DATA memory
+
+Errors: none
+Warnings: none

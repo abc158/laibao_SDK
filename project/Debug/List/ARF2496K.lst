@@ -1,0 +1,1114 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:00:16
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wireless\ARF2496K.C
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wireless\ARF2496K.C" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\ARF2496K.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\ARF2496K.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wireless\ARF2496K.C
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /////////下面是芯片的IO口定义/////////////////////////////////
+      6          
+      7          //#define MCU_ID 0X1FFFF7E8  // STM32 ID起始地址，共96bit
+      8          #define MCU_ID 0X1FFFF7E2  // STM32 ID起始地址，共96bit
+      9          #define PARTNERSHIP  0Xff
+     10          
+     11          ////////////////////////头文件////////////////////////////////////
+     12          #include "syscall_api.h"
+     13          #include "am_exti_cfg.h"
+     14          #include "am_device.h"
+     15          #include "ui-ir.h"
+     16          #include "ARF2496K.H"
+     17          #include "ui-config.H"
+     18          #include "act.h"
+     19          #include "syscall_api.h"
+     20          #include "docking-new.h"
+     21          
+     22          #ifdef IR_WIRELESS
+     23          
+     24          ////////////////////////全局变量//////////////////////////////////
+     25          RF_DATA rf_data;	// RF数据
+     26          u8 rssi_val[10];	// 信号强度
+     27          u8 rssi_cnt;
+     28          u8 pipe_numb;  // 发送端地址
+     29          u8 rf_recvbuff[16];
+     30          u8 rf_sendbuff[16]={0x98,0x76,0x54,0x32,0x76,0x54,0x32,0x76,0x54,0x32,0x76,0x54,0x54,0x32,0x76,0x54};
+     31          u8 rf_askbuff[5] = {0,0,0,0,0};
+     32          
+     33          extern u8 get_sleep_level(void);
+     34          extern int hal_id_to_gpio_num(int id);
+     35          
+     36          static volatile bool RFInceptSign;//接收信号，为true表示接收到一个信号，在执行读出函数时将其清掉。
+     37          
+     38          static const u8 PartnershipAddress[6] ={0x98,0x76,0x54,0x32,HOST_ADDR,SLAVE_ADDR};
+     39          static u8 RFGroupAddress[4] = {0x98,0x76,0x54,0x32};//器件地址
+     40          static u8 RFDeviceAddress = HOST_ADDR;//器件地址
+     41          static u8 RFSlaveAddr = SLAVE_ADDR;//分机地址
+     42          static unsigned char rf_channel = 0x44; // 通讯频道
+     43          
+     44          static volatile bool EnableRFState;//是否使能无线接收。在芯片进行一些操作后自动进入接收模式或者进入待机模式。
+     45          u8 check_partnership_ok_flag = 0;
+     46          u8 signal_flag=0;
+     47          U32 ARF2496k_id = 0;
+     48          
+     49          int arf2498_spi_id = 0;
+     50          
+     51          
+     52          extern int gpio_direction_input(unsigned gpio);
+     53          extern int gpio_direction_output(unsigned gpio, int value);
+     54          extern u16 system_spi_tx_fifo_full(void);
+     55          extern u16 system_spi_rx_fifo_empty(void);
+     56          extern uint8_t remote_ir_get(IR_REMOT_POSITION_E index);
+     57          s16 afio_mutex_mod_get(u32 id);
+     58          void ir_rx_code_get(u8 chan, u8 val);
+     59          
+     60          const static u8  RF_InitTable[] =
+     61          {
+     62            0x00,ARF2498_CHANNEL,
+     63            0x03,0x6f,		//  组地址4个字节 ,0DB, 2byte-CRC
+     64            0x04,0xff,		//  运行所有通道
+     65            0x05,0x00,		//  禁止所有通道自动应答
+     66            0x06,0x00,		//  禁止所有通道动态负载
+     67            0x07,0x11,		//  设置重复发送等待时间 500us+250us*Resend_cnt
+     68            //	0x08,0x30,		//  自动重复发送3次
+     69            0x08,0x30,		//  自动重复发送3次
+     70            0x16,0x10,		//   负载大小，16个字节
+     71            0x17,0x10,		//
+     72            0x18,0x10,		//
+     73            0x19,0x10,		//
+     74            0x1a,0x10,		//   负载大小，16个字节
+     75            0x1b,0x10,		//
+     76            0x1c,0x10,		//
+     77            0x1d,0x10,		//
+     78          
+     79            //0x20,0x20,		//  使能自动刷新信号强度
+     80            0x21,0x04,		//  LNA高增益
+     81            0xaa,0xaa,
+     82          };
+     83          /////////////////////////////////////////////////////////////
+     84          //延时程序
+     85          static void delay(u32 dl)
+     86          {
+     87          	 /*
+     88            dl = dl*3;
+     89            for(; dl != 0; dl--);
+     90            */
+     91            u16 i;
+     92            for(i=0;i<0xD56;i++)//1us
+     93            {
+     94              ;
+     95            }
+     96          }
+     97          static void delay_us(u16 us)
+     98          {
+     99             u16 i;
+    100             for(i=0;i<us;i++)
+    101             delay(1);
+    102          }
+    103          static void delay_ms(u8 ms)
+    104          {
+    105            delay_us(ms*1000);
+    106          }
+    107          
+    108          //置1
+    109          void SetARF2498_MISO_Port(void)
+    110          {
+    111            //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_I), 1);
+    112            //gpio_set_value(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_I), 1);
+    113             gpio_set_value(AM_I0_FLASH_DATA_O, 1);
+    114          }
+    115          //清0
+    116          void ResetARF2498_MISO_Port(void)
+    117          {
+    118           // gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_I), 0);
+    119           // gpio_set_value(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_I), 0);
+    120           gpio_set_value(AM_I0_FLASH_DATA_O, 0);
+    121          }
+    122          
+    123          //置1
+    124          void SetARF2498_MOSI_Port(void)
+    125          {
+    126           //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_O), 1);
+    127           // gpio_set_value(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_O), 1);
+    128             gpio_set_value(AM_I0_FLASH_DATA_I, 1);
+    129           // gpio_direction_output(GPIOF(14), 1);
+    130            //i0_hal_digital_io_set(GPIOF(14) ,1);
+    131          }
+    132          //清0
+    133          void ResetARF2498_MOSI_Port(void)
+    134          {
+    135            //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_O), 0);
+    136            //gpio_set_value(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_O), 0);
+    137            gpio_set_value(AM_I0_FLASH_DATA_I, 0);
+    138            // gpio_direction_output(GPIOF(14), 0);
+    139          //i0_hal_digital_io_set(GPIOF(14) ,0);
+    140          
+    141          }
+    142          
+    143          //置1
+    144          void SetARF2498_SCK_Port(void)
+    145          {
+    146            //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_CLOCK), 1);
+    147            gpio_set_value(AM_I0_FLASH_CLOCK, 1);
+    148          }
+    149          //清0
+    150          void ResetARF2498_SCK_Port(void)
+    151          {
+    152          // gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_CLOCK), 0);
+    153            gpio_set_value(AM_I0_FLASH_CLOCK, 0);
+    154          }
+    155          
+    156          //置1
+    157          void SetARF2498_CS_Port(void)
+    158          {
+    159            //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_WIRELESS_SPIEN), 1);
+    160            //gpio_set_value(hal_id_to_gpio_num(HAL_I0_WIRELESS_SPIEN), 1);
+    161            gpio_set_value(AM_IO_ARF2498_SPI_EN, 1);
+    162          }
+    163          //清0
+    164          void ResetARF2498_CS_Port(void)
+    165          {
+    166           //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_WIRELESS_SPIEN), 0);
+    167           // gpio_set_value(hal_id_to_gpio_num(HAL_I0_WIRELESS_SPIEN), 0);
+    168           gpio_set_value(AM_IO_ARF2498_SPI_EN, 0);
+    169          
+    170          }
+    171          
+    172          
+    173          
+    174          //置1
+    175          void SetARF2498_CE_Port(void)
+    176          {
+    177          //  gpio_direction_output(hal_id_to_gpio_num(HAL_I0_LED_DIG1), 1);
+    178             gpio_set_value(AM_I0_WIRELESS_SPIEN, 1);
+    179          }
+    180          //清0
+    181          void ResetARF2498_CE_Port(void)
+    182          {
+    183           // gpio_direction_output(hal_id_to_gpio_num(HAL_I0_LED_DIG1), 0);
+    184              gpio_set_value(AM_I0_WIRELESS_SPIEN, 0);
+    185          }
+    186          
+    187          u8 ReadARF2498_MISO_Port(void)
+    188          {
+    189            return gpio_get_value(AM_I0_FLASH_DATA_O);
+    190          }
+    191          /***********************************************************
+    192          初始化RF硬件的IO口
+    193          ***********************************************************/
+    194          void InitRfHardWare(void)
+    195          {
+    196          #ifdef WIRELESS_SIMULATE_SPI
+    197          
+    198            arf2498_spi_id = spi0_id_get();
+    199          
+    200            irq_io_set_vaule(AM_I0_FLASH_DATA_I, 0);
+    201            irq_io_set_vaule(AM_I0_FLASH_CLOCK, 0);
+    202            //gpio_direction_output(hal_id_to_gpio_num(HAL_I0_FLASH_DATA_I), 0);
+    203            irq_io_set_vaule(AM_I0_FLASH_DATA_O)  ;
+    204          
+    205            irq_io_set_vaule(AM_I0_WIRELESS_SPIEN, 0);
+    206            irq_io_set_vaule(AM_I0_LED_DIG1, 0);
+    207          
+    208            irq_io_set_vaule(AM_IO_ARF2498_IRQ);//ARF2496K_TRINT
+    209          
+    210          
+    211            ResetARF2498_SCK_Port();
+    212            ResetARF2498_CE_Port();
+    213            SetARF2498_MOSI_Port();
+    214            SetARF2498_CS_Port();
+    215          #else
+    216          
+    217            gpio_set_value(AM_IO_ARF2498_SPI_EN, 0);
+    218            gpio_set_value(AM_I0_WIRELESS_SPIEN, 0);
+    219          
+    220            //gpio_direction_input(HAL_IO_ARF2498_IRQ);//ARF2496K_TRINT
+    221          
+    222            ResetARF2498_CE_Port();
+    223            SetARF2498_CS_Port();
+    224          #endif
+    225          
+    226          }
+    227          
+    228          #ifndef WIRELESS_SIMULATE_SPI
+    229          
+    230          static u16 spi_ARF2498_transmit_byte(u8 data)
+    231          {
+    232              volatile u8 arg = 0;
+    233              ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+    234              //while(system_spi_tx_fifo_full());
+    235              while(arg)
+    236              {
+    237                ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+    238              }
+    239              //system_spi_write_byte(data);
+    240              write(arf2498_spi_id,(u8 *)&data,1);
+    241          
+    242              //while(system_spi_rx_fifo_empty());
+    243          
+    244              ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+    245              while(arg)
+    246              {
+    247                ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+    248              }
+    249              read(arf2498_spi_id,(u8*)&arg,1);
+    250              //return system_spi_read_byte();
+    251              return arg;
+    252          }
+    253          #endif
+    254          
+    255          /************************************************************
+    256          读一个字节,从高位开始到低位读
+    257          ************************************************************/
+    258          u8 SPI_RW(u8 dat)
+    259          {
+    260            u8 i;
+    261            //GPIO_ResetBits(ARF2498_SCK_Port,ARF2498_SCK_Pin);
+    262            ResetARF2498_SCK_Port();
+    263            delay_us(1);
+    264            for(i=0; i<8; i++)
+    265            {
+    266              if(dat&0x80){
+    267                SetARF2498_MOSI_Port();
+    268                //GPIO_SetBits(ARF2498_MOSI_Port, ARF2498_MOSI_Pin);		//拉高数据线
+    269              }
+    270              else{
+    271                ResetARF2498_MOSI_Port();
+    272                //GPIO_ResetBits(ARF2498_MOSI_Port, ARF2498_MOSI_Pin);    //拉低数据线
+    273              }
+    274              dat <<= 1;
+    275              SetARF2498_SCK_Port();
+    276              //GPIO_SetBits(ARF2498_SCK_Port, ARF2498_SCK_Pin);
+    277              delay_us(1);
+    278              //if(GPIO_ReadInputDataBit(ARF2498_MISO_Port,ARF2498_MISO_Pin)){
+    279              if(ReadARF2498_MISO_Port()){
+    280                dat |= 0x01;
+    281              }
+    282              else{
+    283                dat &= 0xfe;
+    284              }
+    285              ResetARF2498_SCK_Port();
+    286              //GPIO_ResetBits(ARF2498_SCK_Port,ARF2498_SCK_Pin);
+    287              delay_us(1);
+    288            }
+    289            return dat;
+    290          }
+    291          /************************************************************
+    292          使用spi接口对芯片的一个寄存器进行读操作	 寄存器数不能大于63
+    293          ************************************************************/
+    294          u8 ReadARF2498Reg(u8 addr)
+    295          {
+    296            u8 RegValue;  //寄存器值
+    297            u8 commd;
+    298            commd = addr & 0x3f;    //将高位屏蔽,在读SPI时，第7,6位为00，
+    299          #ifdef WIRELESS_SIMULATE_SPI
+    300            ResetARF2498_CS_Port();
+    301            delay_us(1);
+    302            //发送8位地址以及读写位
+    303            SPI_RW(commd);
+    304            RegValue = SPI_RW(0);
+    305            SetARF2498_CS_Port();
+    306          #else
+    307            //sys_spi_cs_low();
+    308          
+    309            //hal_ints_off();
+    310            ResetARF2498_CS_Port();
+    311            //delay_us(1);
+    312            spi_ARF2498_transmit_byte(commd);
+    313            //RegValue = system_spi_read_byte();
+    314            RegValue = spi_ARF2498_transmit_byte(0);
+    315            //sys_spi_cs_high();
+    316            SetARF2498_CS_Port();
+    317            //hal_ints_on();
+    318          #endif
+    319          
+    320          
+    321            return RegValue;
+    322          }
+    323          /************************************************************
+    324          使用spi接口对芯片的一个寄存器进行写操作	 寄存器数不能大于63
+    325          ************************************************************/
+    326          void WriteARF2498Reg(u8 addr, u8 RegValue)		//写入寄存器值
+    327          {
+    328            u8 commd;
+    329            commd = (addr&0x3f) | 0x40;    //将高位置1,在写SPI时，第7,6位为01，
+    330          
+    331          #ifdef WIRELESS_SIMULATE_SPI
+    332            //GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    333            ResetARF2498_CS_Port();
+    334            delay_us(1);
+    335            //发送8位地址以及读写位
+    336            SPI_RW(commd);
+    337            SPI_RW(RegValue);
+    338            //GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    339            SetARF2498_CS_Port();
+    340          #else
+    341            //sys_spi_cs_low();
+    342            //hal_ints_off();
+    343            ResetARF2498_CS_Port();
+    344            //system_spi_write_byte(commd);
+    345            //system_spi_write_byte(RegValue);
+    346            spi_ARF2498_transmit_byte(commd);
+    347            spi_ARF2498_transmit_byte(RegValue);
+    348            //sys_spi_cs_high();
+    349            SetARF2498_CS_Port();
+    350          
+    351            //hal_ints_on();
+    352          #endif
+    353          }
+    354          /************************************************************
+    355          使用spi接口对芯片的一个寄存器进行写操作	 寄存器数不能大于63
+    356          ************************************************************/
+    357          void Flush_Tx_Fifo(void)		//写入寄存器值
+    358          {
+    359            u8 commd;
+    360            commd = 0xc5;    //将高位置1,在写SPI时，第7,6位为01，
+    361          #ifdef WIRELESS_SIMULATE_SPI
+    362            //GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    363            ResetARF2498_CS_Port();
+    364            delay_us(1);
+    365            //发送8位地址以及读写位
+    366            SPI_RW(commd);
+    367            //GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    368            SetARF2498_CS_Port();
+    369          #else
+    370            //sys_spi_cs_low();
+    371            ResetARF2498_CS_Port();
+    372            //system_spi_write_byte(commd);
+    373            spi_ARF2498_transmit_byte(commd);
+    374            //sys_spi_cs_high();
+    375            SetARF2498_CS_Port();
+    376          #endif
+    377          }
+    378          /************************************************************
+    379          使用spi接口对芯片的一个寄存器进行写操作	 寄存器数不能大于63
+    380          ************************************************************/
+    381          void Flush_Rx_Fifo(void)		//写入寄存器值
+    382          {
+    383            u8 commd;
+    384            commd = 0xc4;    //将高位置1,在写SPI时，第7,6位为01，
+    385          #ifdef WIRELESS_SIMULATE_SPI
+    386            //GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    387            ResetARF2498_CS_Port();
+    388            delay_us(1);
+    389            //发送8位地址以及读写位
+    390            SPI_RW(commd);
+    391            //GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    392            SetARF2498_CS_Port();
+    393          #else
+    394            //sys_spi_cs_low();
+    395            ResetARF2498_CS_Port();
+    396            //system_spi_write_byte(commd);
+    397            spi_ARF2498_transmit_byte(commd);
+    398            //sys_spi_cs_high();
+    399            SetARF2498_CS_Port();
+    400          #endif
+    401          }
+    402          /************************************************************
+    403          	接收芯片的FIFO数据
+    404          ************************************************************/
+    405          void Read_Fifo_Data(u8 *datbuff)		//写入寄存器值
+    406          {
+    407            u8 readnumber;
+    408            u8 commd;
+    409            u8 temp;
+    410            commd = ARF2498_RXMODE;    //将高位置1,在写SPI时，第7,6位为01，
+    411          
+    412          #ifdef WIRELESS_SIMULATE_SPI
+    413          
+    414            //GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    415            ResetARF2498_CS_Port();
+    416            SPI_RW(commd);
+    417            temp = SPI_RW(0);
+    418            rssi_val[rssi_cnt++] = (temp&0xf0)>>4;	// 信号强度
+    419            if(rssi_cnt>=10){
+    420              rssi_cnt = 0;
+    421            }
+    422            pipe_numb = temp&0x0f;		// 发送端地址
+    423            readnumber = SPI_RW(0)&0x1f;	// 数据长度
+    424            for (temp = 0; temp<16; temp++)
+    425            {
+    426              if(temp < readnumber){
+    427                datbuff[temp]=SPI_RW(0);	// 数据包
+    428              }
+    429              else{
+    430                datbuff[temp]=SPI_RW(0);	// 数据包
+    431              }
+    432            }
+    433            //GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    434            SetARF2498_CS_Port();
+    435          
+    436          #else
+    437            //sys_spi_cs_low();
+    438            ResetARF2498_CS_Port();
+    439            //system_spi_write_byte(commd);
+    440            spi_ARF2498_transmit_byte(commd);
+    441            temp = spi_ARF2498_transmit_byte(0);//system_spi_read_byte();
+    442            rssi_val[rssi_cnt++] = (temp&0xf0)>>4;	// 信号强度
+    443            if(rssi_cnt>=10){
+    444              rssi_cnt = 0;
+    445            }
+    446            pipe_numb = temp&0x0f;		// 发送端地址
+    447          
+    448            readnumber = spi_ARF2498_transmit_byte(0)&0x1f;	// 数据长度
+    449            for (temp = 0; temp<16; temp++)
+    450            {
+    451              if(temp < readnumber){
+    452                datbuff[temp]=spi_ARF2498_transmit_byte(0);	// 数据包
+    453              }
+    454              else{
+    455                datbuff[temp]=spi_ARF2498_transmit_byte(0);	// 数据包
+    456              }
+    457            }
+    458          
+    459            //sys_spi_cs_high();
+    460            SetARF2498_CS_Port();
+    461          #endif
+    462          }
+    463          /************************************************************
+    464          	发送芯片的FIFO数据,无应答或等待应答
+    465          ************************************************************/
+    466          void Write_Fifo_Data(u8 rfpipe,u8 nack,u8 *datbuff,u8 sendnumber)		//写入寄存器值
+    467          {
+    468            u8 commd;
+    469            u8 cnt;
+    470            commd = ARF2498_TXMODE|0X10|rfpipe;    // 0DB
+    471          #ifdef WIRELESS_SIMULATE_SPI
+    472            delay_ms(1);
+    473            //GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    474            ResetARF2498_CS_Port();
+    475            delay_us(1);
+    476            SPI_RW(commd);
+    477            if(nack == 0){
+    478              SPI_RW(rf_channel);	// 需应答
+    479            }
+    480            else{
+    481              SPI_RW(rf_channel|0x80);	 // 不应答
+    482            }
+    483            for (cnt =0; cnt < sendnumber ; cnt ++)
+    484            {
+    485              SPI_RW(datbuff[cnt]);
+    486            }
+    487          
+    488            if(sendnumber<16){
+    489              for(cnt = sendnumber;cnt<16;cnt++){
+    490                SPI_RW(rf_sendbuff[cnt]);
+    491              }
+    492            }
+    493          
+    494            //GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    495            SetARF2498_CS_Port();
+    496            //设置 CE 发出50US高脉冲
+    497            //GPIO_SetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    498            SetARF2498_CE_Port();
+    499            delay_us(50);
+    500            ResetARF2498_CE_Port();
+    501            //GPIO_ResetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    502            delay_us(150);  // 需等待130US
+    503          #else
+    504            //sys_spi_cs_low();
+    505            ResetARF2498_CS_Port();
+    506            //system_spi_write_byte(commd);
+    507            spi_ARF2498_transmit_byte(commd);
+    508            if(nack == 0){
+    509              spi_ARF2498_transmit_byte(rf_channel);	// 需应答
+    510            }
+    511            else{
+    512              spi_ARF2498_transmit_byte(rf_channel|0x80);	 // 不应答
+    513            }
+    514            for (cnt =0; cnt < sendnumber ; cnt ++)
+    515            {
+    516              spi_ARF2498_transmit_byte(datbuff[cnt]);
+    517            }
+    518          
+    519            if(sendnumber<16){
+    520              for(cnt = sendnumber;cnt<16;cnt++){
+    521                spi_ARF2498_transmit_byte(datbuff[cnt]);
+    522              }
+    523            }
+    524          
+    525            //sys_spi_cs_high();
+    526            SetARF2498_CS_Port();
+    527          
+    528            SetARF2498_CE_Port();
+    529            //delay_us(50);
+    530            ResetARF2498_CE_Port();
+    531            //delay_us(150);  // 需等待130US
+    532          
+    533          #endif
+    534          }
+    535          /************************************************************
+    536          	发送芯片应答包
+    537          ************************************************************/
+    538          void Rf_Send_Ack(u8 rfpipe,u8 *datbuff,u8 readnumber)		//写入寄存器值
+    539          {
+    540          	u8 commd;
+    541          	u8 i = 0 ;
+    542          	commd = ARF2498_TXACKMODE|0X08|rfpipe;    // 0DB
+    543          	//GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    544          #ifdef WIRELESS_SIMULATE_SPI
+    545          	ResetARF2498_CS_Port();
+    546          	SPI_RW(commd);
+    547          	for (; i < readnumber ; i ++)
+    548          	{
+    549          		SPI_RW(datbuff[i]);
+    550          	}
+    551          	//GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    552          	SetARF2498_CS_Port();
+    553          #else
+    554                  //sys_spi_cs_low();
+    555                  ResetARF2498_CS_Port();
+    556                  spi_ARF2498_transmit_byte(commd);
+    557          	for (; i < readnumber ; i ++)
+    558          	{
+    559                    spi_ARF2498_transmit_byte(datbuff[i]);
+    560          	}
+    561                  //sys_spi_cs_high();
+    562                  SetARF2498_CS_Port();
+    563          #endif
+    564          	delay_us(150);  // 需等待130US
+    565          }
+    566          /************************************************************
+    567          	发送芯片的FIFO数据,重复发送
+    568          *************************************************************/
+    569          void Rf_ReSend(u8 rfpipe,u8 *datbuff,u8 readnumber)		//写入寄存器值
+    570          {
+    571          	u8 commd;
+    572          	commd = ARF2498_REUSETX;    // 0DB
+    573          	//GPIO_ResetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    574          #ifdef WIRELESS_SIMULATE_SPI
+    575          	ResetARF2498_CS_Port();
+    576          	delay_us(1);
+    577          	SPI_RW(commd);
+    578          	SPI_RW(rf_channel);
+    579              SetARF2498_CS_Port();
+    580          #else
+    581                  //sys_spi_cs_low();
+    582                  ResetARF2498_CS_Port();
+    583                  spi_ARF2498_transmit_byte(commd);
+    584                  spi_ARF2498_transmit_byte(rf_channel);
+    585                  //sys_spi_cs_high();
+    586                  SetARF2498_CS_Port();
+    587          #endif
+    588          	//GPIO_SetBits(ARF2498_CS_Port, ARF2498_CS_Pin);
+    589          	delay_us(150);  // 需等待130US
+    590          }
+    591          /**********************************************************
+    592          进入待机模式 26uA // 从省电模式进入需延迟1.5mS
+    593          **********************************************************/
+    594          void EnterStandMode(void)
+    595          {
+    596          	//GPIO_ResetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    597          	ResetARF2498_CE_Port();
+    598          	rf_data.mode = RF_STANDBY;
+    599          }
+    600          /**********************************************************
+    601          进入待机模式 900nA
+    602          **********************************************************/
+    603          void RFPowerSaveMode(void)
+    604          {
+    605          	WriteARF2498Reg(RFREG_PWR,0X02);
+    606          	rf_data.mode = RF_SLEEP;
+    607          }
+    608          /**********************************************************
+    609          进入待机模式 15mA
+    610          **********************************************************/
+    611          void EnterRXMode(void)
+    612          {
+    613          	Flush_Rx_Fifo();
+    614          	WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    615          	//GPIO_SetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    616          	SetARF2498_CE_Port();
+    617             // WriteARF2498Reg(RFREG_Rx_Chn,0xc4);
+    618          	rf_data.mode = RF_RECV;
+    619          }
+    620          /**********************************************************
+    621          获取当前RF状态，0 Power_Save,1 standby,,2 tx_ack,3 tx_normal
+    622          4 rx_ack,5 rx_normal, 6 rx_receiving,7 invalid
+    623          **********************************************************/
+    624          u8 RFGetMode(void)
+    625          {
+    626          	return ReadARF2498Reg(0x22)&0xff;
+    627          }
+    628          
+    629          /**********************************************************/
+    630          u8 RFGetFIFOState(void)
+    631          {
+    632          	return ReadARF2498Reg(0x1f)&0xff;
+    633          }
+    634          
+    635          u8 RFGetIRQState(void)
+    636          {
+    637          	return ReadARF2498Reg(RFREG_Int)&0xff;
+    638          }
+    639          
+    640          /************************************************************
+    641          	使能无线模块中断， //ARF2498_IRQ_Port	//ARF2498_IRQ_Pin
+    642          *************************************************************/
+    643          void arf2498_handler(u8 p)
+    644          {
+    645            RFIrq();
+    646          }
+    647          
+    648          
+    649          void EnableRfInt(void)
+    650          {
+    651            //int mod;
+    652            exti_init_t exti_user_init;
+    653          
+    654            exti_user_init.IntEn       = ENABLE;
+    655            exti_user_init.Int_type    = EXTI_LOW_LEVEL;
+    656            exti_user_init.WakeupirqEn = ENABLE;
+    657            exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
+    658          
+    659            ARF2496k_id = open(DEV_EXTI,ARF2496_IRQ_PIN);
+    660            ioctl(ARF2496k_id,EXTI_INIT,&exti_user_init);
+    661            request_irq(ARF2496k_id,(long)arf2498_handler,0);
+    662          
+    663            // WriteARF2498Reg(RFREG_Int,0X38);	//低电平有效,接收发送都产生中断
+    664            WriteARF2498Reg(RFREG_Int,0X20);	//低电平有效，接收到一个数据包
+    665          }
+    666          /************************************************************
+    667          	使能无线模块中断， //ARF2498_IRQ_Port	//ARF2498_IRQ_Pin
+    668          0:
+    669          1：
+    670          *************************************************************/
+    671          
+    672          void arf2498_sleep(u8 handle_time)
+    673          {
+    674            //sys_exti_release(ARF2496k_id);
+    675            if(handle_time == 0)
+    676            {
+    677              exti_init_t exti_user_init;
+    678              exti_user_init.IntEn       = DISABLE;
+    679              exti_user_init.Int_type    = EXTI_LOW_LEVEL;//EXTI_POSITIVE_EDGE;
+    680              exti_user_init.WakeupirqEn = ENABLE;
+    681              exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
+    682              ioctl(ARF2496k_id,EXTI_INIT,&exti_user_init);
+    683              if(get_enter_sleep_state() == SLEEP_MODE_S1)
+    684              {
+    685                   EnterRXMode();
+    686              }
+    687            }
+    688          
+    689            if(handle_time == 1)
+    690            {
+    691              if(get_enter_sleep_state() == SLEEP_MODE_S1)
+    692              {
+    693                SetARF2498_CE_Port();
+    694              }
+    695              else//standby 模式
+    696              {
+    697                EnterStandMode();
+    698              }
+    699            }
+    700          
+    701          }
+    702          
+    703          void arf2498_wakeup(u8 handle_time)
+    704          {
+    705            (void)handle_time;
+    706            exti_init_t exti_user_init;
+    707            exti_user_init.IntEn       = ENABLE;
+    708            exti_user_init.Int_type    = EXTI_LOW_LEVEL;//EXTI_POSITIVE_EDGE;
+    709            exti_user_init.WakeupirqEn = ENABLE;
+    710            exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
+    711            ioctl(ARF2496k_id,EXTI_INIT,&exti_user_init);
+    712            EnterRXMode();
+    713          }
+    714          
+    715          static power_ctrl_t sleep_funcs = {
+    716            .sleep = arf2498_sleep,
+    717            .wake  = arf2498_wakeup,
+    718          };
+    719          /**********************************************************
+    720          使能无线接收
+    721          **********************************************************/
+    722          void EnableRFIncept(void)
+    723          {
+    724            if(FALSE == EnableRFState)
+    725            {
+    726              EnableRFState = TRUE;
+    727          	EnterRXMode();
+    728            }
+    729          }
+    730          /********************************************************
+    731          禁止无线接收
+    732          ********************************************************/
+    733          void DisableRFIncept(void)
+    734          {
+    735            EnableRFState = FALSE;
+    736            EnterStandMode();
+    737          }
+    738          /**********************************************************
+    739          	读取RF通讯目的地址 ，计算形成本机地址
+    740          **********************************************************/
+    741          void  ReadDeviceAddress(void)
+    742          {
+    743          	u32 useraddress=0;
+    744          	//u8 temp;
+    745                  useraddress = chipid_read();//0x123456789;//
+    746              /*
+    747          	for(temp = 0;temp<3;temp++)	{
+    748          		//useraddress += *(u32 *)(MCU_ID+temp*4);
+    749          		useraddress += (MCU_ID+temp*4);
+    750          	}*/
+    751          	RFGroupAddress[0] = (u8)(useraddress&0xff);
+    752          	RFGroupAddress[1] = (u8)((useraddress>>8)&0xff);
+    753          	RFGroupAddress[2] = (u8)((useraddress>>16)&0xff);
+    754          	RFGroupAddress[3] = (u8)((useraddress>>24)&0xff);
+    755          	//RFDeviceAddress = 0;
+    756          	//for(temp = 0;temp<12;temp++)	{
+    757          		//RFDeviceAddress += *(u8 *) (MCU_ID+temp);
+    758          	//}
+    759          }
+    760          /**********************************************************
+    761          	设置RF的群组地址
+    762          **********************************************************/
+    763          void SetDestinationAddress(void)
+    764          {
+    765          	WriteARF2498Reg(0x09,RFGroupAddress[0]);
+    766          	WriteARF2498Reg(0x0a,RFGroupAddress[1]);
+    767          	WriteARF2498Reg(0x0b,RFGroupAddress[2]);
+    768          	WriteARF2498Reg(0x0c,RFGroupAddress[3]);
+    769          	WriteARF2498Reg(0x0d,RFDeviceAddress);
+    770          	WriteARF2498Reg(0x0e,RFSlaveAddr);
+    771          }
+    772          /**********************************************************
+    773          	设置RF的对码地址
+    774          **********************************************************/
+    775          void SetPartnershipAddr(void)
+    776          {
+    777          	WriteARF2498Reg(0x09,PartnershipAddress[0]);
+    778          	WriteARF2498Reg(0x0a,PartnershipAddress[1]);
+    779          	WriteARF2498Reg(0x0b,PartnershipAddress[2]);
+    780          	WriteARF2498Reg(0x0c,PartnershipAddress[3]);
+    781          	WriteARF2498Reg(0x0d,PartnershipAddress[4]);	 // 通过此管道对码
+    782          	WriteARF2498Reg(0x0e,PartnershipAddress[5]);	 // 通过此管道对码
+    783          }
+    784          /**********************************************************
+    785          	设置RF频道
+    786          **********************************************************/
+    787          void Set_rfchannel(u8 ch)
+    788          {
+    789          	if(ch>=125){
+    790          		ch = ARF2498_CHANNEL;
+    791          	}
+    792          	rf_channel = ch;
+    793          }
+    794          int init_aft2498 = 0;
+    795          /**********************************************************
+    796          初始化RF
+    797          **********************************************************/
+    798          void InitARF2496k(void)
+    799          {
+    800            //return;//lyy
+    801            static u8 temp = 0;
+    802            InitRfHardWare();
+    803            //delay_ms(10);
+    804            if(ReadARF2498Reg(0x3d) == 0xa1){
+    805              delay_ms(1);  // 读取ID号正确
+    806              //AM_DEBUG_INFO("read ID ok!!!\r\n");
+    807            }
+    808          
+    809            ReadDeviceAddress();
+    810            Set_rfchannel(ARF2498_CHANNEL);
+    811          
+    812            while(RF_InitTable[temp] != 0xaa)
+    813            {
+    814              WriteARF2498Reg(RF_InitTable[temp],RF_InitTable[temp+1]);
+    815              delay_us(10);
+    816              if(RF_InitTable[temp+1] != ReadARF2498Reg(RF_InitTable[temp]))
+    817              {
+    818                delay_us(10);
+    819                // AM_DEBUG_INFO("error write!!!\r\n");
+    820              }
+    821              else{
+    822                temp += 2;
+    823                // AM_DEBUG_INFO("ok write!!!\r\n");
+    824              }
+    825            }
+    826          
+    827            WriteARF2498Reg(RFREG_PWR,0X00);
+    828            WriteARF2498Reg(0x20,0x20); // 自动刷新信号强度
+    829            SetDestinationAddress();	// 外设地址
+    830            WriteARF2498Reg(0x0f,0x03);
+    831            WriteARF2498Reg(0x10,0x04);
+    832            WriteARF2498Reg(0x11,0x05);
+    833            WriteARF2498Reg(0x12,0x06);
+    834            WriteARF2498Reg(0x13,0x07);
+    835            WriteARF2498Reg(0x14,0x08);
+    836            WriteARF2498Reg(0x15,0x09);
+    837          
+    838            Flush_Tx_Fifo();
+    839            Flush_Rx_Fifo();
+    840            WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    841            EnableRfInt();
+    842            EnterRXMode();
+    843            //
+    844            set_power_callback(&sleep_funcs);
+    845            init_aft2498 = 1;
+    846          }
+    847          
+    848          
+    849          
+    850          /***********************************************************
+    851          发送无线数据
+    852          ***********************************************************/
+    853          void SendRF(u8 *senddata,u8 sendnumber)
+    854          {
+    855            u8 cnt;
+    856            //GPIO_ResetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    857            ResetARF2498_CE_Port();
+    858            Flush_Tx_Fifo();
+    859            WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    860            rf_data.mode = RF_SEND;
+    861            Write_Fifo_Data(1,1,senddata, sendnumber);
+    862            for(cnt =0;cnt<20;cnt++){
+    863              if(ReadARF2498Reg(RFREG_State)&0x18){
+    864                //AM_DEBUG_INFO("Write_Fifo_Data ok\r\n");
+    865                break;
+    866              }
+    867              else{
+    868                delay_ms(1);
+    869                //DelayMs(1);
+    870              }
+    871            }
+    872            WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    873            delay_us(200);
+    874            SetDestinationAddress();
+    875            EnterRXMode();
+    876          }
+    877          /*******************************************************
+    878          	rf接收中的中断函数
+    879          *******************************************************/
+    880          //extern void get_schedule_data(u8 *data,u8 number);
+    881          void Set_virsual_ir_rx_code(void)
+    882          {
+    883             u8 readdata[16];
+    884             if(QueryARF2496KInceptSign()==TRUE)
+    885             {
+    886              ReadRF(readdata,16);
+    887             }
+    888          
+    889             if((readdata[0]>= 0x1)&&(readdata[0]<4)&&(readdata[1] == 0xff))
+    890             {
+    891               //AM_DEBUG_INFO("readdata[1]=%x\r\n",readdata[1]);
+    892                 check_partnership_ok_flag = 1;
+    893             }
+    894             if(readdata[0]==0x01) //遥控器的信号
+    895             {
+    896             // AM_DEBUG_INFO("readdata[1]=%x\r\n",readdata[1]);
+    897                 ir_rx_code_get(1,readdata[1]);
+    898                 if(readdata[1] == 0x9)
+    899                 {
+    900                     //get_schedule_data(&readdata[2],6);
+    901                 }
+    902             }
+    903             else if(readdata[0]==0x02) //DOCK的信号
+    904             {
+    905              ir_rx_code_get(0,readdata[1]);
+    906                 dock_wireless_rx_code_get(0,readdata[1]);
+    907                 //AM_DEBUG_INFO("dock readdata[1]=%x\r\n",readdata[1]);
+    908             }
+    909             else if(readdata[0]==0x03)
+    910             {
+    911                //AM_DEBUG_INFO("readdata[0]=%x\r\n",readdata[0]);
+    912                //AM_DEBUG_INFO("readdata[1]=%x\r\n",readdata[1]);
+    913                 ir_rx_code_get(0,readdata[1]);
+    914             }
+    915             signal_flag=1;
+    916          }
+    917          
+    918          void RFIrq(void)
+    919          {
+    920            u8 temp = 0;
+    921            ResetARF2498_CE_Port();
+    922            //GPIO_ResetBits(ARF2498_CE_Port, ARF2498_CE_Pin);	// 关闭接收
+    923            temp = ReadARF2498Reg(RFREG_State);
+    924          
+    925            //if(temp&0x20){  // bit5 接收到一包数据
+    926            if(temp&0x2){  // bit5 接收到一包数据
+    927              //WriteARF2498Reg(RFREG_Rx_Chn,0);
+    928              Read_Fifo_Data(rf_recvbuff);//spi
+    929              //Rf_Send_Ack(pipe_numb-1, rf_askbuff, 5);
+    930              RFInceptSign = TRUE;
+    931              //GPIO_SetBits(ARF2498_CE_Port, ARF2498_CE_Pin);
+    932              Set_virsual_ir_rx_code();
+    933              SetARF2498_CE_Port();
+    934          
+    935            }
+    936            WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    937            Flush_Tx_Fifo();
+    938            EnterRXMode();
+    939          }
+    940          /***********************************************************
+    941          从接收缓冲中接收数据,读出的数据不能大于16个字节
+    942          ***********************************************************/
+    943          void ReadRF(u8 *readdata,u8 readnumber)
+    944          {
+    945          	for(;readnumber >0;readnumber--) //读出readnumber个数据到缓存中
+    946          	{
+    947          		readdata[readnumber-1] =  rf_recvbuff[readnumber-1];
+    948          	}
+    949          	RFInceptSign = FALSE;			  //读完之后清除标志
+    950          }
+    951          /***********************************************************
+    952          查询是否接收无线信号
+    953          ***********************************************************/
+    954          bool QueryARF2496KInceptSign(void)
+    955          {
+    956          	return RFInceptSign;
+    957          }
+    958          /**********************************************************
+    959          	RF对码
+    960          **********************************************************/
+    961          void PartnershipRF(void)
+    962          {
+    963          
+    964          	u16 i=0;
+    965              //delay_us(200);
+    966              SetPartnershipAddr();	//设置对码地址
+    967          //	gbv_rf_send_interval = 1000;
+    968          
+    969          	rf_sendbuff[0] = HOST_ID;
+    970          	rf_sendbuff[1] = PARTNERSHIP;
+    971          	rf_sendbuff[2] = RFGroupAddress[0];
+    972          	rf_sendbuff[3] = RFGroupAddress[1];
+    973          	rf_sendbuff[4] = RFGroupAddress[2];
+    974          	rf_sendbuff[5] = RFGroupAddress[3];
+    975          	rf_sendbuff[6] = RFDeviceAddress;
+    976          	rf_sendbuff[15] = 0;
+    977          	for(;i<15;i++){
+    978          		rf_sendbuff[15] += rf_sendbuff[i];
+    979          	}
+    980          	//memset(rf_sendbuff,0x01,16);
+    981          	SendRF(rf_sendbuff,16);
+    982             /*
+    983          	WriteARF2498Reg(RFREG_State,RF_IRQ_CLR);	// 清除所有中断标志
+    984          	delay_us(200);
+    985          	SetDestinationAddress();
+    986          	EnterRXMode();	*/
+    987          
+    988          }
+    989          
+    990          void Send_ACK_Package(void)
+    991          {
+    992              u8 temp[16]={1};
+    993              SendRF(temp,16);
+    994          }
+    995          void Wireless_Dock(void)
+    996          {
+    997            u8 temp[2];
+    998            // DisableRFIncept();
+    999            // WriteDeviceAddressOfARF2496K();
+   1000          
+   1001            SetDestinationAddress();
+   1002          
+   1003            temp[0] = 0;
+   1004            temp[1] = 0x40;
+   1005            SendRF(temp,2);
+   1006           // DelayMs(2000);
+   1007          
+   1008           // EnableRFIncept();
+   1009          
+   1010          }
+   1011          
+   1012          void Wireless_Rcon(void)
+   1013          {
+   1014            u8 temp[2];
+   1015            // DisableRFIncept();
+   1016            // WriteDeviceAddressOfARF2496K();
+   1017          
+   1018            SetDestinationAddress();
+   1019          
+   1020            temp[0] = 0;
+   1021            temp[1] = 0x20;
+   1022            SendRF(temp,2);
+   1023           // DelayMs(2000);
+   1024          
+   1025           // EnableRFIncept();
+   1026          
+   1027          }
+   1028          /****************************************************************
+   1029          取得RF信号强度
+   1030          ****************************************************************/
+   1031          u8 read_rf_Rssi(void)
+   1032          {
+   1033          	int i = 0;
+   1034          	u16 sum = 0;
+   1035          	for(;i<10;i++){
+   1036          		sum += rssi_val[i];
+   1037          	}
+   1038          	return sum/10;
+   1039          }
+   1040          
+   1041          u8 get_partnership_ok_flag(void)
+   1042          {
+   1043              return check_partnership_ok_flag;
+   1044          }
+   1045          
+   1046          void set_partnership_ok_flag(u8 partnership_ok_flag)
+   1047          {
+   1048              check_partnership_ok_flag = partnership_ok_flag;
+   1049          }
+   1050          
+   1051          void opend_dock_signal(void)
+   1052          {
+   1053            static u8 send_dock_command_cnd=4;
+   1054            static u32 time_flag = 0;
+   1055            clear_dock_wireless_rx_code();
+   1056            while(send_dock_command_cnd)
+   1057            {
+   1058              if(remote_ir_get((IR_REMOT_POSITION_E)0) ==0x40)
+   1059                break;
+   1060              else
+   1061              {
+   1062                if(timer_elapsed(time_flag)>10)
+   1063                {
+   1064                  send_dock_command_cnd--;
+   1065                  time_flag=timer_ms();
+   1066                  Wireless_Dock() ;
+   1067                }
+   1068              }
+   1069            }
+   1070          }
+   1071          
+   1072          #endif
+   1073          
+   1074          
+   1075          
+   1076          
+
+
+ 
+
+ 
+
+
+Errors: none
+Warnings: none

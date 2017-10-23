@@ -1,0 +1,316 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:41:46
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\local_process.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\local_process.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\local_process.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\local_process.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\local_process.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include <ui-config.h>
+      6          #include "ui-commands.h"
+      7          #include "am_date_base.h"
+      8          #include "time.h"
+      9          #include  <am_config_macro.h>
+     10          #include "am_key.h"
+     11          #include "act.h"
+     12          #include "local_key_check.h"
+     13          #include "remote.h"
+     14          #include "display.h"
+     15          #include "ui-song-player.h"
+     16          #include "syscall_api.h"
+     17          #include "wireless/ARF2496K.H"
+     18          #include "sensor/sensor.h"
+     19          #include "motor/motor.h"
+     20          #include "monitor/robot_batter.h"
+     21          #include "ui-manager/exception.h"
+     22          #include "am_device.h"
+     23          #if defined(USE_WIFI_DEMO_1)
+     24          #include "wifi/wifi_demo1/simwifi.h"
+     25          #include "wifi/wifi_demo1/simsweep.h"
+     26          #elif defined(USE_WIFI_DEMO_2)
+     27          #include "wifi/wifi_demo2/simwifi_demo2.h"
+     28          #include "wifi/wifi_demo2/SimSweep_demo2.h"
+     29          
+     30          
+     31          #include "am_tm_api.h"
+     32          #endif
+     33          #define USE_WATCHDOG_MONITOR  //需要打开看门狗监控，则需要定义
+     34          #define FEED_DOG_MAX_TIME     10000 //ms
+     35          
+     36          /* 唤醒源 */
+     37          volatile U8 wakeupSource;
+     38          /*系统空闲计时*/
+     39          U16 idle_cnt;
+     40          int wdg_fd =-1;
+     41          u8 robot_start_work =0;
+     42          
+     43          extern void ir_rx_capture_4khz(void);
+     44          extern void ir_tx_send_4khz(void);
+     45          extern void ui_rx_server( void);
+     46          extern void ui_uart_cmd_rounte(void);
+     47          extern void robot_current_init(void);
+     48          extern void set_adjust_adc_value_to_system(void);
+     49          extern void wifi_uart_cmd_rounte(void);
+     50          extern u8 battery_switch_check(void);
+     51          /****************************************************************
+     52          *Function   :  start_watchdog
+     53          *Description:  启动看门狗 
+     54          *Input      :  无
+     55          *Output     :  无
+     56          *Return     :  无
+     57          *Others     :  
+     58          ******************************************************************/
+     59          void start_watchdog()
+     60          {
+     61          #ifdef USE_WATCHDOG_MONITOR
+     62            u16 max_check_time = FEED_DOG_MAX_TIME;//ms, 10s
+     63            wdg_fd = open(DEV_WDG,0);
+     64            ioctl(wdg_fd,WDT_START,&max_check_time);  
+     65          #endif
+     66          }
+     67          
+     68          /****************************************************************
+     69          *Function   :  stop_watchdog
+     70          *Description:  停止看门狗 
+     71          *Input      :  无
+     72          *Output     :  无
+     73          *Return     :  无
+     74          *Others     :  
+     75          ******************************************************************/
+     76          void stop_watchdog(void)
+     77          {
+     78          #ifdef USE_WATCHDOG_MONITOR  
+     79            ioctl(wdg_fd,WDT_STOP,0); 
+     80          #endif
+     81          }
+     82          
+     83          /****************************************************************
+     84          *Function   :  feed_watchdog
+     85          *Description:  喂狗 
+     86          *Input      :  无
+     87          *Output     :  无
+     88          *Return     :  无
+     89          *Others     :  
+     90          ******************************************************************/
+     91          void feed_watchdog(void)
+     92          {
+     93          #ifdef USE_WATCHDOG_MONITOR  
+     94            ioctl(wdg_fd,WDT_FEED,0); 
+     95          #endif
+     96          }
+     97          
+     98          /****************************************************************
+     99          *Function   :  local_app_init
+    100          *Description:  app初始化  
+    101          *Input      :  无
+    102          *Output     :  无
+    103          *Return     :  无
+    104          *Others     :  
+    105          ******************************************************************/
+    106          extern void InitBK2425(void);
+    107          extern void set_38k_on(void);
+    108          extern void set_38k_off(void);
+    109          void local_app_init(void)
+    110          {
+    111            /*init all app*/
+    112            _key_init();
+    113            _remote_init();
+    114            _act_init();
+    115            _display_init();
+    116            set_display_power_up_flag(1);
+    117            songplayer_init();
+    118            robot_ir_detection_init();
+    119            robot_motor_init();
+    120            robot_battery_init();
+    121            robot_current_init();
+    122            robot_universl_wheel_init();//初始化，exit需要在睡眠时处理
+    123            set_adjust_adc_value_to_system();
+    124            set_38k_on();
+    125            InitBK2425();
+    126            //InitARF2496k();
+    127            sys_timer_register(HZ_4K,(long)ir_tx_send_4khz,1);//红外优先级最高
+    128          
+    129            #if defined(USE_WIFI_DEMO_1)
+    130            UART_Config_PinResetWifiCard();
+    131            #elif defined(USE_WIFI_DEMO_2)
+    132            wifi_init();
+    133            #endif
+    134            if(battery_switch_check() == 1)
+    135            {
+    136          		robot_start_work =1;
+    137               // songplayer_play_id(SONG_ID_POWER_UP, 1);
+    138            }
+    139            start_watchdog();
+    140            
+    141          }
+    142          
+    143          
+    144          
+    145          /****************************************************************
+    146          *Function   :  main_app_task
+    147          *Description:  UI的处理函数，每10ms执行一次  
+    148          *Input      :  无
+    149          *Output     :  无
+    150          *Return     :  无
+    151          *Others     :  
+    152          ******************************************************************/
+    153          extern U8 SPI_Read_Reg(U8 reg);
+    154          extern U8 SPI_RW(U8 value)   ;
+    155          extern U8 Get_Chip_ID(void);
+    156          extern void Send_Packet(U8 type,U8* pbuf,U8 len);
+    157          #define WR_TX_PLOAD     0xA0  // Define TX payload register address
+    158          #define W_TX_PAYLOAD_NOACK_CMD	0xb0
+    159          void main_app_task(void *arg)
+    160          {
+    161            UI_STATE_E s;
+    162            while(1)
+    163            {  
+    164              
+    165              {
+    166                
+    167                //Send_Packet(W_TX_PAYLOAD_NOACK_CMD,temp,sizeof(temp));
+    168                key_routine();
+    169                remote_routine();
+    170                #if defined(USE_UART_WIFI)
+    171                #if defined(USE_WIFI_DEMO_1)
+    172                WifiData_Period_Process();
+    173                #elif defined(USE_WIFI_DEMO_2)
+    174                uart_server_routine();
+    175                #endif
+    176                wifi_uart_cmd_rounte();
+    177                #endif
+    178                
+    179              } 
+    180          
+    181              {      
+    182                s = get_ui_state();
+    183                //if(s != UI_ENTER_SLEEPING)
+    184                {                    
+    185                  act_routine(); 
+    186                  display_routine(); 
+    187                  songplayer_routine();
+    188                } //else {
+    189                  //songplayer_quit_playing();
+    190                //}
+    191                robot_battery_monitor_routine();
+    192                sys_exception_monitor();
+    193                //if(s == UI_TEST)   //PC 测试需要去掉这个判断条件
+    194                {
+    195                  self_test_routine();
+    196                }
+    197                ui_handle_idle(); 
+    198                #if defined(USE_WIFI_DEMO_2)
+    199                map_data_process();
+    200                #endif
+    201              }
+    202              
+    203              feed_watchdog();
+    204              sleep(1);
+    205            }
+    206            
+    207          }
+    208          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   feed_watchdog
+         0   -- Indirect call
+       8   local_app_init
+         8   -> InitBK2425
+         8   -> _act_init
+         8   -> _display_init
+         8   -> _key_init
+         8   -> _remote_init
+         8   -> battery_switch_check
+         8   -> robot_battery_init
+         8   -> robot_current_init
+         8   -> robot_ir_detection_init
+         8   -> robot_motor_init
+         8   -> robot_universl_wheel_init
+         8   -> set_38k_on
+         8   -> set_adjust_adc_value_to_system
+         8   -> set_display_power_up_flag
+         8   -> songplayer_init
+         0   -> start_watchdog
+         8   -> sys_timer_register
+         8   -> wifi_init
+       8   main_app_task
+         8   -> act_routine
+         8   -> display_routine
+         8   -> feed_watchdog
+         8   -> get_ui_state
+         8   -> key_routine
+         8   -> map_data_process
+         8   -> remote_routine
+         8   -> robot_battery_monitor_routine
+         8   -> self_test_routine
+         8   -> sleep
+         8   -> songplayer_routine
+         8   -> sys_exception_monitor
+         8   -> uart_server_routine
+         8   -> ui_handle_idle
+         8   -> wifi_uart_cmd_rounte
+      16   start_watchdog
+        16   -- Indirect call
+       0   stop_watchdog
+         0   -- Indirect call
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+       4  ??DataTable3_4
+       4  ??DataTable3_5
+      18  feed_watchdog
+       2  idle_cnt
+      92  local_app_init
+      66  main_app_task
+       1  robot_start_work
+      40  start_watchdog
+      16  stop_watchdog
+       1  wakeupSource
+       4  wdg_fd
+
+ 
+   4 bytes in section .bss
+   4 bytes in section .data
+ 256 bytes in section .text
+ 
+ 256 bytes of CODE memory
+   8 bytes of DATA memory
+
+Errors: none
+Warnings: 1

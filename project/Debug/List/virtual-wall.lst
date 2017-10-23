@@ -1,0 +1,123 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:00:17
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\guardrail\virtual-wall.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\guardrail\virtual-wall.c" -lcN "F:\1708\SDK
+#        - unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\virtual-wall.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\virtual-wall.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\guardrail\virtual-wall.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          
+      6          #include "docking-new.h"
+      7          #include "sensor/sensor.h"
+      8          #include "virtual-wall.h"
+      9          #include "ui-ir.h"
+     10          #ifdef IR_WIRELESS
+     11          #include "dock_ir_signal.h"
+     12          #include "wireless/arf2496k.h"
+     13          #endif
+     14          
+     15          #ifdef USE_VIRTUAL_WALL
+     16          #define VIRTUAL_WALL_SIGNAL_TIME_THRD 1200
+     17          #define VIRTUAL_WALL_SIGNAL_ACTIVE(time) (timer_elapsed(time) < VIRTUAL_WALL_SIGNAL_TIME_THRD)
+     18          
+     19          static U32 see_virtual_wall_signal_time;
+     20          
+     21          /* initialize a Always-On Virtual Wall pulse decoder */
+     22          int16_t aovw_decode_init(u16 instance)
+     23          {    
+     24            return 0;
+     25          }
+     26          
+     27          int16_t aovw_decode_ir(u16 instance, u16 ir_state)
+     28          {
+     29            return -1;
+     30          }
+     31          #endif
+     32          
+     33          
+     34          void virtual_wall_get_signals(U8 index, U8 signal)
+     35          {
+     36          #ifdef USE_VIRTUAL_WALL
+     37          	dock_config_t *dock_config = NULL;
+     38          
+     39          	dock_config = get_dock_config();
+     40          
+     41          	if ((1 << index) & dock_config->aovw_chan)
+     42          	{
+     43          		if (signal == AOVW_BYTE)
+     44          		{
+     45          			see_virtual_wall_signal_time = timer_ms();
+     46          		}
+     47          	}
+     48          #endif
+     49          	return;
+     50          }
+     51          
+     52          #ifdef USE_VIRTUAL_WALL
+     53          static U32 get_virtual_wall_signal_time(void)
+     54          {
+     55          	return see_virtual_wall_signal_time;
+     56          }
+     57          #endif
+     58          
+     59          /* 正常清扫时，虚拟墙检测；
+     60           */
+     61          BOOLEAN virtual_wall_active(void)
+     62          {
+     63          #ifdef USE_VIRTUAL_WALL
+     64              return VIRTUAL_WALL_SIGNAL_ACTIVE(get_virtual_wall_signal_time());
+     65          #else
+     66              return FALSE;
+     67          #endif
+     68          }
+     69          
+     70          
+     71          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   virtual_wall_active
+       0   virtual_wall_get_signals
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  virtual_wall_active
+       2  virtual_wall_get_signals
+
+ 
+ 6 bytes in section .text
+ 
+ 6 bytes of CODE memory
+
+Errors: none
+Warnings: none

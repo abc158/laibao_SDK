@@ -1,0 +1,399 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:08
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\led_drv.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\led_drv.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\led_drv.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\led_drv.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\led_drv.c
+      1          #include "syscall_api.h"
+      2          #include "am_gpio.h"
+      3          #include "led_drv.h"
+      4          
+      5          #define LED_DATA_HIGH() gpio_set_value(AM_IO_LED_DIN, 1)
+      6          #define LED_DATA_LOW() gpio_set_value(AM_IO_LED_DIN, 0)
+      7          #define LED_CLK_HIGH() gpio_set_value(AM_IO_LED_CLK, 1)
+      8          #define LED_CLK_LOW() gpio_set_value(AM_IO_LED_CLK, 0)
+      9          #define LED_CS_HIGH() gpio_set_value(AM_IO_LED_STB, 1)
+     10          #define LED_CS_LOW() gpio_set_value(AM_IO_LED_STB, 0)
+     11          
+     12          u8 display_tabel[]=
+     13          {
+     14            0x3f,//0
+     15            0x06,//1
+     16            0x5b,//2
+     17            0x4f,//3
+     18            0x66,//4
+     19            0x6d,//5
+     20            0x7d,//6
+     21            0x07,//7
+     22            0x7f,//8
+     23            0x6f,//9
+     24            0x77,//A
+     25            0x77,//B
+     26            0x77,//C
+     27            0x77,//D
+     28            0x77,//E
+     29            0x77,//F
+     30            0x77,//G
+     31            0x77,//H
+     32            0x77,//I
+     33            0x77,//J
+     34            0x77,//K
+     35            0x77,//L
+     36            0x77,//M
+     37            0x77,//N
+     38            0x77,//O
+     39            0x77,//P
+     40            0x77,//Q
+     41            0x77,//R
+     42            0x77,//S
+     43            0x77,//T
+     44            0x77,//U
+     45            0x77,//V
+     46            0x77,//W
+     47            0x77,//X
+     48            0x77,//Y
+     49            0x77 //Z
+     50          };
+     51          
+     52          u8 save_buf[5] = {0, 0, 0, 0, 0};
+     53          u8 display_colon = DISPLAY_COLON_OFF;
+     54          u8 display_clock_item = DISPLAY_CLOCK_ITEM_OFF;
+     55          
+     56          void delay_us(u16 delay)
+     57          {
+     58            u16 temp;
+     59            
+     60            temp = delay*10;
+     61            while(temp)
+     62            {
+     63              temp--;
+     64            }
+     65          }
+     66          
+     67          
+     68          void led_drv_send_data(u8* addr, u8 len)
+     69          {
+     70            u8 data, i, j;
+     71            
+     72            //LED_CS_LOW();
+     73            //delay_us(1);
+     74            
+     75            for (i=0; i<len; i++)
+     76            {   
+     77              data = *(addr+i);
+     78              //AM_DEBUG_INFO("b:");
+     79              for (j=0; j<8; j++)
+     80              {
+     81                LED_CLK_LOW();
+     82                
+     83                if (data>>j & 0x01)
+     84                {
+     85                  LED_DATA_HIGH();
+     86                  //AM_DEBUG_INFO("1");
+     87                }
+     88                else
+     89                {
+     90                  LED_DATA_LOW();
+     91                  //AM_DEBUG_INFO("0");
+     92                }
+     93                delay_us(1);
+     94                LED_CLK_HIGH();
+     95                delay_us(1);
+     96              }
+     97            }
+     98            
+     99            //LED_CS_HIGH();
+    100            //delay_us(1);
+    101          }
+    102          
+    103          void led_drv_send_cmd(u8 command)
+    104          {
+    105            u8 cmd_data[1];
+    106            
+    107            cmd_data[0] = command;
+    108            
+    109            LED_CS_LOW();
+    110            delay_us(1);
+    111            led_drv_send_data(cmd_data, 1);
+    112            if (command&0xc0 != 0xc0)
+    113            {
+    114              LED_CS_HIGH();
+    115              delay_us(1);
+    116            }
+    117          }
+    118          
+    119          
+    120          void led_display_all_off(void)
+    121          {     
+    122            memset(save_buf, 0, sizeof(save_buf));
+    123            display_colon = DISPLAY_COLON_OFF;  
+    124            display_clock_item = DISPLAY_CLOCK_ITEM_OFF;
+    125          }
+    126          
+    127          
+    128          void led_display_num(u8 index, char letter)
+    129          {
+    130            if (index <= 3)
+    131            { 
+    132              if (letter <= 9)
+    133              {
+    134                save_buf[index] = display_tabel[letter];            
+    135              }  
+    136              else if ((letter >= 'A') && (letter <= 'Z'))
+    137              {
+    138                save_buf[index] = display_tabel[letter-'A'+10];                 
+    139              }    
+    140              if(index == 1 || index == 2)
+    141              {
+    142                save_buf[index] |= display_colon;
+    143              }  
+    144            }        
+    145          }
+    146          
+    147          
+    148          void led_display_colon(u8 enable)
+    149          {
+    150            if (enable == 1)
+    151            {  	
+    152              display_colon = DISPLAY_COLON_ON;
+    153            }
+    154            else
+    155            {
+    156              display_colon = DISPLAY_COLON_OFF;
+    157            } 
+    158            save_buf[1] &= DISPLAY_COLON_CLEAR;
+    159            save_buf[2] &= DISPLAY_COLON_CLEAR;
+    160            save_buf[1] |= display_colon;
+    161            save_buf[2] |= display_colon;
+    162          }
+    163          
+    164          
+    165          void led_display_clock_item(u8 enable)
+    166          {
+    167            save_buf[4] &= DISPLAY_CLOCK_ITEM_CLEAR;
+    168            if (enable == 1)
+    169            {  	
+    170              save_buf[4] |= DISPLAY_CLOCK_ITEM_ON;
+    171            }
+    172            else
+    173            {
+    174              save_buf[4] |=  DISPLAY_CLOCK_ITEM_OFF;
+    175            } 
+    176          }
+    177          
+    178          
+    179          void led_display_clean_mode(u8 mode)
+    180          {
+    181            save_buf[4] &= DISPLAY_CLEAN_MODE_CLEAR;
+    182            switch (mode)
+    183            {
+    184            case clean_mode_normal:
+    185              save_buf[4] |= DISPLAY_CLEAN_MODE_NORMAL;
+    186              break;
+    187              
+    188            case clean_mode_spot:
+    189              save_buf[4] |= DISPLAY_CLEAN_MODE_SPOT;
+    190              break;
+    191              
+    192            case clean_mode_wall_follow:
+    193              save_buf[4] |= DISPLAY_CLEAN_MODE_WALL_FOLLOW;
+    194              break;
+    195              
+    196            case clean_mode_random:
+    197              save_buf[4] |= DISPLAY_CLEAN_MODE_RANDOM;
+    198              break;
+    199              
+    200            default:
+    201              save_buf[4] |= DISPLAY_CLEAN_MODE_NONE;
+    202              break;
+    203            }   
+    204          }
+    205          
+    206          
+    207          void led_display_battery(u8 level)
+    208          {
+    209            save_buf[4] &= DISPLAY_BATTERY_CLEAR;
+    210            switch (level)
+    211            {
+    212            case battery_level_1:
+    213              save_buf[4] |= DISPLAY_BATTERY_LEVEL_1;
+    214              break;
+    215              
+    216            case battery_level_2:
+    217              save_buf[4] |= DISPLAY_BATTERY_LEVEL_2;
+    218              break;
+    219              
+    220            case battery_level_3:
+    221              save_buf[4] |= DISPLAY_BATTERY_LEVEL_3;
+    222              break;	      
+    223              
+    224            default:
+    225              save_buf[4] |= DISPLAY_BATTERY_OFF;
+    226              break;
+    227            }   
+    228          }
+    229          
+    230          
+    231          void led_display_update(void)
+    232          {	  
+    233            u8 i;
+    234            led_drv_send_cmd(0x02);  
+    235            led_drv_send_cmd(0x44);      
+    236            for(i=0; i<5; i++)
+    237            {
+    238              led_drv_send_cmd(0xc0+i*2);               
+    239              led_drv_send_data(&save_buf[i], 1); 
+    240              LED_CS_HIGH();
+    241              delay_us(1);
+    242            }  
+    243            led_drv_send_cmd(0xc0);               
+    244            led_drv_send_data(&save_buf[0], 1); 
+    245            LED_CS_HIGH();
+    246            delay_us(1);  
+    247            led_drv_send_cmd(0x8c);
+    248          }
+    249          
+    250          int dis_gpio_group[3]=
+    251          {
+    252            AM_IO_LED_DIN  ,
+    253            AM_IO_LED_CLK   ,
+    254            AM_IO_LED_STB    
+    255          };
+    256          
+    257          U8 init_dis_gpio(void)
+    258          {
+    259            int ret = -1;
+    260            for( int i=0; i<3; i++ )
+    261            {
+    262              ret = gpio_request_one(dis_gpio_group[i],GPIO_F_DIR_OUT);
+    263              
+    264              if(ret != -1)
+    265              {
+    266                ;
+    267              }
+    268              else
+    269              {
+    270                printf("LEDDRV io not ok\r\n");
+    271              }
+    272            }  
+    273            return 0;
+    274          }
+    275          void led_drv_init(void)
+    276          {
+    277            init_dis_gpio();
+    278            LED_CS_HIGH();
+    279            LED_CLK_HIGH();
+    280            LED_DATA_HIGH();
+    281            
+    282            led_display_all_off();  
+    283            led_display_num(0,0);
+    284            led_display_num(1,1);
+    285            led_display_num(2,2);
+    286            led_display_num(3,3); 
+    287            led_display_colon(1);    
+    288            led_display_clean_mode(clean_mode_normal);
+    289            led_display_battery(battery_level_3);
+    290            led_display_update();
+    291          }
+    292          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   delay_us
+      24   init_dis_gpio
+        24   -- Indirect call
+       8   led_display_all_off
+         8   -> __aeabi_memclr4
+       0   led_display_battery
+       0   led_display_clean_mode
+       0   led_display_clock_item
+       0   led_display_colon
+       8   led_display_num
+      16   led_display_update
+        16   -- Indirect call
+        16   -> delay_us
+         0   -> led_drv_send_cmd
+        16   -> led_drv_send_cmd
+        16   -> led_drv_send_data
+       8   led_drv_init
+         8   -- Indirect call
+         8   -> init_dis_gpio
+         8   -> led_display_all_off
+         8   -> led_display_battery
+         8   -> led_display_clean_mode
+         8   -> led_display_colon
+         8   -> led_display_num
+         0   -> led_display_update
+       8   led_drv_send_cmd
+         8   -- Indirect call
+         8   -> delay_us
+         8   -> led_drv_send_data
+      32   led_drv_send_data
+        32   -- Indirect call
+        32   -> delay_us
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable11
+       4  ??DataTable11_1
+       4  ??DataTable11_2
+       4  ??DataTable11_3
+       4  ?Subroutine0
+      10  ?Subroutine1
+      20  ?_0
+      16  delay_us
+      12  dis_gpio_group
+      36  display_tabel
+      48  init_dis_gpio
+      18  led_display_all_off
+      44  led_display_battery
+      50  led_display_clean_mode
+      22  led_display_clock_item
+      42  led_display_colon
+      54  led_display_num
+      82  led_display_update
+      94  led_drv_init
+      32  led_drv_send_cmd
+      88  led_drv_send_data
+      10  save_buf
+          display_colon
+          display_clock_item
+
+ 
+  10 bytes in section .bss
+  48 bytes in section .data
+ 640 bytes in section .text
+ 
+ 640 bytes of CODE memory
+  58 bytes of DATA memory
+
+Errors: none
+Warnings: none

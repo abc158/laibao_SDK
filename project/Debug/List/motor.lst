@@ -1,0 +1,152 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:09
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\motor\motor.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\motor\motor.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\motor.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\motor.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\motor\motor.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          #include <am_type.h>
+      7          #include <charge/charge.h>
+      8          #include <am_tm_api.h>
+      9          #include <syscall_api.h>
+     10          #include <motor/robot_brush.h>
+     11          #include <motor/robot_suction.h>
+     12          
+     13          BOOLEAN initialized; 
+     14          
+     15          /****************************************************************
+     16          *Function   :  calc_cur_duty
+     17          *Author     :  lyy
+     18          *Date       :  2017.4.20
+     19          *Description:  把adc值转成要输出的pwm占空比
+     20          *CallBy     :  
+     21          *Input      :  参数
+     22          *              voltage： adc值， 已电池电压为参考点，
+     23          *             比如电池电压满伏是16.8 = 3268. 
+     24          *             如果要百分百输出，则adc = 3628.
+     25          *Output     :  无
+     26          *Return     :  无
+     27          *Others     :  
+     28          *History    : //修改历史
+     29              <author>       <time>      <version>           <desc>
+     30              lyy            17.4.28       v1.0         build this function
+     31          ******************************************************************/
+     32          int calc_cur_duty(int16_t voltage)
+     33          {
+     34            int percent = ((voltage*100)/CHARGING_MAXVOL );
+     35            const u8 limit = 100;
+     36          
+     37            if(percent > limit)
+     38              percent = limit;  
+     39                  
+     40            int pwm = (percent * 10);
+     41            
+     42            return pwm;
+     43          }
+     44          
+     45          /****************************************************************
+     46          *Function   :  robot_motor_update
+     47          *Author     :  lyy
+     48          *Date       :  2017.4.20
+     49          *Description:  真空，主边刷 pwm update
+     50          *CallBy     :  
+     51          *Input      :  无
+     52          *Output     :  无
+     53          *Return     :  无
+     54          *Others     :  
+     55          *History    : //修改历史
+     56              <author>       <time>      <version>           <desc>
+     57              lyy            17.4.28       v1.0         build this function
+     58          ******************************************************************/
+     59          void robot_motor_update()
+     60          {
+     61            robot_suction_update();
+     62            robot_brush_update();
+     63          }
+     64          
+     65          /****************************************************************
+     66          *Function   :  robot_motor_init
+     67          *Author     :  lyy
+     68          *Date       :  2017.4.20
+     69          *Description:  真空，主边刷 控制init，启动一个定时器去动态update pwm
+     70          *CallBy     :  
+     71          *Input      :  无
+     72          *Output     :  无
+     73          *Return     :  无
+     74          *Others     :  
+     75          *History    : //修改历史
+     76              <author>       <time>      <version>           <desc>
+     77              lyy            17.4.28       v1.0         build this function
+     78          ******************************************************************/
+     79          void robot_motor_init(void)
+     80          {
+     81              if(!initialized)
+     82              {
+     83                  timer_task_register(robot_motor_update, 100, TRUE);
+     84                  initialized = 1;
+     85              }
+     86              robot_suction_init();
+     87              robot_brush_init();
+     88          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   calc_cur_duty
+       8   robot_motor_init
+         0   -> robot_brush_init
+         8   -> robot_suction_init
+         8   -> timer_task_register
+       8   robot_motor_update
+         0   -> robot_brush_update
+         8   -> robot_suction_update
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable0
+       4  ??DataTable0_1
+      24  calc_cur_duty
+       1  initialized
+      34  robot_motor_init
+      14  robot_motor_update
+
+ 
+  1 byte  in section .bss
+ 80 bytes in section .text
+ 
+ 80 bytes of CODE memory
+  1 byte  of DATA memory
+
+Errors: none
+Warnings: none

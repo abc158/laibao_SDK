@@ -1,0 +1,2001 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  15:55:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\act.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\act.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\act.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\act.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\act.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include <ui-config.h>
+      6          #include "ui-commands.h"
+      7          #include "am_date_base.h"
+      8          #include "am_config_macro.h"
+      9          #include "time.h"
+     10          #include "lib.h"
+     11          #include "local_key_check.h"
+     12          #include "syscall_api.h"
+     13          #include "remote.h"
+     14          #include "act.h"
+     15          #include "display.h"
+     16          #include "am_key.h"
+     17          #include "sensor/sensor.h"
+     18          #include "ui-manager/exception.h"
+     19          #include "motor/robot_suction.h"
+     20          #include "ui-song-player.h"
+     21          #include "charge/charge.h"
+     22          #if defined(USE_WIFI_DEMO_1)
+     23          #include "wifi/wifi_demo1/simwifi.h"
+     24          #include "wifi/wifi_demo1/simsweep.h"
+     25          #elif defined(USE_WIFI_DEMO_2)
+     26          #include "wifi/wifi_demo2/simwifi_demo2.h"
+     27          #include "wifi/wifi_demo2/SimSweep_demo2.h"
+     28          #endif
+     29          #include "motor/robot_brush.h"
+     30          #define GO_SLEEP_TIME 500
+     31          #define WAITING_SLEEP_TIME 30000
+     32          #define FULLGO_START_TIME 200
+     33          #define WIFI_SLEEP_TIME    30000
+     34          typedef enum
+     35          {
+     36            SPOT_MODE_NONE,
+     37            SPOT_MODE_SPIRAL,/*螺旋清扫*/
+     38            SPOT_MODE_GRID   /*局部弓字形*/
+     39          }SPOT_MODE_E;
+     40          
+     41          static tm tmp_day;
+     42          static schedule_time_info tmp_schedule_info;
+     43          static UI_STATE_E ui_state;                   /*UI状态*/
+     44          static sys_state_info sys_state_info_p;       /*系统状态*/
+     45          
+     46          static key_state_t *key_state_p;              /*物理按键状态指针*/
+     47          static ir_state_t *key_ir_p;                  /*物理按键状态指针*/
+     48          
+     49          #if defined(USE_UART_WIFI)
+     50          static cmd_state_t *wifi_uart_cmd_state_p;   /*物理按键状态指针*/
+     51          #endif
+     52          static U8 enter_sleep_state = 0;              /*睡眠模式,有些方案可能要求不同睡眠模式*/
+     53          //static U8 fullgo_flag = 0;       
+     54          static U8 start_docking_flag = 0;             /*是否需要回座的标志*/
+     55          u8 ui_test_index = 0;                         /*测试项序号*/
+     56          U8 clean_index = 0;
+     57          TEST_CMD_E ui_test_cmd = CMD_TEST_WAIT;       /*测试项命令,根据ui_test_index从test_item_table[]中获得*/
+     58          u8 allow_self_test = 1;                       /*是否可以进入自检模式*/
+     59          u8 allow_adjust =1;							  /*是否可以进入校准模式*/
+     60          static u16 goto_sleep_cnt = 0;                /*进入睡眠的时间计数*/
+     61          static u16 waiting_state_cnt = 0;
+     62          static u8 enhance_mode = 0;                   /*加强模式*/
+     63          static SPOT_MODE_E spot_mode = SPOT_MODE_NONE;/*局部清扫模式*/
+     64          static u8 board_key;                          /*物理按键*/
+     65          static u8 ir_key;                             /*遥控按键*/
+     66          static u16 fullgo_cnt;                        /*fullgo计时*/
+     67          u8 adjust_handle =0;
+     68          #if defined(USE_WIFI_DEMO_2)
+     69          static U8 remote_state;
+     70          #endif
+     71          u8 direction_key_up_flag;//方向键松开标志位
+     72          u8 state_save =0;
+     73          
+     74          static U8 adjust_side_brush_flag = 0;
+     75          static U8 wifi_flag = 0;
+     76          extern TEST_CMD_E test_item_table[];
+     77          extern u8 robot_start_work ;
+     78          
+     79          void handle_act(U32 key_val);
+     80          extern cmd_state_t *get_ui_uart_cmd_state(void);
+     81          extern void sys_shutdown(void);
+     82          extern cmd_state_t *get_wifi_uart_cmd_state(void);
+     83          extern U8 get_pc_test_flag(void);
+     84          extern u8 battery_switch_check(void);
+     85          extern u8 begin_charge_report;
+     86          void direction_key_recover_handle(void);
+     87          extern void start_watchdog();
+     88          extern u8 pc_test_flag;
+     89          
+     90          
+     91          #if defined(USE_UART_WIFI)
+     92          	static U8 wifi_press_long_flag = 0;
+     93          #endif
+     94             
+     95          UI_STATE_E get_ui_state(void)
+     96          {
+     97            return ui_state;
+     98          }
+     99          
+    100          void set_ui_state(UI_STATE_E s)
+    101          {
+    102            ui_state = s;
+    103          }
+    104          
+    105          U8 get_enter_sleep_state(void)
+    106          {
+    107            return enter_sleep_state;
+    108          }
+    109          
+    110          void set_enter_sleep_state(U8 state)
+    111          {
+    112            enter_sleep_state = state;
+    113          }
+    114          
+    115          void set_start_docking_state(u8 state)
+    116          {
+    117            if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))//在拖地模式下不能回座
+    118            {
+    119            	start_docking_flag = 0;
+    120            }
+    121            else
+    122            {
+    123          	start_docking_flag = state;
+    124            }	 
+    125          }
+    126          
+    127          u8 get_start_docking_state(void)
+    128          {
+    129            return start_docking_flag;
+    130          }
+    131          /****************************************************************
+    132          *Function   :  _act_init
+    133          *Description:  命令执行模块的初始化  
+    134          *Input      :  无
+    135          *Output     :  无
+    136          *Return     :  无
+    137          *Others     :  
+    138          ******************************************************************/
+    139          void _act_init(void)
+    140          {
+    141            key_state_p = get_key_state();
+    142            key_ir_p    = get_ir_state();
+    143            
+    144            #if defined(USE_UART_WIFI)
+    145            wifi_uart_cmd_state_p = get_wifi_uart_cmd_state();
+    146            #endif
+    147            #if defined(USE_WIFI_DEMO_1) || defined(USE_WIFI_DEMO_2)
+    148            clear_map_index();
+    149            #endif
+    150          
+    151          }
+    152          
+    153          /****************************************************************
+    154          *Function   :  _act_exit
+    155          *Description:  行为的退出  
+    156          *Input      :  无
+    157          *Output     :  无
+    158          *Return     :  无
+    159          *Others     :  
+    160          ******************************************************************/
+    161          void _act_exit(void)
+    162          {
+    163            ;
+    164          }
+    165          
+    166          /****************************************************************
+    167          *Function   :  sleep_handle
+    168          *Description:  睡眠状态的处理  
+    169          *Input      :  按键消息
+    170          *Output     :  1：函数执行时处理了按键消息了；0：函数执行时没有处理按键消息
+    171          *Return     :  无
+    172          *Others     :  
+    173          ******************************************************************/
+    174          u8 sleep_handle(U32 key)
+    175          {
+    176          	if (get_ui_state() == UI_ENTER_SLEEPING)
+    177          	{
+    178          		if (((key == (KEY_CLEAN | KEY_SHORT_UP))&&(board_key))||
+    179                      (key == (KEY_POWER | KEY_SHORT_UP))||
+    180                      (sys_state_info_p.robot_state == ROBOT_STATE_CHARGING)||
+    181                      (sys_state_info_p.robot_state == ROBOT_STATE_CLEANING_ROOM))
+    182          		{
+    183                     direction_key_up_flag =0; //清零该标志位，避免唤醒之后直接回到按方向键之前的状态	 
+    184                     robot_universl_wheel_init();
+    185          		   set_ui_state(UI_IDLE);
+    186                             start_watchdog();
+    187          		  
+    188          		}
+    189          		else
+    190          		{
+    191          		  goto_sleep_cnt++;
+    192          		  if ((goto_sleep_cnt >= GO_SLEEP_TIME)&&
+    193                      ((sys_state_info_p.robot_state == ROBOT_STATE_WAITING)||
+    194                      (sys_state_info_p.robot_state == ROBOT_STATE_PAUSE)))
+    195          		  {
+    196          		  	goto_sleep_cnt = 0;
+    197                      printf("go to sleep####\r\n");
+    198                      robot_universl_wheel_exit();
+    199          		    act_command_q(CMD_POWER, CMD_RUN, NULL, 0);
+    200          		  }
+    201          		}
+    202                  return 1;
+    203          	}
+    204          	return 0;
+    205          }
+    206          
+    207          /****************************************************************
+    208          *Function   :  ext_act_handle
+    209          *Description:  方案规格相关的行为处理  
+    210          *Input      :  按键消息
+    211          *Output     :  1：函数执行时处理了按键消息了；0：函数执行时没有处理按键消息
+    212          *Return     :  无
+    213          *Others     :  
+    214          ******************************************************************/
+    215          u8 ext_act_handle(U32 key)
+    216          {
+    217          	UI_STATE_E s;
+    218              static U8 tmp_start_docking_state = 0;
+    219              U16 tmp_sleep_time = 0;
+    220          	s = get_ui_state();
+    221          	static u32 adjust_one_second = 0;
+    222          	//是否打开墙检和地检
+    223          	if ( (sys_state_info_p.robot_state != ROBOT_STATE_WAITING &&
+    224            	    sys_state_info_p.robot_state != ROBOT_STATE_CHARGING)
+    225            	    || (get_ui_state() == UI_TEST) )
+    226             {
+    227              robot_sensor_gather_start(1);
+    228            }
+    229            else
+    230            {
+    231              robot_sensor_gather_start(0);
+    232            }  
+    233            //停止状态一段时间后进入睡眠
+    234            if ((sys_state_info_p.robot_state == ROBOT_STATE_WAITING)||
+    235              (sys_state_info_p.robot_state == ROBOT_STATE_PAUSE))
+    236            {    
+    237              if ((s != UI_ERROR) && (s != UI_TEST) && (s != UI_ENTER_SLEEPING))
+    238              {
+    239              	waiting_state_cnt++;
+    240                if(wifi_flag > 0)
+    241                   tmp_sleep_time = WIFI_SLEEP_TIME;
+    242                else
+    243                   tmp_sleep_time = WAITING_SLEEP_TIME;
+    244                
+    245                if (waiting_state_cnt >= tmp_sleep_time)
+    246                {
+    247                  waiting_state_cnt = 0;
+    248                  if(wifi_flag > 0)
+    249                      wifi_flag = 0;
+    250                  set_ui_state(UI_ENTER_SLEEPING);
+    251                }
+    252              }
+    253              else
+    254              {
+    255                waiting_state_cnt = 0;
+    256              }        
+    257            }
+    258            else
+    259            {
+    260               waiting_state_cnt = 0;
+    261            }
+    262            //dock处理
+    263              if (get_start_docking_state() == 1 && sys_state_info_p.robot_state != ROBOT_STATE_DOCK)
+    264          	{
+    265                  /*
+    266                  if (get_ui_state() == UI_FULLGO)
+    267                  {
+    268                      act_command_q(CMD_FULL_GO, CMD_STOP, NULL, 0);
+    269                      sleep(10);
+    270                  }*/
+    271                  tmp_start_docking_state = 1;
+    272          		act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    273          		songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    274          	    set_start_docking_state(0);
+    275          	}
+    276          
+    277          	if((sys_state_info_p.robot_state == ROBOT_STATE_DOCK) && \
+    278          	     !gpio_get_value(AM_I0_WATER_TANK_DETECT))//拖地模式下不响应回座
+    279          	{
+    280          		act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0); 	
+    281          	}
+    282          	
+    283              if(sys_state_info_p.robot_state == ROBOT_STATE_DOCK)
+    284              {
+    285                  if(adjust_side_brush_flag == 0)
+    286                  {
+    287          		  	robot_sidebrush_vols_set(1);
+    288                      robot_side_brush_adjust_set(SIDE_BRUSH_MAX_VOLTAGE/3);
+    289                      adjust_side_brush_flag = 1;
+    290                  }
+    291              }
+    292              else 
+    293              {
+    294                  if(adjust_side_brush_flag == 1)
+    295                  {
+    296                      adjust_side_brush_flag = 0;
+    297          			robot_side_brush_adjust_set(SIDE_BRUSH_MAX_VOLTAGE);
+    298                  }
+    299              }
+    300              if(sys_state_info_p.robot_state == ROBOT_STATE_CHARGING)
+    301              {
+    302                  if(get_ui_error_num() != UI_ERROR_00_REVERSE)
+    303                  {
+    304                      clear_ui_error_number();      
+    305                      set_ui_state(UI_IDLE);
+    306                  }
+    307          
+    308                  if(tmp_start_docking_state == 1)
+    309                  {
+    310                      tmp_start_docking_state = 0;
+    311                  }
+    312              }
+    313          	//fullgo处理
+    314          	if (get_ui_state() == UI_FULLGO)
+    315          	{
+    316          	  if ( (sys_state_info_p.robot_state == ROBOT_STATE_WAITING) ||
+    317          	  	   ((sys_state_info_p.robot_state == ROBOT_STATE_CHARGING) && 
+    318          	  	    (sys_state_info_p.charging_state != CHARGING_ON)) ) 
+    319          	  {
+    320          	    fullgo_cnt++;
+    321          	    if (fullgo_cnt > FULLGO_START_TIME)
+    322          	    {
+    323          	      act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    324          		  songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    325          	      fullgo_cnt = 0;
+    326          	    }
+    327          	  }
+    328          	  else
+    329          	  {
+    330          	    fullgo_cnt = 0;
+    331          	  }
+    332          
+    333                if(sys_state_info_p.robot_state == ROBOT_STATE_DOCK)
+    334                {
+    335                   if(tmp_start_docking_state == 0)
+    336                   {
+    337                       act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    338              	     sleep(10);
+    339                       act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    340          			 songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    341                   }
+    342                   
+    343                }
+    344          	}
+    345               
+    346          	//校准处理
+    347          	if(adjust_handle == 1)
+    348          	{	  	
+    349          		if(adjust_one_second == 0)
+    350          		{ 
+    351          		    printf("start adjust ir!!!!!\r\n");
+    352          		  	adjust_one_second = get_total_seconds();
+    353          			if(get_restore_lt_signal_offset_state())
+    354          			{
+    355          				//songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
+    356          			}
+    357          			else 
+    358          			{
+    359          				robot_sensor_gather_start(1);
+    360          				enable_lt_offset_adjust(1);
+    361          				//songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    362          			}				
+    363          		}
+    364          		else if(get_total_seconds()>(adjust_one_second+2))
+    365          		{
+    366          			if(get_restore_lt_signal_offset_state())
+    367          			{
+    368          				reset_lt_signal_offset();
+    369          				songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
+    370          				
+    371          			}
+    372          			else
+    373          			{
+    374          				save_lt_signal_offset();              
+    375          				robot_sensor_gather_start(0);
+    376          				songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    377          			}
+    378          			adjust_handle =0;
+    379          			adjust_one_second =0;			
+    380          		}
+    381          	}
+    382          	
+    383          	//sleep处理
+    384          	if (sleep_handle(key) == 1)
+    385          	{
+    386          	  return 1;
+    387          	}
+    388          	//故障处理
+    389          	exception_handle();
+    390          	
+    391          	return 0;
+    392          }
+    393          
+    394          /****************************************************************
+    395          *Function   :  act_routine
+    396          *Description:  行为处理函数  
+    397          *Input      :  无
+    398          *Output     :  无
+    399          *Return     :  无
+    400          *Others     :  
+    401          ******************************************************************/
+    402          void act_routine(void)
+    403          {
+    404            U8 i;
+    405            U32 key_value = KEY_NULL;      
+    406            
+    407            //物理按键消息获取
+    408            for(i=0; i<TOTAL_KEY_NUM; i++)
+    409            {
+    410              if(key_state_p[i].state != KEY_NULL)
+    411              {
+    412                key_value |= key_state_p[i].state | key_state_p[i].keyval;
+    413                key_state_p[i].state = KEY_NULL;//clear the message
+    414                board_key = 1;
+    415              } 
+    416            }
+    417            //遥控按键消息或者
+    418            for(i=0; i<TOTAL_IR_NUM; i++)
+    419            {
+    420              if(key_ir_p[i].state != KEY_NULL)
+    421              {
+    422                key_value |= key_ir_p[i].state | key_ir_p[i].keyval;
+    423                key_ir_p[i].state = KEY_NULL;//clear the message 
+    424                ir_key = 1;
+    425              } 
+    426            }
+    427           
+    428           
+    429            #if defined(USE_UART_WIFI)
+    430            for(i=0; i<UART_CMD_MAX; i++)
+    431            {
+    432               if(wifi_uart_cmd_state_p[i].state != KEY_NULL)
+    433               {
+    434                 key_value = wifi_uart_cmd_state_p[i].state | wifi_uart_cmd_state_p[i].keyval;
+    435                 wifi_uart_cmd_state_p[i].state = KEY_NULL;//clear the message
+    436               } 
+    437            }
+    438            #endif
+    439           //规格相关的一些处理
+    440          	if (ext_act_handle(key_value) == 1)
+    441          	{
+    442          	  return;
+    443          	}
+    444          	//按键消息处理
+    445            if ((key_value != KEY_NULL)&&(charging_jack() == 0))
+    446            {
+    447          	printf("k=%x\r\n",key_value);
+    448              handle_act(key_value);
+    449              board_key = 0;
+    450              ir_key = 0;
+    451            }
+    452            else
+    453            {
+    454               board_key = 0;
+    455               ir_key = 0;
+    456            }
+    457            direction_key_recover_handle();
+    458          }
+    459          
+    460          /****************************************************************
+    461          *Function   :  handle_act_waiting
+    462          *Description:  系统状态为ROBOT_STATE_WAITING的按键响应函数  
+    463          *Input      :  按键消息
+    464          *Output     :  无
+    465          *Return     :  无
+    466          *Others     :  
+    467          ******************************************************************/
+    468          void handle_act_waiting(U32 key_val)
+    469          {  
+    470            //printf("handle_act_waiting\r\n"); 
+    471            
+    472            switch(key_val)
+    473            { 
+    474              case KEY_CLEAN | KEY_SHORT_UP:
+    475                #if defined(USE_WIFI_DEMO_1) || defined(USE_WIFI_DEMO_2)
+    476                    clear_map_index();
+    477                #endif
+    478                 act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);   
+    479                 songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    480          //      act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    481          //      if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    482          //      {
+    483          //          songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    484          //      }
+    485          //      else
+    486          //      {
+    487          //          songplayer_play_id(SONG_ID_START_MOP, 0);
+    488          //      }
+    489                break;
+    490                
+    491              case KEY_DOCK | KEY_SHORT_UP:
+    492          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    493          	  {
+    494          	  	  break;
+    495          	  }
+    496                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    497                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    498                break;
+    499              
+    500              case KEY_SPOT | KEY_SHORT_UP:
+    501          	  state_save_and_recover_grid(0);
+    502                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    503                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    504                spot_mode = SPOT_MODE_SPIRAL;
+    505                break;
+    506              
+    507              case KEY_GRID | KEY_SHORT_UP:
+    508          	  state_save_and_recover_grid(0);
+    509                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    510                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    511                spot_mode = SPOT_MODE_GRID;
+    512                break;
+    513                    
+    514              case KEY_WALLFLOW | KEY_SHORT_UP:
+    515                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    516                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    517                break;          
+    518                
+    519              case KEY_POWER | KEY_SHORT_UP:   
+    520              	goto_sleep_cnt = GO_SLEEP_TIME;  
+    521              	songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    522              	sleep(10); 
+    523                set_ui_state(UI_ENTER_SLEEPING);
+    524                break;                                          
+    525                  
+    526              default:
+    527              	//printf("default=%x \r\n", s->cmd);
+    528                break;         
+    529            }    
+    530          }
+    531          
+    532          /****************************************************************
+    533          *Function   :  handle_act_running
+    534          *Description:  系统状态为ROBOT_STATE_CLEANING_ROOM的按键响应函数  
+    535          *Input      :  按键消息
+    536          *Output     :  无
+    537          *Return     :  无
+    538          *Others     :  
+    539          ******************************************************************/
+    540          void handle_act_running(U32 key_val)
+    541          {  
+    542            //printf("handle_act_running\r\n"); 
+    543            switch(key_val)
+    544            { 
+    545              case KEY_CLEAN | KEY_SHORT_UP:
+    546                act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);   
+    547                sleep(10);
+    548          	  songplayer_play_id(SONG_ID_ENTER_PAUSED, 0);
+    549                break;
+    550                
+    551              case KEY_DOCK | KEY_SHORT_UP:
+    552          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    553          	  {
+    554          	  	  break;
+    555          	  }	  
+    556                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    557                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    558                break;
+    559              
+    560              case KEY_SPOT | KEY_SHORT_UP:
+    561          	  state_save_and_recover_grid(0);
+    562                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    563                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    564                spot_mode = SPOT_MODE_SPIRAL;
+    565                break;
+    566              
+    567              case KEY_GRID | KEY_SHORT_UP:
+    568          	  state_save_and_recover_grid(0);
+    569                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    570                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    571                spot_mode = SPOT_MODE_GRID;
+    572                break;
+    573                    
+    574              case KEY_WALLFLOW | KEY_SHORT_UP:
+    575                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    576                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    577                break;          
+    578                
+    579              case KEY_POWER | KEY_SHORT_UP:
+    580                act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    581                songplayer_play_id(SONG_ID_NORMAL_CLEANING_STOP, 0);
+    582                break;                                          
+    583                  
+    584              default:
+    585              	//printf("default=%x \r\n", s->cmd);
+    586                break;         
+    587            } 
+    588                
+    589          }
+    590          
+    591          /****************************************************************
+    592          *Function   :  handle_act_pausing
+    593          *Description:  系统状态为ROBOT_STATE_PAUSE的按键响应函数  
+    594          *Input      :  按键消息
+    595          *Output     :  无
+    596          *Return     :  无
+    597          *Others     :  
+    598          ******************************************************************/
+    599          void handle_act_pausing(U32 key_val)
+    600          {  
+    601            //printf("handle_act_pausing\r\n"); 
+    602            switch(key_val)
+    603            { 
+    604              case KEY_CLEAN | KEY_SHORT_UP:
+    605                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    606                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    607                {
+    608                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    609                }
+    610                else
+    611                {
+    612                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    613                }	  
+    614                break;
+    615                
+    616              case KEY_DOCK | KEY_SHORT_UP:
+    617          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    618          	  {
+    619          	  	  break;
+    620          	  }	  
+    621                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    622                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    623                break;
+    624              
+    625              case KEY_SPOT | KEY_SHORT_UP:
+    626          	  state_save_and_recover_grid(0);
+    627                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    628                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    629                spot_mode = SPOT_MODE_SPIRAL;
+    630                break;
+    631              
+    632              case KEY_GRID | KEY_SHORT_UP:
+    633          	  state_save_and_recover_grid(0);
+    634                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    635                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    636                spot_mode = SPOT_MODE_GRID;
+    637                break;
+    638                    
+    639              case KEY_WALLFLOW | KEY_SHORT_UP:
+    640                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    641                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    642                break;          
+    643              
+    644              case KEY_POWER | KEY_SHORT_UP:
+    645                goto_sleep_cnt = GO_SLEEP_TIME;  
+    646                songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    647                sleep(10); 
+    648                set_ui_state(UI_ENTER_SLEEPING);
+    649                break;                                          
+    650                  
+    651              default:
+    652              	//printf("default=%x \r\n", s->cmd);
+    653                break;         
+    654            }     
+    655          }
+    656          
+    657          /****************************************************************
+    658          *Function   :  handle_act_spotting
+    659          *Description:  系统状态为ROBOT_STATE_SPOTTING的按键响应函数  
+    660          *Input      :  按键消息
+    661          *Output     :  无
+    662          *Return     :  无
+    663          *Others     :  
+    664          ******************************************************************/
+    665          void handle_act_spotting(U32 key_val)
+    666          {  
+    667            //printf("handle_act_spotting\r\n"); 
+    668            switch(key_val)
+    669            { 
+    670              case KEY_CLEAN | KEY_SHORT_UP:
+    671                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    672                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    673                {
+    674                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    675                }
+    676                else
+    677                {
+    678                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    679                }
+    680                spot_mode = SPOT_MODE_NONE;
+    681                break;
+    682                
+    683              case KEY_DOCK | KEY_SHORT_UP:
+    684          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    685          	  {
+    686          	  	  break;
+    687          	  }	  
+    688                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    689                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    690                spot_mode = SPOT_MODE_NONE;      
+    691                break;
+    692              
+    693              case KEY_SPOT | KEY_SHORT_UP:
+    694                state_save_and_recover_grid(0);
+    695                if (spot_mode == SPOT_MODE_GRID)
+    696                {
+    697                  act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    698                  songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    699                  spot_mode = SPOT_MODE_SPIRAL;
+    700                }
+    701                else
+    702                {
+    703          		act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);
+    704                	songplayer_play_id(SONG_ID_ENTER_PAUSED, 0);
+    705                	spot_mode = SPOT_MODE_NONE;
+    706                }
+    707                break;
+    708              
+    709              case KEY_GRID | KEY_SHORT_UP:
+    710          	  state_save_and_recover_grid(0);
+    711                if (spot_mode == SPOT_MODE_SPIRAL)
+    712                {
+    713                  act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    714                  songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    715                  spot_mode = SPOT_MODE_GRID;
+    716                }
+    717                else
+    718                {
+    719          		act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);
+    720                	songplayer_play_id(SONG_ID_ENTER_PAUSED, 0);
+    721                	spot_mode = SPOT_MODE_NONE;
+    722                }
+    723                break;
+    724                    
+    725              case KEY_WALLFLOW | KEY_SHORT_UP:
+    726                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    727                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    728                spot_mode = SPOT_MODE_NONE;
+    729                break;          
+    730              
+    731              case KEY_POWER | KEY_SHORT_UP:
+    732                act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    733                songplayer_play_id(SONG_ID_NORMAL_CLEANING_STOP, 0);
+    734                spot_mode = SPOT_MODE_NONE;
+    735                break;                                          
+    736                  
+    737              default:
+    738              	//printf("default=%x \r\n", s->cmd);
+    739                break;         
+    740            }    
+    741          }
+    742          
+    743          /****************************************************************
+    744          *Function   :  handle_act_wall_following
+    745          *Description:  系统状态为ROBOT_STATE_WALLFOLLOW的按键响应函数  
+    746          *Input      :  按键消息
+    747          *Output     :  无
+    748          *Return     :  无
+    749          *Others     :  
+    750          ******************************************************************/
+    751          void handle_act_wall_following(U32 key_val)
+    752          {  
+    753            //printf("handle_act_wall_following\r\n"); 
+    754            switch(key_val)
+    755            { 
+    756              case KEY_CLEAN | KEY_SHORT_UP:
+    757                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    758                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    759                {
+    760                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    761                }
+    762                else
+    763                {
+    764                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    765                }
+    766                break;
+    767                
+    768              case KEY_DOCK | KEY_SHORT_UP:
+    769          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    770          	  {
+    771          	  	  break;
+    772          	  }	  
+    773                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    774                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    775                break;
+    776              
+    777              case KEY_SPOT | KEY_SHORT_UP:
+    778          	  state_save_and_recover_grid(0);
+    779                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    780                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    781                spot_mode = SPOT_MODE_SPIRAL;
+    782                break;
+    783              
+    784              case KEY_GRID | KEY_SHORT_UP:
+    785          	  state_save_and_recover_grid(0);
+    786                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    787                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    788                spot_mode = SPOT_MODE_GRID;
+    789                break;
+    790                    
+    791              case KEY_WALLFLOW | KEY_SHORT_UP:                  
+    792                act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);
+    793                songplayer_play_id(SONG_ID_ENTER_PAUSED, 0);
+    794                break;
+    795              case KEY_POWER | KEY_SHORT_UP:
+    796                act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    797                songplayer_play_id(SONG_ID_NORMAL_CLEANING_STOP, 0);
+    798                break;                                          
+    799                  
+    800              default:
+    801              	//printf("default=%x \r\n", s->cmd);
+    802                break;         
+    803            }       
+    804          }
+    805          
+    806          /****************************************************************
+    807          *Function   :  handle_act_remote_driving
+    808          *Description:  系统状态为ROBOT_STATE_REMOTE_DRIVE的按键响应函数  
+    809          *Input      :  按键消息
+    810          *Output     :  无
+    811          *Return     :  无
+    812          *Others     :  
+    813          ******************************************************************/
+    814          void handle_act_remote_driving(U32 key_val)
+    815          {  
+    816            //printf("handle_act_remote_driving\r\n");
+    817            switch(key_val)
+    818            { 
+    819              case KEY_CLEAN | KEY_SHORT_UP:
+    820          	  clean_out_key_flg();
+    821                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    822                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    823                {
+    824                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    825                }
+    826                else
+    827                {
+    828                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    829                }	  
+    830                break;
+    831                
+    832              case KEY_DOCK | KEY_SHORT_UP:
+    833          	  clean_out_key_flg();
+    834          	  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    835          	  {
+    836          	  	  break;
+    837          	  }	  
+    838                act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+    839                songplayer_play_id(SONG_ID_DOCKING_START, 0);
+    840                break;
+    841              
+    842              case KEY_SPOT | KEY_SHORT_UP:
+    843          	  clean_out_key_flg();
+    844          	  state_save_and_recover_grid(0);
+    845                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    846                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    847                spot_mode = SPOT_MODE_SPIRAL;
+    848                break;
+    849              
+    850              case KEY_GRID | KEY_SHORT_UP:
+    851          	  clean_out_key_flg();
+    852          	  state_save_and_recover_grid(0);
+    853                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    854                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    855                spot_mode = SPOT_MODE_GRID;
+    856                break;
+    857                    
+    858              case KEY_WALLFLOW | KEY_SHORT_UP:
+    859          	  clean_out_key_flg();
+    860                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    861                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    862                break;          
+    863                
+    864              case KEY_POWER | KEY_SHORT_UP: 
+    865          	  clean_out_key_flg();
+    866                act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    867                sleep(10);
+    868                goto_sleep_cnt = GO_SLEEP_TIME;  
+    869                songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    870                sleep(10); 
+    871                set_ui_state(UI_ENTER_SLEEPING);
+    872                break; 
+    873                break;                                          
+    874              case KEY_DIRT | KEY_SHORT_UP:
+    875          	case KEY_PA | KEY_SHORT_UP:
+    876          	  clean_out_key_flg();
+    877          	  break;
+    878              default:
+    879                break;         
+    880            }    
+    881          }
+    882          
+    883          /****************************************************************
+    884          *Function   :  handle_act_docking
+    885          *Description:  系统状态为ROBOT_STATE_DOCK的按键响应函数  
+    886          *Input      :  按键消息
+    887          *Output     :  无
+    888          *Return     :  无
+    889          *Others     :  
+    890          ******************************************************************/
+    891          void handle_act_docking(U32 key_val)
+    892          {  
+    893            //printf("handle_act_remote_driving\r\n"); 
+    894            switch(key_val)
+    895            { 
+    896              case KEY_CLEAN | KEY_SHORT_UP:
+    897                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    898                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    899                {
+    900                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    901                }
+    902                else
+    903                {
+    904                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    905                }
+    906                break;          
+    907              
+    908              case KEY_SPOT | KEY_SHORT_UP:
+    909          	  state_save_and_recover_grid(0);
+    910                act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+    911                songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+    912                spot_mode = SPOT_MODE_SPIRAL;
+    913                break;
+    914              
+    915              case KEY_GRID | KEY_SHORT_UP:
+    916          	  state_save_and_recover_grid(0);  
+    917                act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+    918                songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    919                spot_mode = SPOT_MODE_GRID;
+    920                break;
+    921                    
+    922              case KEY_WALLFLOW | KEY_SHORT_UP:
+    923                act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+    924                songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    925                break;        
+    926              
+    927              case KEY_DOCK | KEY_SHORT_UP:
+    928              case KEY_POWER | KEY_SHORT_UP:
+    929          	  act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);
+    930                songplayer_play_id(SONG_ID_DOCKING_STOP, 0);
+    931                break;                                          
+    932                  
+    933              default:
+    934              	//printf("default=%x \r\n", s->cmd);
+    935                break;         
+    936            }     
+    937          }
+    938          
+    939          /****************************************************************
+    940          *Function   :  handle_act_charging
+    941          *Description:  系统状态为ROBOT_STATE_CHARGING的按键响应函数  
+    942          *Input      :  按键消息
+    943          *Output     :  无
+    944          *Return     :  无
+    945          *Others     :  
+    946          ******************************************************************/
+    947          void handle_act_charging(U32 key_val)
+    948          {   
+    949          	//printf("handle_act_charging\r\n");
+    950              if(battery_switch_check() == 0)
+    951            {
+    952          	  printf("battery_check\r\n");
+    953                return;
+    954            }
+    955            switch(key_val)
+    956            { 
+    957              case KEY_CLEAN | KEY_SHORT_UP:
+    958          	  begin_charge_report = 1;
+    959                act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+    960                if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+    961                {
+    962                    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    963                }
+    964                else
+    965                {
+    966                    songplayer_play_id(SONG_ID_START_MOP, 0);
+    967                }
+    968                break; 
+    969          	case KEY_WIFI | KEY_LONG:
+    970                 #if defined(USE_UART_WIFI) 
+    971                 if(wifi_press_long_flag == 0)
+    972                 {
+    973                     printf("USE_UART_WIFI!!\r\n");
+    974                     #if defined(USE_WIFI_DEMO_1)
+    975                     InsertExtCmd(RestoreFactorySet); //进入wifi配网模式
+    976                     set_reset_wifi_flag(1);
+    977                     #elif defined(USE_WIFI_DEMO_2)
+    978                      send_config_network_cmd(); //进入wifi配网模式
+    979                     #endif
+    980                     songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+    981                     wifi_press_long_flag = 1;
+    982                     wifi_flag = 1;
+    983                 }
+    984                 #endif
+    985                 break; 
+    986              case KEY_WIFI | KEY_LONG_UP:
+    987              case KEY_WIFI | KEY_HOLD_UP:
+    988                #if defined(USE_WIFI_DEMO_1) || defined(USE_WIFI_DEMO_2)
+    989                 wifi_press_long_flag = 0;
+    990                #endif 
+    991                 break;	  
+    992               case KEY_SPOT | KEY_SHORT_UP:
+    993          	 case KEY_DOCK | KEY_SHORT_UP:
+    994          	 case KEY_POWER | KEY_SHORT_UP:
+    995          	 case KEY_LEFT | KEY_SHORT_UP:
+    996          	 case KEY_RIGHT | KEY_SHORT_UP:
+    997          	 case KEY_FORWARD | KEY_SHORT_UP:
+    998          	 case KEY_PA | KEY_SHORT_UP: 
+    999          	 case KEY_DIRT | KEY_SHORT_UP:
+   1000          	 case KEY_STOP | KEY_SHORT_UP:
+   1001          	 case KEY_ADJUST | KEY_SHORT_UP:
+   1002          	 case KEY_WALLFLOW | KEY_SHORT_UP: 
+   1003          	 case KEY_GRID | KEY_SHORT_UP:
+   1004          	 case KEY_SOS | KEY_SHORT_UP: 		      
+   1005                  songplayer_play_id(SONG_ID_BUTTON_REJECT, 0);
+   1006                break;   
+   1007          	default:
+   1008          		break;
+   1009            }    
+   1010          }
+   1011          
+   1012          /****************************************************************
+   1013          *Function   :  handle_act_testing
+   1014          *Description:  UI状态为UI_TEST的按键响应函数  
+   1015          *Input      :  按键消息
+   1016          *Output     :  无
+   1017          *Return     :  无
+   1018          *Others     :  
+   1019          ******************************************************************/
+   1020          void handle_act_testing(U32 key_val)
+   1021          {   
+   1022          	//printf("handle_act_testing\r\n"); 
+   1023            switch(key_val)
+   1024            { 
+   1025              case KEY_CLEAN | KEY_SHORT_UP:
+   1026                if(get_pc_test_flag() == 0)
+   1027                {
+   1028                  ui_test_index++;
+   1029          		songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1030                  if (ui_test_index >= UI_TEST_ITEM_MAX)
+   1031                  {
+   1032                    ui_test_index = 0;
+   1033                  }
+   1034                  ui_test_cmd = test_item_table[ui_test_index];
+   1035                }
+   1036                break;                                       
+   1037                  
+   1038              default:
+   1039                break;         
+   1040            }    
+   1041          }
+   1042          
+   1043          /****************************************************************
+   1044          *Function   :  handle_act_ui_error
+   1045          *Description:  UI状态为UI_ERROR的按键响应函数  
+   1046          *Input      :  按键消息
+   1047          *Output     :  无
+   1048          *Return     :  无
+   1049          *Others     :  
+   1050          ******************************************************************/
+   1051          void handle_act_ui_error(U32 key_val)
+   1052          {   
+   1053          	//printf("handle_act_ui_error\r\n"); 
+   1054            switch(key_val)
+   1055            { 
+   1056              case KEY_CLEAN | KEY_SHORT_UP:
+   1057                clear_ui_error_number();                                       
+   1058                set_ui_state(UI_IDLE);
+   1059                break;
+   1060                  
+   1061              default:
+   1062                break;         
+   1063            }    
+   1064          }
+   1065          
+   1066          /****************************************************************
+   1067          *Function   :  handle_act_fullgo
+   1068          *Description:  UI状态为UI_FULLGO的按键响应函数  
+   1069          *Input      :  按键消息
+   1070          *Output     :  无
+   1071          *Return     :  无
+   1072          *Others     :  
+   1073          ******************************************************************/
+   1074          void handle_act_fullgo(U32 key_val)
+   1075          {   
+   1076          	//printf("handle_act_ui_fullgo\r\n");  
+   1077          	if ((key_val == (KEY_CLEAN | KEY_SHORT_UP)) && (board_key||ir_key))
+   1078          	{
+   1079          	  act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+   1080              songplayer_play_id(SONG_ID_NORMAL_CLEANING_STOP, 0);
+   1081              set_ui_state(UI_IDLE);
+   1082              return;
+   1083          	}
+   1084          	
+   1085            if (key_val & KEY_SHORT_UP)
+   1086            {
+   1087              songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);   
+   1088            }
+   1089          }
+   1090          
+   1091          /****************************************************************
+   1092          *Function   :  handle_act_common
+   1093          *Description:  公共的按键响应函数，如果在各种状态下响应都一致的行为，可以放在这里来实现  
+   1094          *Input      :  按键消息
+   1095          *Output     :  无
+   1096          *Return     :  无
+   1097          *Others     :  
+   1098          ******************************************************************/
+   1099          void handle_act_common(U32 key_val)
+   1100          {
+   1101          	switch(key_val)
+   1102          	{
+   1103          	  case KEY_LEFT | KEY_DOWN:
+   1104                  #if defined(USE_WIFI_DEMO_2)
+   1105                  remote_state = REMOTE_LEFT;
+   1106                  #endif
+   1107              	send_left_cmd(CMD_RUN);
+   1108                break;
+   1109              
+   1110              case KEY_RIGHT | KEY_DOWN:
+   1111                  #if defined(USE_WIFI_DEMO_2)
+   1112                  remote_state = REMOTE_RIGHT;
+   1113                  #endif
+   1114                  send_right_cmd(CMD_RUN);    
+   1115                break;
+   1116              
+   1117              case KEY_FORWARD | KEY_DOWN:
+   1118              	send_forward_cmd(CMD_RUN);
+   1119                  #if defined(USE_WIFI_DEMO_2)
+   1120                  remote_state = REMOTE_FORWARD;
+   1121                  #endif
+   1122                break;
+   1123                
+   1124              case KEY_BACKWARD | KEY_DOWN:
+   1125              	//send_backward_cmd(CMD_RUN);
+   1126                  #if defined(USE_WIFI_DEMO_2)
+   1127                  remote_state = REMOTE_BACK;
+   1128                  #endif
+   1129                break;
+   1130              
+   1131              case KEY_LEFT | KEY_SHORT_UP:
+   1132              case KEY_LEFT | KEY_LONG_UP:
+   1133              case KEY_LEFT | KEY_HOLD_UP:
+   1134                send_left_cmd(CMD_STOP);
+   1135                #if defined(USE_WIFI_DEMO_2)
+   1136                remote_state = REMOTE_IDLE;
+   1137                #endif
+   1138                break;
+   1139              
+   1140              case KEY_RIGHT | KEY_SHORT_UP:
+   1141              case KEY_RIGHT | KEY_LONG_UP:
+   1142              case KEY_RIGHT | KEY_HOLD_UP:
+   1143                send_right_cmd(CMD_STOP);
+   1144                #if defined(USE_WIFI_DEMO_2)
+   1145                remote_state = REMOTE_IDLE;
+   1146                #endif
+   1147                break;
+   1148              
+   1149              case KEY_FORWARD | KEY_SHORT_UP:
+   1150              case KEY_FORWARD | KEY_LONG_UP:
+   1151              case KEY_FORWARD | KEY_HOLD_UP:
+   1152                send_forward_cmd(CMD_STOP);
+   1153                #if defined(USE_WIFI_DEMO_2)
+   1154                remote_state = REMOTE_IDLE;
+   1155                #endif
+   1156                break;
+   1157                
+   1158              case KEY_BACKWARD | KEY_SHORT_UP:
+   1159              case KEY_BACKWARD | KEY_LONG_UP:
+   1160              case KEY_BACKWARD | KEY_HOLD_UP:
+   1161                //send_backward_cmd(CMD_STOP);
+   1162                #if defined(USE_WIFI_DEMO_2)
+   1163                remote_state = REMOTE_IDLE;
+   1164                #endif
+   1165                break;        
+   1166              
+   1167              case KEY_DIRT | KEY_SHORT_UP:
+   1168          	  if((sys_state_info_p.robot_state != ROBOT_STATE_DOCK) && \
+   1169          		(sys_state_info_p.robot_state != ROBOT_STATE_WAITING) && \
+   1170          		  (sys_state_info_p.robot_state != ROBOT_STATE_PAUSE) && \
+   1171          			(sys_state_info_p.robot_state != ROBOT_STATE_REMOTE_DRIVE) && \
+   1172          			gpio_get_value(AM_I0_WATER_TANK_DETECT))
+   1173                {
+   1174                    if (enhance_mode)
+   1175                    {
+   1176                        enhance_mode = 0;          
+   1177                        printf("normal ####\r\n");
+   1178                        robot_suction_adjust_set(VACUUM_NORMAL_VOLTAGE);
+   1179                        songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1180                    }
+   1181                    else
+   1182                    {
+   1183                       enhance_mode = 1;      
+   1184                       printf("fast #####\r\n");
+   1185                       robot_suction_adjust_set(VACUUM_ENHANCE_VOLTAGE);
+   1186                       songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1187                    }
+   1188                }
+   1189                break;
+   1190              
+   1191              case KEY_SOS | KEY_SHORT_UP:
+   1192                //send_backward_cmd(CMD_STOP);
+   1193                if (get_songplayer_onoff() == 1)
+   1194                {
+   1195                  set_songplayer_onoff(0);
+   1196                }
+   1197                else
+   1198                {
+   1199                  set_songplayer_onoff(1);
+   1200                  songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1201                }  
+   1202                break;
+   1203              case KEY_CLOCK | KEY_SHORT_UP:
+   1204                //设置时间前先赋值    
+   1205                tmp_day.week    = 1;//星期取值范围0-6,0代表星期天，6代表星期六
+   1206                tmp_day.hour    = 12;
+   1207                tmp_day.min     = 12;
+   1208                act_command_q((U32)CMD_CLOCK, (U8)CMD_RUN, (void *)&tmp_day, sizeof(tm));
+   1209               // set_current_time_info(&set_time);
+   1210                break;
+   1211              case KEY_SCHEDULE | KEY_SHORT_UP:
+   1212                 //设置预约示例 
+   1213                 tmp_schedule_info.SCH_ENABLE.BYTE = 0x1;//设置为星期天预约有效
+   1214                 tmp_schedule_info.t[0].hour = 8;
+   1215                 tmp_schedule_info.t[0].min  = 8;
+   1216                 act_command_q(CMD_SCHDULE, CMD_RUN, (void *)&tmp_schedule_info, sizeof(schedule_time_info));
+   1217                 //sleep(10);
+   1218                 //sys_shutdown(); //关闭DC-DC
+   1219                break;
+   1220          	  case KEY_WIFI | KEY_LONG:
+   1221                 #if defined(USE_UART_WIFI) 
+   1222                 if(wifi_press_long_flag == 0)
+   1223                 {
+   1224                     printf("USE_UART_WIFI!!\r\n");
+   1225                     #if defined(USE_WIFI_DEMO_1)
+   1226                     InsertExtCmd(RestoreFactorySet); //进入wifi配网模式
+   1227                     set_reset_wifi_flag(1);
+   1228                     #elif defined(USE_WIFI_DEMO_2)
+   1229                      send_config_network_cmd(); //进入wifi配网模式
+   1230                     #endif
+   1231                     songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1232                     wifi_press_long_flag = 1;
+   1233                     wifi_flag = 1;
+   1234                 }
+   1235                 #endif
+   1236                 break; 
+   1237              case KEY_WIFI | KEY_LONG_UP:
+   1238              case KEY_WIFI | KEY_HOLD_UP:
+   1239                #if defined(USE_WIFI_DEMO_1) || defined(USE_WIFI_DEMO_2)
+   1240                 wifi_press_long_flag = 0;
+   1241                #endif 
+   1242                 break;
+   1243              case KEY_PA | KEY_SHORT_UP:
+   1244                 if(sys_state_info_p.sound_state == 1)
+   1245                 {
+   1246                    act_command_q(CMD_OPEN_PA, CMD_STOP, NULL, 0);
+   1247                 }
+   1248                 else
+   1249                 {
+   1250                     act_command_q(CMD_OPEN_PA, CMD_RUN, NULL, 0);
+   1251                     songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1252                     
+   1253                 }
+   1254                 break;
+   1255              default:
+   1256              	break;
+   1257            }
+   1258          }
+   1259          
+   1260          /****************************************************************
+   1261          *Function   :  handle_act
+   1262          *Description:  按键消息的处理函数  
+   1263          *Input      :  按键消息
+   1264          *Output     :  无
+   1265          *Return     :  无
+   1266          *Others     :  
+   1267          ******************************************************************/
+   1268          void handle_act(U32 key_val)
+   1269          {	
+   1270          	UI_STATE_E s;
+   1271          	
+   1272          	s = get_ui_state();
+   1273              /*
+   1274              if(s == UI_ENTER_SLEEPING)
+   1275          	{
+   1276                  sleep_handle(key_val);
+   1277                  return;
+   1278          	}*/
+   1279              if(robot_start_work == 1)
+   1280          	{		  
+   1281          		if((get_total_seconds() < 30) && (sys_state_info_p.robot_state ==ROBOT_STATE_WAITING))//开机前30s才可以进入自检、fullgo、校准这三种模式
+   1282          		{
+   1283          			if ((key_val == (KEY_CLEAN | KEY_HOLD)) && allow_self_test && board_key&&!pc_test_flag) 
+   1284          			{
+   1285          			  set_ui_state(UI_TEST);
+   1286          			  songplayer_play_id(SONG_ID_ENTER_TEST, 1);
+   1287          			  allow_self_test = 0;
+   1288          			  ui_test_cmd = test_item_table[ui_test_index];
+   1289          			  printf("enter self test\r\n"); 
+   1290          			}
+   1291          			if ((key_val == (KEY_PA| KEY_HOLD)) && allow_self_test && ir_key) 
+   1292          			{
+   1293          			  set_ui_state(UI_FULLGO);
+   1294          			  songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+   1295          			  allow_self_test = 0;
+   1296          			  fullgo_cnt = FULLGO_START_TIME;
+   1297          			  printf("enter fullgo\r\n"); 
+   1298          			}
+   1299          
+   1300          			if ((key_val == (KEY_WALLFLOW| KEY_HOLD)) && allow_adjust && ir_key) 
+   1301          			{
+   1302          			  allow_adjust = 0;
+   1303          			  adjust_handle = 1;
+   1304          			}						
+   1305          		}
+   1306          		else
+   1307          		{
+   1308          			robot_start_work = 0;
+   1309          		}		
+   1310          	}	 	
+   1311          	
+   1312          	if(allow_adjust == 0)
+   1313          	{
+   1314          	  	printf("s_adjust\r\n");
+   1315          		return;
+   1316          	}
+   1317          	if (s == UI_TEST)
+   1318          	{	
+   1319          	  handle_act_testing(key_val);
+   1320          	  printf("s_test\r\n");
+   1321          	  return;
+   1322          	}	
+   1323          	else if (s == UI_ERROR)
+   1324          	{
+   1325          	  printf("s_error\r\n");
+   1326          	  handle_act_ui_error(key_val);
+   1327          	  return;
+   1328          	}
+   1329          	else if (s == UI_FULLGO)
+   1330          	{
+   1331          	  //handle_act_fullgo(key_val);
+   1332          	  printf("s_fullgo\r\n");
+   1333          	  return;
+   1334          	}
+   1335          		    			
+   1336            switch (sys_state_info_p.robot_state)
+   1337            {
+   1338              case ROBOT_STATE_WAITING:
+   1339                handle_act_waiting(key_val);
+   1340              	break;
+   1341              
+   1342              case ROBOT_STATE_CLEANING_ROOM:
+   1343                handle_act_running(key_val);
+   1344              	break;
+   1345              
+   1346              case ROBOT_STATE_PAUSE:
+   1347                handle_act_pausing(key_val);
+   1348              	break;
+   1349              	
+   1350              case ROBOT_STATE_WALLFOLLOW:
+   1351                handle_act_wall_following(key_val);
+   1352              	break;
+   1353              
+   1354              case ROBOT_STATE_SPOTTING:
+   1355                handle_act_spotting(key_val);
+   1356              	break;
+   1357              		
+   1358              case ROBOT_STATE_REMOTE_DRIVE:
+   1359                handle_act_remote_driving(key_val);
+   1360              	break;
+   1361              
+   1362              case ROBOT_STATE_DOCK:
+   1363                handle_act_docking(key_val);
+   1364              	break;
+   1365              		
+   1366              case ROBOT_STATE_CHARGING:
+   1367                handle_act_charging(key_val);
+   1368              	break;    	    
+   1369              		
+   1370              default:
+   1371              	break;
+   1372            }
+   1373            
+   1374            switch(key_val)//避免在方向键松开之后等待恢复原来的状态的时候按其他键造成的bug,放到这里来是因为按局部键之间可能要记录方向键之前的状态
+   1375            { 
+   1376              case KEY_CLEAN | KEY_SHORT_UP:
+   1377              case KEY_DOCK | KEY_SHORT_UP:
+   1378              case KEY_SPOT | KEY_SHORT_UP:
+   1379              case KEY_GRID | KEY_SHORT_UP:
+   1380              case KEY_WALLFLOW | KEY_SHORT_UP:
+   1381              case KEY_POWER | KEY_SHORT_UP: 
+   1382          	  direction_key_up_flag =0;
+   1383              default:
+   1384              	break;
+   1385            }
+   1386            
+   1387            if(sys_state_info_p.robot_state != ROBOT_STATE_CHARGING)
+   1388            {
+   1389                handle_act_common(key_val);
+   1390            }
+   1391          }
+   1392          
+   1393          u8 last_state = 0;
+   1394          extern void print_touch(void);
+   1395          extern void print_cliff(void);
+   1396          /****************************************************************
+   1397          *Function   :  ui_handle_idle
+   1398          *Description:  idle函数  
+   1399          *Input      :  无
+   1400          *Output     :  无
+   1401          *Return     :  无
+   1402          *Others     :  
+   1403          ******************************************************************/
+   1404          void ui_handle_idle(void)
+   1405          {
+   1406          
+   1407              sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+   1408          
+   1409              if (last_state != sys_state_info_p.robot_state)
+   1410          	{
+   1411          	    printf("new_state:%d \r\n", sys_state_info_p.robot_state);     
+   1412          	}
+   1413          	//print_touch();
+   1414          	last_state = sys_state_info_p.robot_state;
+   1415          
+   1416          
+   1417          }
+   1418          
+   1419          U8 get_remote_state(void)
+   1420          {
+   1421              #if defined(USE_WIFI_DEMO_2)
+   1422              return remote_state;
+   1423              #else
+   1424              return 0;
+   1425              #endif
+   1426          }
+   1427          /****************************************************************
+   1428          *Function   :  get_robot_current_state
+   1429          *Description:  获取系统当前状态  
+   1430          *Input      :  无
+   1431          *Output     :  无
+   1432          *Return     :  返回系统当前状态
+   1433          *Others     :  by Ljh
+   1434          ******************************************************************/
+   1435          u8 get_robot_current_state(void)
+   1436          {
+   1437              sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+   1438          	return sys_state_info_p.robot_state;
+   1439          	
+   1440          }
+   1441          /****************************************************************
+   1442          *Function   :  direction_key_recover_handle
+   1443          *Description:  对松开方向键的处理 
+   1444          *Input      :  无
+   1445          *Output     :  无
+   1446          *Return     :  无
+   1447          *Others     :  by ljh
+   1448          ******************************************************************/
+   1449          void direction_key_recover_handle(void)
+   1450          {
+   1451          	static uint32_t one_ms =0;
+   1452          	if(direction_key_up_flag)
+   1453          	{	  
+   1454          	  	if(timer_ms()>(one_ms+700))//松开方向键700ms之后使状态跳回第一次按键前的状态
+   1455          		{
+   1456          			state_recover();
+   1457          			direction_key_up_flag =0;
+   1458          		}
+   1459          		return;	  	  
+   1460          	}
+   1461          	one_ms = timer_ms();
+   1462          	
+   1463          }
+   1464          
+   1465          /****************************************************************
+   1466          *Function   :  cleaning_complete_handle
+   1467          *Description:  对清扫完成的处理 
+   1468          *Input      :  无
+   1469          *Output     :  无
+   1470          *Return     :  无
+   1471          *Others     :  by ljh
+   1472          ******************************************************************/
+   1473          void cleaning_complete_handle(void)
+   1474          {	
+   1475          	if(sys_state_info_p.robot_state == ROBOT_STATE_SPOTTING)
+   1476          	{
+   1477          		sleep(10);
+   1478          		state_save_and_recover_grid(1);
+   1479          		return;
+   1480          	}
+   1481          	else
+   1482          	{
+   1483          		songplayer_play_id(SONG_ID_NORMAL_CLEANING_COMPLETE, 1);
+   1484          	}
+   1485          	
+   1486          }
+   1487          
+   1488          /****************************************************************
+   1489          *Function   :  state_save_and_recover_grid
+   1490          *Description:  状态保存与状态恢复(用于局部清扫) 
+   1491          *Input      :  0:保存当前状态   1：恢复保存的状态  2:只返回保存的状态
+   1492          *Output     :  无
+   1493          *Return     :  无
+   1494          *Others     :  by ljh
+   1495          ******************************************************************/
+   1496          void state_save_and_recover_grid(u8 flag)
+   1497          {
+   1498          	static u8 state;
+   1499          	if(flag ==0)
+   1500          	{
+   1501          		state = sys_state_info_p.robot_state;	
+   1502          		printf("save_state_grid=%d\r\n",state);
+   1503          	}
+   1504          	if(flag ==1)
+   1505          	{
+   1506          	  printf("recover_state_grid=%d\r\n",state);
+   1507          	  switch(state)
+   1508          	  { 
+   1509          		case ROBOT_STATE_CLEANING_ROOM:
+   1510          		  act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+   1511          		  if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+   1512          		  {
+   1513          			  songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+   1514          		  }
+   1515          		  else
+   1516          		  {
+   1517          			  songplayer_play_id(SONG_ID_START_MOP, 0);
+   1518          		  }	 		  
+   1519          		  break;
+   1520          
+   1521          		case ROBOT_STATE_WALLFOLLOW:
+   1522          		  act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+   1523          		  songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+   1524          		  break;  
+   1525          		  
+   1526          		case ROBOT_STATE_DOCK:
+   1527          		  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+   1528          		  {
+   1529          			  break;
+   1530          		  }		  
+   1531          		  act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+   1532          		  songplayer_play_id(SONG_ID_DOCKING_START, 0);
+   1533          		  break;	
+   1534          		default:
+   1535          		  act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);
+   1536          		  sleep(10);
+   1537          		  songplayer_play_id(SONG_ID_NORMAL_CLEANING_COMPLETE, 1);//清扫完成语音
+   1538          		  break;         
+   1539          	  }    			
+   1540          	
+   1541          	}
+   1542          }
+   1543          
+   1544          /****************************************************************
+   1545          *Function   :  state_recover
+   1546          *Description:  保存状态
+   1547          *Input      :  无 
+   1548          *Output     :  无
+   1549          *Return     :  无
+   1550          *Others     :  by ljh
+   1551          ******************************************************************/
+   1552          void set_save_state(u8 s)
+   1553          {
+   1554            state_save = s;
+   1555            printf("state_save:%d\r\n",state_save);
+   1556          }
+   1557          
+   1558          /****************************************************************
+   1559          *Function   :  state_recover
+   1560          *Description:  获取保存的状态
+   1561          *Input      :  无 
+   1562          *Output     :  无
+   1563          *Return     :  保存好的状态
+   1564          *Others     :  by ljh
+   1565          ******************************************************************/
+   1566          u8 get_save_state(void)
+   1567          {
+   1568            return state_save;
+   1569          }
+   1570          
+   1571          /****************************************************************
+   1572          *Function   :  state_recover
+   1573          *Description:  状态恢复
+   1574          *Input      :  无 
+   1575          *Output     :  无
+   1576          *Return     :  无
+   1577          *Others     :  by ljh
+   1578          ******************************************************************/
+   1579          void state_recover(void)
+   1580          { 
+   1581            	u8 state;
+   1582          	state = get_save_state();
+   1583              printf("recover_state=%d\r\n",state);
+   1584          	switch(state)
+   1585          	{		
+   1586          	case ROBOT_STATE_WALLFOLLOW:		  
+   1587          		  act_command_q(CMD_WALL_FOLLOW, CMD_RUN, NULL, 0);
+   1588          		  songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);		  		  
+   1589          	  break;		  
+   1590          	  
+   1591          	case ROBOT_STATE_SPOTTING:
+   1592          		  if (spot_mode == SPOT_MODE_SPIRAL)
+   1593          		  {
+   1594          			act_command_q(CMD_SPOT, CMD_RUN, NULL, 0);
+   1595          			songplayer_play_id(SONG_ID_KEYSTONE_CLEANING, 0);
+   1596          		  }
+   1597          		  else
+   1598          		  {
+   1599          			act_command_q(CMD_GRID1, CMD_RUN, NULL, 0);
+   1600          			songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+   1601          		  }	  		  
+   1602          	  break;
+   1603          	case ROBOT_STATE_CLEANING_ROOM:
+   1604          		  act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
+   1605          		  if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
+   1606          		  {
+   1607          			  songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+   1608          		  }
+   1609          		  else
+   1610          		  {
+   1611          			  songplayer_play_id(SONG_ID_START_MOP, 0);
+   1612          		  }	 	  		  
+   1613          		  break;		  		  
+   1614          
+   1615          	case ROBOT_STATE_PAUSE:
+   1616          //		  robot_suction_ctrl(1);	//关风机
+   1617          //		  robot_sidebrush_vols_set(0);//关边刷
+   1618          //		  robot_midbrush_vols_set(0);//关主刷
+   1619          //		  printf("robot stop\r\n");		  
+   1620          	  break;	 		  
+   1621          	case ROBOT_STATE_DOCK:
+   1622          		  if(!gpio_get_value(AM_I0_WATER_TANK_DETECT))
+   1623          		  {
+   1624          			  break;
+   1625          		  }	  
+   1626          		  act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);
+   1627          		  songplayer_play_id(SONG_ID_DOCKING_START, 0);		  		  
+   1628          	  break;
+   1629          	default:
+   1630          	  break;		  
+   1631          	}
+   1632          	set_save_state(0);
+   1633          }
+   1634          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   _act_exit
+       8   _act_init
+         0   -> clear_map_index
+         8   -> get_ir_state
+         8   -> get_key_state
+         8   -> get_wifi_uart_cmd_state
+      16   act_routine
+        16   -- Indirect call
+        16   -> charging_jack
+         0   -> direction_key_recover_handle
+        16   -> ext_act_handle
+        16   -> handle_act
+       8   cleaning_complete_handle
+         8   -> sleep
+         0   -> songplayer_play_id
+         0   -> state_save_and_recover_grid
+       8   direction_key_recover_handle
+         8   -> state_recover
+         8   -> timer_ms
+      24   ext_act_handle
+        24   -- Indirect call
+        24   -> act_command_q
+        24   -> clear_ui_error_number
+        24   -> enable_lt_offset_adjust
+        24   -> exception_handle
+        24   -> get_restore_lt_signal_offset_state
+        24   -> get_total_seconds
+        24   -> get_ui_error_num
+        24   -> reset_lt_signal_offset
+        24   -> robot_sensor_gather_start
+        24   -> robot_side_brush_adjust_set
+        24   -> robot_sidebrush_vols_set
+        24   -> save_lt_signal_offset
+        24   -> set_start_docking_state
+        24   -> sleep
+        24   -> sleep_handle
+        24   -> songplayer_play_id
+       0   get_enter_sleep_state
+       0   get_remote_state
+       8   get_robot_current_state
+         8   -> sys_info_get
+       0   get_save_state
+       0   get_start_docking_state
+       0   get_ui_state
+      24   handle_act
+         0   -- Indirect call
+        24   -- Indirect call
+        24   -> get_total_seconds
+        24   -> handle_act_charging
+         0   -> handle_act_common
+        24   -> handle_act_docking
+        24   -> handle_act_pausing
+        24   -> handle_act_remote_driving
+        24   -> handle_act_running
+        24   -> handle_act_spotting
+        24   -> handle_act_testing
+         0   -> handle_act_ui_error
+        24   -> handle_act_waiting
+        24   -> handle_act_wall_following
+        24   -> songplayer_play_id
+      16   handle_act_charging
+         0   -- Indirect call
+        16   -- Indirect call
+        16   -> act_command_q
+        16   -> battery_switch_check
+        16   -> send_config_network_cmd
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+      16   handle_act_common
+        16   -- Indirect call
+         0   -> act_command_q
+        16   -> act_command_q
+        16   -> get_songplayer_onoff
+        16   -> robot_suction_adjust_set
+        16   -> send_config_network_cmd
+        16   -> send_forward_cmd
+         0   -> send_left_cmd
+        16   -> send_left_cmd
+         0   -> send_right_cmd
+        16   -> send_right_cmd
+         0   -> set_songplayer_onoff
+        16   -> set_songplayer_onoff
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+       8   handle_act_docking
+         8   -- Indirect call
+         8   -> act_command_q
+         0   -> songplayer_play_id
+         8   -> songplayer_play_id
+         8   -> state_save_and_recover_grid
+       8   handle_act_fullgo
+         8   -> act_command_q
+         0   -> songplayer_play_id
+         8   -> songplayer_play_id
+      16   handle_act_pausing
+        16   -- Indirect call
+        16   -> act_command_q
+        16   -> sleep
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+        16   -> state_save_and_recover_grid
+      16   handle_act_remote_driving
+        16   -- Indirect call
+        16   -> act_command_q
+         0   -> clean_out_key_flg
+        16   -> clean_out_key_flg
+        16   -> sleep
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+        16   -> state_save_and_recover_grid
+       8   handle_act_running
+         8   -- Indirect call
+         8   -> act_command_q
+         8   -> sleep
+         0   -> songplayer_play_id
+         8   -> songplayer_play_id
+         8   -> state_save_and_recover_grid
+      16   handle_act_spotting
+        16   -- Indirect call
+        16   -> act_command_q
+        16   -> songplayer_play_id
+        16   -> state_save_and_recover_grid
+       8   handle_act_testing
+         8   -> get_pc_test_flag
+         8   -> songplayer_play_id
+       8   handle_act_ui_error
+         8   -> clear_ui_error_number
+      16   handle_act_waiting
+        16   -- Indirect call
+        16   -> act_command_q
+        16   -> clear_map_index
+        16   -> sleep
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+        16   -> state_save_and_recover_grid
+      16   handle_act_wall_following
+        16   -- Indirect call
+        16   -> act_command_q
+         0   -> songplayer_play_id
+        16   -> songplayer_play_id
+        16   -> state_save_and_recover_grid
+       0   set_enter_sleep_state
+       0   set_save_state
+         0   -- Indirect call
+       8   set_start_docking_state
+         8   -- Indirect call
+       0   set_ui_state
+       8   sleep_handle
+         8   -- Indirect call
+         8   -> act_command_q
+         8   -> robot_universl_wheel_exit
+         8   -> robot_universl_wheel_init
+         8   -> start_watchdog
+      16   state_recover
+        16   -- Indirect call
+        16   -> act_command_q
+         0   -> set_save_state
+        16   -> songplayer_play_id
+      16   state_save_and_recover_grid
+        16   -- Indirect call
+        16   -> act_command_q
+        16   -> sleep
+         0   -> songplayer_play_id
+       8   ui_handle_idle
+         8   -- Indirect call
+         8   -> sys_info_get
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable47
+       4  ??DataTable47_1
+       4  ??DataTable48
+       4  ??DataTable50
+       4  ??DataTable53
+       4  ??DataTable57
+       4  ??DataTable58
+       4  ??DataTable58_1
+       4  ??DataTable58_10
+       4  ??DataTable58_11
+       4  ??DataTable58_12
+       4  ??DataTable58_13
+       4  ??DataTable58_14
+       4  ??DataTable58_15
+       4  ??DataTable58_16
+       4  ??DataTable58_17
+       4  ??DataTable58_18
+       4  ??DataTable58_19
+       4  ??DataTable58_2
+       4  ??DataTable58_20
+       4  ??DataTable58_21
+       4  ??DataTable58_22
+       4  ??DataTable58_23
+       4  ??DataTable58_24
+       4  ??DataTable58_25
+       4  ??DataTable58_26
+       4  ??DataTable58_27
+       4  ??DataTable58_28
+       4  ??DataTable58_29
+       4  ??DataTable58_3
+       4  ??DataTable58_30
+       4  ??DataTable58_4
+       4  ??DataTable58_5
+       4  ??DataTable58_6
+       4  ??DataTable58_7
+       4  ??DataTable58_8
+       4  ??DataTable58_9
+      18  ?Subroutine0
+       6  ?Subroutine1
+       8  ?Subroutine10
+       4  ?Subroutine11
+      14  ?Subroutine12
+      14  ?Subroutine13
+      14  ?Subroutine14
+      14  ?Subroutine15
+      14  ?Subroutine16
+      12  ?Subroutine17
+      10  ?Subroutine18
+      14  ?Subroutine19
+       8  ?Subroutine2
+      10  ?Subroutine20
+       8  ?Subroutine21
+       8  ?Subroutine22
+       8  ?Subroutine23
+      14  ?Subroutine24
+       6  ?Subroutine25
+       8  ?Subroutine26
+       8  ?Subroutine27
+      12  ?Subroutine28
+       8  ?Subroutine3
+       8  ?Subroutine4
+       8  ?Subroutine5
+       8  ?Subroutine6
+      10  ?Subroutine7
+       8  ?Subroutine8
+      14  ?Subroutine9
+      20  ?_0
+      24  ?_1
+      12  ?_10
+      12  ?_11
+      12  ?_12
+      16  ?_13
+      24  ?_14
+      24  ?_15
+      16  ?_16
+      20  ?_17
+       8  ?_2
+      16  ?_3
+      20  ?_4
+      16  ?_5
+      16  ?_6
+      20  ?_7
+      16  ?_8
+      12  ?_9
+       2  _act_exit
+      32  _act_init
+     148  act_routine
+       1  clean_index
+      34  cleaning_complete_handle
+      40  direction_key_recover_handle
+       1  enter_sleep_state
+     444  ext_act_handle
+       8  get_enter_sleep_state
+       6  get_remote_state
+      10  get_robot_current_state
+       6  get_save_state
+       8  get_start_docking_state
+       8  get_ui_state
+     392  handle_act
+     224  handle_act_charging
+     426  handle_act_common
+     124  handle_act_docking
+      48  handle_act_fullgo
+     138  handle_act_pausing
+     214  handle_act_remote_driving
+     136  handle_act_running
+     186  handle_act_spotting
+      52  handle_act_testing
+      22  handle_act_ui_error
+     142  handle_act_waiting
+     156  handle_act_wall_following
+       8  set_enter_sleep_state
+      18  set_save_state
+      26  set_start_docking_state
+       8  set_ui_state
+     116  sleep_handle
+       1  state
+     126  state_recover
+     120  state_save_and_recover_grid
+      64  sys_state_info_p
+          ui_state
+          start_docking_flag
+          ui_test_index
+          allow_self_test
+          allow_adjust
+          spot_mode
+          board_key
+          ir_key
+          adjust_handle
+          remote_state
+          direction_key_up_flag
+          state_save
+          adjust_side_brush_flag
+          wifi_flag
+          wifi_press_long_flag
+          tmp_start_docking_state
+          last_state
+          goto_sleep_cnt
+          waiting_state_cnt
+          fullgo_cnt
+          key_state_p
+          key_ir_p
+          wifi_uart_cmd_state_p
+          ui_test_cmd
+          adjust_one_second
+          one_ms
+      69  tmp_day
+          tmp_schedule_info
+          enhance_mode
+      36  ui_handle_idle
+
+ 
+    72 bytes in section .bss
+    64 bytes in section .data
+ 4 212 bytes in section .text
+ 
+ 4 212 bytes of CODE memory
+   136 bytes of DATA memory
+
+Errors: none
+Warnings: none

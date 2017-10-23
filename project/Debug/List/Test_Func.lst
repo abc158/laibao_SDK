@@ -1,0 +1,415 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wireless\Test_Func.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wireless\Test_Func.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\Test_Func.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\Test_Func.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wireless\Test_Func.c
+      1          #include "bk2425.h"
+      2          ////////////////////////////////////////////////////////////////////
+      3          //This function is only used for Carrier Tx output power and RX BER test!!!!!!!!!!
+      4          ////////////////////////////////////////////////////////////////////
+      5          extern  UINT8 RX0_Address[];
+      6          extern  unsigned long Bank1_Reg0_13[];
+      7          
+      8          
+      9          /**************************************************         
+     10          Function: SPI_Bank1_Write_Reg();                                  
+     11                                                                      
+     12          Description:                                                
+     13          	write a Bank1 register
+     14          **************************************************/        
+     15          void SPI_Bank1_Write_Reg(UINT8 reg, UINT8 *pBuf)    
+     16          {
+     17          	SwitchCFG(1);
+     18          	SPI_Write_Buf(reg,pBuf,4);
+     19          	SwitchCFG(0);
+     20          }
+     21          
+     22          /**************************************************         
+     23          Function: SPI_Bank1_Read_Reg();                                  
+     24                                                                      
+     25          Description:                                                
+     26          	read a Bank1 register
+     27          **************************************************/ 
+     28          void SPI_Bank1_Read_Reg(UINT8 reg, UINT8 *pBuf)
+     29          {
+     30          	SwitchCFG(1);
+     31          	SPI_Read_Buf(reg,pBuf,4);
+     32          	SwitchCFG(0);
+     33          }
+     34          
+     35          
+     36          /**************************************************
+     37          Function: CarrierTest();
+     38                                                                      
+     39          Description:
+     40              carrier wave output power
+     41          
+     42          Parameter:
+     43              b_enable    1:start 
+     44          	            0:stop
+     45          Return:
+     46               None
+     47          **************************************************/
+     48          void Carrier_Test(UINT8 b_enable)
+     49          {
+     50          	UINT8 j;
+     51          	UINT8 WriteArr[4];
+     52          
+     53          	SwitchToTxMode();
+     54          
+     55          	for(j=0;j<4;j++)
+     56          		WriteArr[j]=(Bank1_Reg0_13[0]>>(8*(j) ) )&0xff;
+     57          
+     58          	if(b_enable)
+     59          	{
+     60          		if(WriteArr[3]&0x02 ) //bit 1
+     61          		{
+     62          			WriteArr[3]=WriteArr[3]&0xfd;
+     63          		}
+     64          		else
+     65          		{
+     66          			WriteArr[3]=WriteArr[3]|0x02;
+     67          		}
+     68          
+     69          		if(WriteArr[3]&0x08 ) //bit 3
+     70          		{
+     71          			WriteArr[3]=WriteArr[3]&0xf7;
+     72          		}
+     73          		else
+     74          		{
+     75          			WriteArr[3]=WriteArr[3]|0x08;
+     76          		}
+     77          
+     78          		if(WriteArr[3]&0x20 ) //bit 5
+     79          		{
+     80          			WriteArr[3]=WriteArr[3]&0xdf;
+     81          		}
+     82          		else
+     83          		{
+     84          			WriteArr[3]=WriteArr[3]|0x20;
+     85          		}
+     86          
+     87          	}
+     88          
+     89          //write REG4
+     90          	SPI_Bank1_Write_Reg((WRITE_REG|4),WriteArr);
+     91          
+     92          }
+     93          
+     94          /**************************************************
+     95          Function: BER_Test();
+     96                                                                      
+     97          Description:
+     98              bit error rate test
+     99          
+    100          In Parameter:
+    101          	ms: the millisecond for hardware bits receive
+    102          
+    103          Out Parameter:
+    104          	received_total_bits:received total bits
+    105          	received_error_bits:received error bits
+    106          
+    107          Return:
+    108               None
+    109          **************************************************/
+    110          void BER_Test(UINT16 ms,UINT32* received_total_bits,UINT32* received_error_bits)
+    111          {
+    112          	UINT8 WriteArr[5];
+    113          
+    114          ////////////////////////////////////////////////////////
+    115          //change pipe0 address
+    116          ////////////////////////////////////////////////////////
+    117          	WriteArr[4]=0x02;
+    118          	WriteArr[3]=0x95;
+    119          	WriteArr[2]=0xe5;
+    120          	WriteArr[1]=0xdc;
+    121          	WriteArr[0]=0x0e;
+    122          
+    123          	SPI_Write_Buf((WRITE_REG|10),WriteArr,5);//change RX0 address for BER test
+    124          
+    125          	SwitchToRxMode();
+    126          
+    127          ////////////////////////////////////////////////////////
+    128          //start BER receive,set REG12<5>=1 start
+    129          ////////////////////////////////////////////////////////
+    130          	SPI_Bank1_Read_Reg(12,&(WriteArr[0]));
+    131          	WriteArr[0]=WriteArr[0]|0x20;
+    132          	SPI_Bank1_Write_Reg((WRITE_REG|12),&(WriteArr[0]));
+    133          
+    134          	DelayMs(ms);//delay ms for hardware receive
+    135          
+    136          ////////////////////////////////////////////////////////
+    137          //Hold BER value for read,set REG12<6>=1, 
+    138          ////////////////////////////////////////////////////////
+    139          	SPI_Bank1_Read_Reg(12,&(WriteArr[0]));
+    140          	WriteArr[0]=WriteArr[0]|0x40;
+    141          	SPI_Bank1_Write_Reg((WRITE_REG|12),&(WriteArr[0]));
+    142          
+    143          //read BER
+    144          	SPI_Bank1_Read_Reg(0,&(WriteArr[0]));//read REG0
+    145          	
+    146          	(*received_total_bits)=WriteArr[3];
+    147          	(*received_total_bits)=	(*received_total_bits)<<8;
+    148          	(*received_total_bits)|=WriteArr[2];
+    149          	(*received_total_bits)=	(*received_total_bits)<<8;
+    150          	(*received_total_bits)|=WriteArr[1];
+    151          	(*received_total_bits)=	(*received_total_bits)<<8;
+    152          	(*received_total_bits)|=WriteArr[0];
+    153          
+    154          	SPI_Bank1_Read_Reg(1,&(WriteArr[0]));//read REG1
+    155          	(*received_error_bits)=WriteArr[3];
+    156          	(*received_error_bits)=	(*received_error_bits)<<8;
+    157          	(*received_error_bits)|=WriteArr[2];
+    158          	(*received_error_bits)=	(*received_error_bits)<<8;
+    159          	(*received_error_bits)|=WriteArr[1];
+    160          	(*received_error_bits)=	(*received_error_bits)<<8;
+    161          	(*received_error_bits)|=WriteArr[0];
+    162          
+    163          ////////////////////////////////////////////////////////
+    164          //stop BER receive,,clear REG12<5>=0 stop
+    165          ////////////////////////////////////////////////////////
+    166          	SPI_Bank1_Read_Reg(12,&(WriteArr[0]));
+    167          	WriteArr[0]=WriteArr[0]&0xdf;
+    168          	SPI_Bank1_Write_Reg((WRITE_REG|12),&(WriteArr[0]));
+    169          
+    170          ////////////////////////////////////////////////////////
+    171          //not Hold BER value,set REG12<6>=0
+    172          ////////////////////////////////////////////////////////
+    173          	SPI_Bank1_Read_Reg(12,&(WriteArr[0]));
+    174          	WriteArr[0]=WriteArr[0]&0xbf;
+    175          	SPI_Bank1_Write_Reg((WRITE_REG|12),&(WriteArr[0]));
+    176          
+    177          //restore RX0 address
+    178          	SPI_Write_Buf((WRITE_REG|10),RX0_Address,5);//restore RX0 address
+    179          
+    180          }
+    181          
+    182          
+    183          /**************************************************
+    184          Function: Set_LowPower_Mode();
+    185          
+    186          Description:
+    187          	set low power mode
+    188          **************************************************/
+    189          void Set_LowPower_Mode()
+    190          {
+    191          
+    192          	UINT8 j;
+    193          	UINT8 WriteArr[4];
+    194          	for(j=0;j<4;j++)
+    195          		WriteArr[j]=(Bank1_Reg0_13[0]>>(8*(j) ) )&0xff;
+    196          
+    197          	WriteArr[1]=WriteArr[1]&0xef;  //REG4<20>
+    198          
+    199          //write REG4
+    200          	SPI_Bank1_Write_Reg(WRITE_REG|0x04,WriteArr);
+    201          }
+    202          
+    203          /**************************************************
+    204          Function: Set_Sen_Mode();
+    205          
+    206          Description:
+    207          	set sensitivity mode
+    208          	
+    209          Parameter:
+    210              b_enable    1:high sensitivity mode 
+    211          	            0:normal sensitivity mode
+    212          **************************************************/
+    213          void Set_Sen_Mode(UINT8 b_enable)
+    214          {
+    215          
+    216          	UINT8 j;
+    217          	UINT8 WriteArr[4];
+    218          	for(j=0;j<4;j++)
+    219          		WriteArr[j]=(Bank1_Reg0_13[0]>>(8*(j) ) )&0xff;
+    220          
+    221          	if (b_enable)
+    222          		WriteArr[1]=WriteArr[1]|0x20;  //REG4<21>
+    223          	else
+    224          		WriteArr[1]=WriteArr[1]&0xdf;  //REG4<21>
+    225          
+    226          //write REG4
+    227          	SPI_Bank1_Write_Reg(WRITE_REG|0x04,WriteArr);
+    228          }
+    229          /**************************************************
+    230          Function: Close_CD_Detect();
+    231          
+    232          Description:
+    233          	if doesn't use CD function and want to save power,please close CD detect function,which could decrease electrical current 1mA
+    234          **************************************************/
+    235          void Close_CD_Detect()
+    236          {
+    237          	UINT8 j;
+    238          	UINT8 WriteArr[4];
+    239          
+    240          	for(j=0;j<4;j++)
+    241          		WriteArr[j]=(Bank1_Reg0_13[1]>>(8*(j) ) )&0xff;
+    242          
+    243          	WriteArr[1]=WriteArr[1]|0x04; //REG5<18>
+    244          
+    245          //write REG5
+    246          	SPI_Bank1_Write_Reg(WRITE_REG|0x05,WriteArr);
+    247          }
+    248          
+    249          /**************************************************
+    250          Function: PN9_TX();
+    251          
+    252          Description:
+    253          	send PN9
+    254          Parameter:
+    255              b_enable    1:start 
+    256          	            0:stop
+    257          **************************************************/
+    258          void PN9_TX(UINT8 b_enable)
+    259          {
+    260          	UINT8 WriteArr[4];
+    261          	
+    262          	if (b_enable)//start send PN9
+    263          	{
+    264          		WriteArr[0] = 0x0C;
+    265          		WriteArr[1] = 0x4B;	
+    266          		WriteArr[2] = 0x00;
+    267          		WriteArr[3] = 0x00;
+    268          		SPI_Bank1_Write_Reg(WRITE_REG|0x01,WriteArr); //write bank1_reg1
+    269          		
+    270          		WriteArr[0] = 0xA0;
+    271          		WriteArr[1] = 0xFC;	
+    272          		WriteArr[2] = 0x8C;
+    273          		WriteArr[3] = 0x02;
+    274          		SPI_Bank1_Write_Reg(WRITE_REG|0x02,WriteArr); //write bank1_reg2
+    275          		
+    276          		WriteArr[0] = 0x10;
+    277          		WriteArr[1] = 0x12;	
+    278          		WriteArr[2] = 0x73;
+    279          		WriteArr[3] = 0x00;
+    280          		SPI_Bank1_Write_Reg(WRITE_REG|0x0C,WriteArr); //write bank1_reg12
+    281          	}
+    282          	else//stop send PN9
+    283          	{
+    284          		WriteArr[0] = 0xC0;
+    285          		WriteArr[1] = 0x4B;	
+    286          		WriteArr[2] = 0x00;
+    287          		WriteArr[3] = 0x00;
+    288          		SPI_Bank1_Write_Reg(WRITE_REG|0x01,WriteArr); //write bank1_reg1
+    289          		
+    290          		WriteArr[0] = 0xD0;
+    291          		WriteArr[1] = 0xFC;	
+    292          		WriteArr[2] = 0x8C;
+    293          		WriteArr[3] = 0x02;
+    294          		SPI_Bank1_Write_Reg(WRITE_REG|0x02,WriteArr); //write bank1_reg2
+    295          		
+    296          		WriteArr[0] = 0x00;
+    297          		WriteArr[1] = 0x12;	
+    298          		WriteArr[2] = 0x73;
+    299          		WriteArr[3] = 0x00;
+    300          		SPI_Bank1_Write_Reg(WRITE_REG|0x0C,WriteArr); //write bank1_reg12		
+    301          	}
+    302          	
+    303          }
+    304          
+    305          
+    306          /**************************************************
+    307          Function: Get_Chip_ID();
+    308          
+    309          Description:
+    310          	Get chip ID
+    311          **************************************************/
+    312          UINT8 Get_Chip_ID(void)
+    313          {
+    314          	UINT8 ReadArr[4];
+    315          	SPI_Bank1_Read_Reg(0x08,ReadArr);
+    316          	return ReadArr[0];
+    317          }
+    318          
+    319          
+    320          
+    321          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      32   BER_Test
+        32   -> DelayMs
+        32   -> SPI_Bank1_Read_Reg
+        32   -> SPI_Bank1_Write_Reg
+        32   -> SPI_Write_Buf
+        32   -> SwitchToRxMode
+      16   Carrier_Test
+        16   -> SPI_Bank1_Write_Reg
+        16   -> SwitchToTxMode
+      16   Close_CD_Detect
+        16   -> SPI_Bank1_Write_Reg
+       8   Get_Chip_ID
+         8   -> SPI_Bank1_Read_Reg
+      16   PN9_TX
+        16   -> SPI_Bank1_Write_Reg
+      16   SPI_Bank1_Read_Reg
+        16   -> SPI_Read_Buf
+         0   -> SwitchCFG
+        16   -> SwitchCFG
+      16   SPI_Bank1_Write_Reg
+        16   -> SPI_Write_Buf
+         0   -> SwitchCFG
+        16   -> SwitchCFG
+      16   Set_LowPower_Mode
+        16   -> SPI_Bank1_Write_Reg
+      16   Set_Sen_Mode
+        16   -> SPI_Bank1_Write_Reg
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+      10  ?Subroutine0
+      10  ?Subroutine1
+       6  ?Subroutine2
+      10  ?Subroutine3
+      22  ?Subroutine4
+      18  ?Subroutine5
+       6  ?Subroutine6
+      10  ?Subroutine7
+     208  BER_Test
+      82  Carrier_Test
+      38  Close_CD_Detect
+      16  Get_Chip_ID
+      58  PN9_TX
+      16  SPI_Bank1_Read_Reg
+      18  SPI_Bank1_Write_Reg
+      38  Set_LowPower_Mode
+      40  Set_Sen_Mode
+
+ 
+ 614 bytes in section .text
+ 
+ 614 bytes of CODE memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,217 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:07
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\util\current.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\util\current.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\current.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\current.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\util\current.c
+      1          #include "am_type.h"
+      2          #include "adc_chan.h"
+      3          #include "syscall_api.h"
+      4          
+      5          volatile uint16_t main_brush_current = 0;
+      6          volatile uint16_t side_brush_current = 0;
+      7          volatile uint16_t left_motor_current = 0;
+      8          volatile uint16_t right_motor_current = 0;
+      9          volatile uint16_t battery_line_current = 0;
+     10          volatile uint16_t vaccum_motor_current = 0;
+     11          volatile uint16_t battery_voltage = 0;
+     12          volatile uint16_t battery_temperature =0;
+     13          
+     14          uint16_t last_main_brush_current = 0;
+     15          uint16_t last_side_brush_current = 0;
+     16          uint16_t last_left_motor_current = 0;
+     17          uint16_t last_right_motor_current = 0;
+     18          uint16_t last_battery_line_current = 0;
+     19          uint16_t last_vaccum_motor_current = 0;
+     20          uint16_t last_battery_voltage      = 0;
+     21          uint16_t last_battery_temperature  = 0;
+     22          
+     23          static U8 initialized;
+     24          
+     25          void current_filter_routine(void)
+     26          {
+     27              uint16_t tmp16;
+     28              tmp16 = get_adc_chan_val(ADC_CHAN_MAIN_BRUSH_CURRENT);
+     29              main_brush_current = tmp16/10 + last_main_brush_current*9/10;
+     30              last_main_brush_current = main_brush_current;
+     31          
+     32              tmp16 = get_adc_chan_val(ADC_CHAN_SIDE_BRUSH_CURRENT);
+     33              side_brush_current = tmp16/10 + last_side_brush_current*9/10;
+     34              last_side_brush_current = side_brush_current;
+     35          
+     36              tmp16 = get_adc_chan_val(ADC_CHAN_LEFT_MOTOR_CURRENT);
+     37              left_motor_current = tmp16/10 + last_left_motor_current*9/10;
+     38              last_left_motor_current = left_motor_current;
+     39          
+     40              tmp16 = get_adc_chan_val(ADC_CHAN_RIGHT_MOTOR_CURRENT);
+     41              right_motor_current = tmp16/10 + last_right_motor_current*9/10;
+     42              last_right_motor_current = right_motor_current;
+     43          
+     44              tmp16 = get_adc_chan_val(ADC_CHAN_BATTERY_CURRENT);
+     45              battery_line_current = tmp16/10 + last_battery_line_current*9/10;
+     46              last_battery_line_current = battery_line_current;
+     47          
+     48              tmp16 = get_adc_chan_val(ADC_CHAN_VAC_CURENT);
+     49              vaccum_motor_current = tmp16/10 + last_vaccum_motor_current*9/10;
+     50              last_vaccum_motor_current = vaccum_motor_current;
+     51              
+     52              tmp16 = get_adc_chan_val(ADC_CHAN_BATTERY_VOLTAGE);
+     53              battery_voltage = tmp16/10 + last_battery_voltage*9/10;
+     54              last_battery_voltage = battery_voltage;    
+     55           
+     56              tmp16 = get_adc_chan_val(ADC_CHAN_BATTERY_VOLTAGE);
+     57              battery_temperature = tmp16/10 + last_battery_temperature*9/10;
+     58              last_battery_temperature = battery_temperature;       
+     59              
+     60          }
+     61          
+     62          void robot_current_init(void)
+     63          {
+     64              if(!initialized)
+     65              {
+     66                  timer_task_register(current_filter_routine, 5, TRUE);//5ms / per calc
+     67                  initialized = 1;
+     68              }
+     69          }
+     70          
+     71          u16 battery_voltage_average(void)
+     72          {
+     73            return last_battery_voltage;
+     74          }
+     75          
+     76          u16 battery_temperature_average(void)
+     77          {
+     78            return last_battery_temperature;
+     79          }
+     80          
+     81          /****************************************************************
+     82          *Function   :  check_battery_voltage
+     83          *Author     :  lyy    
+     84          *Date       :  2017.4.20
+     85          *Description:  判断当前电压是否超过vol_adc
+     86          *CallBy     :  任何地方，中断上下文除外
+     87          *Input      :  参数
+     88          *              vol_adc : adc 值， 用来和当前电压对比
+     89          *Output     :  无
+     90          *Return     :  返回 1：大于adc，  0：小于等于
+     91          *Others     :  可以在本地实现同等功能函数
+     92          *History    : //修改历史
+     93              <author>       <time>      <version>           <desc>
+     94              lyy            17.4.28       v1.0         build this function
+     95          ******************************************************************/
+     96          EXPORT U16   check_battery_voltage(U16 vol_adc);
+     97          u16 check_battery_voltage(u16 vol_adc)
+     98          {
+     99            return (battery_voltage_average()>vol_adc);
+    100          }
+    101          
+    102          /****************************************************************
+    103          *Function   :  battery_temperature_get
+    104          *Author     :  lyy    
+    105          *Date       :  2017.4.20
+    106          *Description:  获取电池温度的热敏电阻值
+    107          *CallBy     :  任何地方，中断上下文除外
+    108          *Input      :  参数
+    109          *              无
+    110          *Output     :  无
+    111          *Return     :  返回，电阻值 （单位：欧）
+    112          *Others     :  
+    113          *History    : //修改历史
+    114              <author>       <time>      <version>           <desc>
+    115              lyy            17.4.28       v1.0         build this function
+    116          ******************************************************************/
+    117          float battery_temperature_get(void)
+    118          {
+    119            volatile uint16_t t = battery_temperature_average();//hal_analog_input_get(ADC_CHAN_BATTERY_THERMISTOR);
+    120            float v = (float)((float)t/4096)*3.3f;
+    121            float x = v/3.3f;
+    122            float r =(((47*x)/(1-x)));
+    123            return r;
+    124          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   battery_temperature_average
+      16   battery_temperature_get
+         0   -> __aeabi_fdiv
+        16   -> __aeabi_fdiv
+        16   -> __aeabi_fmul
+        16   -> __aeabi_fsub
+        16   -> __aeabi_ui2f
+       0   battery_voltage_average
+       0   check_battery_voltage
+       8   current_filter_routine
+         8   -> get_adc_chan_val
+       8   robot_current_init
+         8   -> timer_task_register
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable5
+       4  ??DataTable5_1
+       4  ??DataTable5_2
+       4  ??DataTable5_3
+       4  ??DataTable5_4
+      14  ?Subroutine0
+       8  ?Subroutine1
+       6  battery_temperature_average
+      72  battery_temperature_get
+       6  battery_voltage_average
+      12  check_battery_voltage
+     182  current_filter_routine
+       1  initialized
+      32  main_brush_current
+          side_brush_current
+          left_motor_current
+          right_motor_current
+          battery_line_current
+          vaccum_motor_current
+          battery_voltage
+          battery_temperature
+          last_main_brush_current
+          last_side_brush_current
+          last_left_motor_current
+          last_right_motor_current
+          last_battery_line_current
+          last_vaccum_motor_current
+          last_battery_voltage
+          last_battery_temperature
+      24  robot_current_init
+
+ 
+  33 bytes in section .bss
+ 344 bytes in section .text
+ 
+ 344 bytes of CODE memory
+  33 bytes of DATA memory
+
+Errors: none
+Warnings: none

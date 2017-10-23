@@ -1,0 +1,131 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  16:35:45
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wireless\BK2425_TxRx.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wireless\BK2425_TxRx.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\BK2425_TxRx.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\BK2425_TxRx.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wireless\BK2425_TxRx.c
+      1          #include "bk2425.h"
+      2          
+      3          /**************************************************
+      4          Function: Send_Packet
+      5          Description:
+      6          	fill FIFO to send a packet
+      7          Parameter:
+      8          	type: WR_TX_PLOAD or  W_TX_PAYLOAD_NOACK_CMD
+      9          	pbuf: a buffer pointer
+     10          	len: packet length
+     11          Return:
+     12          	None
+     13          **************************************************/
+     14          void Send_Packet(UINT8 type,UINT8* pbuf,UINT8 len)
+     15          {
+     16          	UINT8 fifo_sta;
+     17          
+     18          	fifo_sta=SPI_Read_Reg(FIFO_STATUS);	// read register FIFO_STATUS's value
+     19          
+     20          	if((fifo_sta&FIFO_STATUS_TX_FULL)==0)//if not full, send data  
+     21          	  	SPI_Write_Buf(type, pbuf, len); // Writes data to buffer  A0,B0,A8
+     22          	  	 	
+     23          }
+     24          
+     25          /**************************************************
+     26          Function: Receive_Packet
+     27          Description:
+     28          	read FIFO to read a packet
+     29          Parameter:
+     30          	None
+     31          Return:
+     32          	None
+     33          **************************************************/
+     34          extern void get_rec_ir_data(U8 index,U8 data);
+     35          void Receive_Packet()
+     36          {
+     37          	UINT8 len,sta,fifo_sta;
+     38          	UINT8 rx_buf[MAX_PACKET_LEN];
+     39                  UINT8 i;
+     40          	sta=SPI_Read_Reg(STATUS);	// read register STATUS's value
+     41          	if((sta&STATUS_RX_DR)==STATUS_RX_DR)				// if receive data ready (RX_DR) interrupt
+     42          	{
+     43          		do
+     44          		{
+     45          			len=SPI_Read_Reg(R_RX_PL_WID_CMD);	// read len
+     46          
+     47          			if(len<=MAX_PACKET_LEN)
+     48          			{
+     49          				SPI_Read_Buf(RD_RX_PLOAD,rx_buf,len);// read receive payload from RX_FIFO buffer
+     50          				//printf("\r\nPacket:");
+     51          				for(i=0;i<len;i++)
+     52          				{
+     53                                            get_rec_ir_data(i,rx_buf[i]);
+     54          					//printf("%x;",rx_buf[i]);
+     55                                            //if(rx_buf[i])
+     56                                           //printf("REC %d  IR %d  STA  %d\r\n",((rx_buf[i]>>5)&0x07),((rx_buf[i]>>2)&0x07),((rx_buf[i])&0x03));
+     57          				}
+     58          			}
+     59          			else
+     60          			{
+     61          				SPI_Write_Reg(FLUSH_RX,0);//flush Rx
+     62          			}
+     63          
+     64          			fifo_sta=SPI_Read_Reg(FIFO_STATUS);	// read register FIFO_STATUS's value
+     65          						
+     66          		}while((fifo_sta&FIFO_STATUS_RX_EMPTY)==0); //while not empty
+     67          	}
+     68          
+     69          	SPI_Write_Reg(WRITE_REG|STATUS,sta);// clear RX_DR or TX_DS or MAX_RT interrupt flag
+     70          	
+     71          }
+     72          
+     73          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      48   Receive_Packet
+        48   -> SPI_Read_Buf
+        48   -> SPI_Read_Reg
+        48   -> SPI_Write_Reg
+        48   -> get_rec_ir_data
+      16   Send_Packet
+        16   -> SPI_Read_Reg
+         0   -> SPI_Write_Buf
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      90  Receive_Packet
+      34  Send_Packet
+
+ 
+ 124 bytes in section .text
+ 
+ 124 bytes of CODE memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<flash_board>
+  <pass>
+    <loader>$PROJ_DIR$\..\Amicro\FlashAMICRO_R10.flash</loader>
+    <range>CODE 0x33400 0x3fbff</range>
+  </pass>
+  <pass>
+    <loader>$PROJ_DIR$\..\Amicro\FlashAMICRO_R10_op.flash</loader>
+    <range>CODE 0x1ff00000 0x1ff003ff</range>
+  </pass>
+</flash_board>
+
+

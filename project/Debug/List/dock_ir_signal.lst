@@ -1,0 +1,213 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  18:59:32
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\dock\dock_ir_signal.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\dock\dock_ir_signal.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\dock_ir_signal.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\dock_ir_signal.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\dock\dock_ir_signal.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "stdio.h"
+      6          #include "stdlib.h"
+      7          #include "string.h"
+      8          #include "am_type.h"
+      9          #include "am_robot_type.h"
+     10          #include "syscall_api.h"
+     11          #include "am_tm_api.h"
+     12          #include "docking-new.h"
+     13          #include "dock_ir_signal.h"
+     14          #define data_length         16            //信号位数
+     15          #define long_level          12           //长电平时间long_level*0.25ms
+     16          #define short_level         4           //短电平时间short_level*0.25ms
+     17          #define sinal_interval      200        //信号间隔 sinal_interval*0.25ms
+     18          
+     19          void set_38k_off(void)  //38K信号关闭
+     20          {
+     21            sys_set_pwm_out_duty(IR_SEND_PWM_CHANNEL,0);
+     22          }
+     23          void set_38k_on(void)   //38K信号打开
+     24          {
+     25            sys_set_pwm_out_duty(IR_SEND_PWM_CHANNEL,135);
+     26          }
+     27          /****************************************************************
+     28          *Function   :  ir_send_code
+     29          *Description:  发射信号 
+     30          *Input      :  IR_SEND_POSITION instance:发射头ID ；u16 ir_code 发射码值  
+     31          IR_SEND_STRENGTH strength:发射强度
+     32          *Output     :  无
+     33          *Return     :  0,未发射完成 1发射完成
+     34          *Others     :  
+     35          ******************************************************************/
+     36          bool ir_send_code(IR_SEND_POSITION instance,u16 ir_code,IR_SEND_STRENGTH strength)  
+     37          {
+     38            IR_CODE *code_p;
+     39            code_p=&ir_decode[instance][strength];
+     40            code_p->timer++;
+     41            if(code_p->timer<=(data_length*(long_level+short_level)-1))
+     42            code_p->count++;
+     43            u16 ir_code_state;
+     44            ir_code_state =ir_code;
+     45            
+     46            if(!(ir_code_state&(1<<(data_length-1-code_p->data_bit)))&&(code_p->timer<=(data_length*(long_level+short_level)-1)))
+     47            {
+     48              if(code_p->count<=short_level)
+     49              {
+     50          
+     51                gpio_set_value(ir_send_gpio[instance][strength],1);
+     52              }
+     53              else if(code_p->count>short_level&&code_p->count<=(long_level+short_level))
+     54              {
+     55                gpio_set_value(ir_send_gpio[instance][strength],0);
+     56                if(code_p->count>=(long_level+short_level)) 
+     57                {
+     58                    code_p->data_bit++;
+     59                    code_p->count=0;
+     60                }
+     61              } 
+     62            }
+     63            else if((ir_code_state&(1<<(data_length-1-code_p->data_bit)))&&(code_p->timer<=(data_length*(long_level+short_level)-1)))
+     64            {
+     65              if(code_p->count<=long_level)
+     66              {
+     67               gpio_set_value(ir_send_gpio[instance][strength],1);
+     68              }
+     69              else if(code_p->count>long_level&&code_p->count<=(long_level+short_level))
+     70              {
+     71                gpio_set_value(ir_send_gpio[instance][strength],0);
+     72                if(code_p->count>=(long_level+short_level)) 
+     73                {
+     74                    code_p->data_bit++;
+     75                    code_p->count=0;
+     76                }
+     77              }
+     78            }
+     79            if(code_p->timer>(data_length*(long_level+short_level)-1))  
+     80            {
+     81              gpio_set_value(ir_send_gpio[instance][strength],0);
+     82              
+     83            }
+     84            
+     85            if(code_p->timer>=(sinal_interval+data_length*(long_level+short_level)-1)) 
+     86            {
+     87              code_p->timer=0;
+     88              code_p->count=0;
+     89              code_p->data_bit=0;
+     90            }
+     91            if(code_p->data_bit>=data_length) 
+     92            {
+     93              code_p->data_bit=0;
+     94              return true;
+     95            }
+     96            else 
+     97              return false;
+     98          }
+     99          U16 send_count=0;
+    100          U8 IR_WEAK=0;
+    101          U8 IR_STRONG=0;
+    102          void SET_IR_STATE(U8 state)
+    103          {
+    104              if(state==1)
+    105              {
+    106                IR_WEAK=1;
+    107                IR_STRONG=0;
+    108              }
+    109              else if(state==2)
+    110              {
+    111                IR_WEAK=0;
+    112                IR_STRONG=1;
+    113              }
+    114          }
+    115          void ir_tx_send_4khz(void)
+    116          {
+    117          
+    118              {
+    119                    ir_send_code(IR_TX_BACK_LEFT,BACK_LEFT_WEAK,IR_TX_WEAK);
+    120                    ir_send_code(IR_TX_BACK_RIGHT,BACK_RIGHT_WEAK,IR_TX_WEAK);
+    121                    ir_send_code(IR_TX_LEFT,LEFT_WEAK,IR_TX_WEAK);
+    122                    ir_send_code(IR_TX_RIGHT,RIGHT_WEAK,IR_TX_WEAK);
+    123                    ir_send_code(IR_TX_MIDDLE,MIDDLE_WEAK,IR_TX_WEAK);
+    124              
+    125              }
+    126          
+    127              {
+    128                  ir_send_code(IR_TX_BACK_LEFT,BACK_LEFT_STRONG,IR_TX_STRONG);
+    129                  ir_send_code(IR_TX_BACK_RIGHT,BACK_RIGHT_STRONG,IR_TX_STRONG);
+    130                  ir_send_code(IR_TX_LEFT,LEFT_STRONG,IR_TX_STRONG);
+    131                  ir_send_code(IR_TX_RIGHT,RIGHT_STRONG,IR_TX_STRONG);
+    132                  ir_send_code(IR_TX_MIDDLE,MIDDLE_STRONG,IR_TX_STRONG);
+    133              
+    134              }
+    135              
+    136          
+    137          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   SET_IR_STATE
+      24   ir_send_code
+        24   -- Indirect call
+       8   ir_tx_send_4khz
+         0   -> ir_send_code
+         8   -> ir_send_code
+       0   set_38k_off
+         0   -> sys_set_pwm_out_duty
+       0   set_38k_on
+         0   -> sys_set_pwm_out_duty
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable1
+       4  ??DataTable1_1
+       4  ??DataTable1_2
+       6  ?Subroutine0
+      12  ?Subroutine1
+       2  IR_WEAK
+          IR_STRONG
+      26  SET_IR_STATE
+     164  ir_send_code
+     120  ir_send_gpio
+          ir_decode
+     124  ir_tx_send_4khz
+       2  send_count
+       4  set_38k_off
+       2  set_38k_on
+
+ 
+   4 bytes in section .bss
+ 120 bytes in section .data
+ 350 bytes in section .text
+ 
+ 350 bytes of CODE memory
+ 124 bytes of DATA memory
+
+Errors: none
+Warnings: none

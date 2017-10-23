@@ -1,0 +1,384 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\cfg\uart_cfg.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\cfg\uart_cfg.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\uart_cfg.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\uart_cfg.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\cfg\uart_cfg.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*by liyongyong*/
+      6          #include "am_uart_api.h"
+      7          #include "syscall_api.h"
+      8          #include "am_device.h"
+      9          #include "ui_uart_handle/mqueue.h"
+     10          #if defined(USE_WIFI_DEMO_1)
+     11          #include "wifi/wifi_demo1/simwifi.h"
+     12          #endif
+     13          #include  <am_config_macro.h>
+     14          //中断函数不调用库的远程函数，只能调用本地函数
+     15          int uart_debug;
+     16          int uart_ui;
+     17          int uart_wifi;
+     18          //uart 中断处理函数，sr是中断状态，data是接收的数据
+     19          //return int : 当为发送中断时，用作返回要发送的数据，-1，表示数据发完。
+     20          int uart_out_queue_is_empty()
+     21          {
+     22            return 1;
+     23          }
+     24          
+     25          int uart_out_queue_read()
+     26          {
+     27            return 0;
+     28          }
+     29          
+     30          int uart_out_queue_write(u16 val)
+     31          {
+     32            return 0;
+     33          }
+     34          
+     35          int uart_in_queue_write(u16 val)
+     36          {
+     37            val = val;
+     38            return 0;
+     39          }
+     40          
+     41          int uart_in_queue_is_empty()
+     42          {
+     43            return 1;
+     44          }
+     45          
+     46          int uart_in_queue_read()
+     47          {
+     48            return 0;
+     49          }
+     50          
+     51          
+     52          /****************************************************************
+     53          *Function   :  debug_uart_handler
+     54          *Author     :  lyy
+     55          *Date       :  2017.4.20
+     56          *Description:  打印口的中断处理函数
+     57          *CallBy     :  
+     58          *Input      :  参数
+     59          *              sr:    中断状态
+     60                         data： 接收到的数据
+     61          *Output     :  无
+     62          *Return     :  无
+     63          *Others     :  
+     64          *History    : //修改历史
+     65              <author>       <time>      <version>           <desc>
+     66              lyy            17.4.28       v1.0         build this function
+     67          ******************************************************************/
+     68          extern int auto_test_tx_handle(void);
+     69          extern int auto_test_rx_handle(int data);
+     70          int debug_uart_handler(int sr, int data)
+     71          {
+     72            int ret = -1;
+     73            switch(sr)
+     74            {
+     75              case USART_IID_THRE://发送中断,这个只要打开发送中断,然后如果uart fifo为空，就会产生中，可以在这里处理要发送的数据
+     76                  /*
+     77              	if(!uart_out_queue_is_empty())
+     78                  {
+     79                    ret = uart_out_queue_read();
+     80                  }
+     81                  else
+     82                  {
+     83                    ret  = -1;
+     84                  }*/
+     85                  ret=auto_test_tx_handle();
+     86              	break; 
+     87              case USART_IID_RDA :
+     88              	//uart_in_queue_write((uint8_t)data);
+     89              	auto_test_rx_handle(data);
+     90                  ret = 0;
+     91              	break;  
+     92              case USART_IID_CTI :
+     93              	break;   
+     94              case USART_IID_MS  :
+     95              	break;  
+     96              case USART_IID_NON :
+     97              	break;
+     98              case USART_IID_RLS :  	
+     99              	break;  
+    100              default:
+    101              	break;
+    102            }
+    103            return ret;
+    104          }
+    105          
+    106          int ui_uart_handler(int sr, int data)
+    107          {
+    108            int ret = -1;
+    109            if(sr == USART_IID_RDA)
+    110            {    
+    111                  if (uart_txrx_q_full(RX_INDEX))
+    112                  {    // Signal UART in full, error?
+    113          
+    114                      //_nop_();
+    115           
+    116                  }
+    117                  else
+    118                  {
+    119                      uart_txrx_q_put(RX_INDEX,(u8)(data&0xff));
+    120                  }
+    121          
+    122          
+    123              
+    124            }
+    125            
+    126            if(sr == USART_IID_THRE)
+    127            {
+    128              if(uart_txrx_q_empty(TX_INDEX))
+    129              {
+    130                ret = -1;
+    131              }
+    132              else
+    133              {
+    134                ret = uart_txrx_q_get(TX_INDEX);//uart_out_3_getc( ) ; //
+    135              }
+    136          
+    137              return ret;
+    138            } 
+    139            if(sr == USART_IID_CTI)
+    140            {
+    141            }
+    142            if(sr == USART_IID_RLS)
+    143            {
+    144            }  
+    145            return 0;
+    146            //return ret;
+    147          }
+    148          
+    149          //extern void IRQ_Usart1RxData_Process(uint8_t value);
+    150          
+    151          int wifi_uart_handler(int sr, int data)
+    152          {
+    153            int ret = -1;
+    154            if(sr == USART_IID_RDA)
+    155            {   
+    156              #if defined(USE_WIFI_DEMO_1)
+    157                IRQ_Usart1RxData_Process((u8)(data&0xff));
+    158              #elif defined(USE_WIFI_DEMO_2)
+    159                if(uart_txrx_q_full(WIFI_RX_INDEX) == 0)
+    160                {
+    161                    uart_txrx_q_put(WIFI_RX_INDEX,(u8)(data&0xff));
+    162                }
+    163              #endif    
+    164            }
+    165            
+    166            if(sr == USART_IID_THRE)
+    167            {
+    168              if(uart_txrx_q_empty(WIFI_TX_INDEX))
+    169              {
+    170                ret = -1;
+    171              }
+    172              else
+    173              {
+    174                ret = uart_txrx_q_get(WIFI_TX_INDEX);//uart_out_3_getc( ) ; //
+    175              }
+    176          
+    177              return ret;
+    178            } 
+    179            if(sr == USART_IID_CTI)
+    180            {
+    181            }
+    182            if(sr == USART_IID_RLS)
+    183            {
+    184            }  
+    185            return 0;
+    186            //return ret;
+    187          }
+    188          
+    189          void sys_uart_cfg(void)
+    190          {
+    191            //UserDmaInit_t   UserDmaInit;
+    192            UserUartInit_t  UserUartInit;
+    193            uart_debug = open(DEV_UART,USART_ID1);  
+    194          
+    195            UserUartInit.UartInit.USART_BaudRate   = 115200;                 
+    196            UserUartInit.UartInit.USART_WordLength = USART_WORDLENGTH_8B;  
+    197            UserUartInit.UartInit.USART_StopBits   = USART_STOPBITS_1;       
+    198            UserUartInit.UartInit.USART_Parity     = USART_PARITY_NO;     
+    199            UserUartInit.UartInit.USART_Mode       = USART_MODE_NORMAL;          
+    200            UserUartInit.UartInit.USART_LSB_MSB    = USART_LSB_FIRST;
+    201          	
+    202            UserUartInit.UartMode.RxTxMode         = IRQ_MODE;//02:irq  0x1;//dma
+    203            UserUartInit.UartMode.irqMode          = USART_IER_RDAIE;//0;//USART_IER_RDAIE;//no
+    204            UserUartInit.UartMode.DmaMode          = DMA_RX_MODE;//1:rx  0:tx,rx 2:tx 
+    205            UserUartInit.UartMode.RxTxEna          = UART_RXTX;//tx,rx
+    206            
+    207            ioctl(uart_debug,UART_INIT, &UserUartInit); 
+    208            ioctl(uart_debug,UART_SET_CONSOLE, &uart_debug);//配置打印口
+    209            request_irq(uart_debug, (long)debug_uart_handler,0); 
+    210            
+    211          
+    212          
+    213            #if defined(USE_UART_WIFI) 
+    214            uart_wifi = open(DEV_UART,USART_ID0); 
+    215            #if defined(USE_WIFI_DEMO_1)
+    216            UserUartInit.UartInit.USART_BaudRate   = 38400;
+    217            #elif defined(USE_WIFI_DEMO_2)
+    218            UserUartInit.UartInit.USART_BaudRate   = 115200;
+    219            #endif
+    220            UserUartInit.UartInit.USART_WordLength = USART_WORDLENGTH_8B;  
+    221            UserUartInit.UartInit.USART_StopBits   = USART_STOPBITS_1;       
+    222            UserUartInit.UartInit.USART_Parity     = USART_PARITY_NO;//USART_PARITY_ODD;         
+    223            UserUartInit.UartInit.USART_Mode       = USART_MODE_NORMAL;          
+    224            UserUartInit.UartInit.USART_LSB_MSB    = USART_LSB_FIRST;
+    225            UserUartInit.UartMode.RxTxMode         = IRQ_MODE;//CPU_MODE;//02:irq  0x1;//dma
+    226            UserUartInit.UartMode.irqMode          = USART_IER_RDAIE;//0;//USART_IER_RDAIE;//no
+    227            UserUartInit.UartMode.DmaMode          = 0;//DMA_RX_MODE;//1:rx  0:tx,rx 2:tx 
+    228            UserUartInit.UartMode.RxTxEna          = UART_RXTX;//tx,rx
+    229           // uart_init(wifi_uart_id, &UserUartInit);
+    230            
+    231            ioctl(uart_wifi,UART_INIT, &UserUartInit); 
+    232            request_irq(uart_wifi, (long)wifi_uart_handler,0);
+    233            #endif
+    234          }
+    235          
+    236          void sys_uart_close(void)
+    237          {
+    238            close(uart_debug);
+    239            //close(uart_ui);
+    240            close(uart_wifi);
+    241          }
+    242          
+    243          void uart_test(void)
+    244          {
+    245              static int cnt = 0;
+    246              int i = 0;
+    247              u8 trig = 1;
+    248              //write(uart_debug,"123456",6); //直接发送
+    249              while(!uart_in_queue_is_empty())
+    250              {
+    251                printf(" %x \r\n",uart_in_queue_read());
+    252              }
+    253              cnt++;
+    254              if(cnt > 3)
+    255              {
+    256                for(i = 0;i < 32; i++)
+    257                {
+    258                  uart_out_queue_write(i);//放入缓冲区，用中断发送
+    259                }
+    260                ioctl(uart_debug,UART_TRIG_TX,(void*)&trig);//触发一个发生中断
+    261                cnt = 0;
+    262              }  
+    263          }
+    264          
+    265          void set_debug_uart_tx_fifo_empty_irq(void)
+    266          {
+    267              u8 trig = 1;
+    268              ioctl(uart_debug,UART_TRIG_TX,(void*)&trig);//触发一个发生中断
+    269          }
+    270          
+    271          
+    272          void set_wifi_uart_tx_fifo_empty_irq(void)
+    273          {
+    274              u8 trig = 1;
+    275              ioctl(uart_wifi,UART_TRIG_TX,(void*)&trig);//触发一个发生中断
+    276          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   debug_uart_handler
+         8   -> auto_test_rx_handle
+         0   -> auto_test_tx_handle
+       8   set_debug_uart_tx_fifo_empty_irq
+         8   -- Indirect call
+       8   set_wifi_uart_tx_fifo_empty_irq
+         8   -- Indirect call
+      40   sys_uart_cfg
+        40   -- Indirect call
+        40   -> request_irq
+      16   sys_uart_close
+         0   -- Indirect call
+        16   -- Indirect call
+       0   uart_in_queue_is_empty
+       0   uart_in_queue_read
+       0   uart_in_queue_write
+       0   uart_out_queue_is_empty
+       0   uart_out_queue_read
+       0   uart_out_queue_write
+      16   uart_test
+        16   -- Indirect call
+      16   ui_uart_handler
+        16   -> uart_txrx_q_empty
+        16   -> uart_txrx_q_full
+        16   -> uart_txrx_q_get
+        16   -> uart_txrx_q_put
+      16   wifi_uart_handler
+        16   -> uart_txrx_q_empty
+        16   -> uart_txrx_q_full
+        16   -> uart_txrx_q_get
+        16   -> uart_txrx_q_put
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+       4  ??DataTable3_4
+       4  ??DataTable3_5
+      20  ?Subroutine0
+      22  ?Subroutine1
+      24  ?Subroutine2
+      36  debug_uart_handler
+      12  set_debug_uart_tx_fifo_empty_irq
+      12  set_wifi_uart_tx_fifo_empty_irq
+     110  sys_uart_cfg
+      26  sys_uart_close
+      12  uart_debug
+          uart_wifi
+          cnt
+       4  uart_in_queue_is_empty
+       4  uart_in_queue_read
+       4  uart_in_queue_write
+       4  uart_out_queue_is_empty
+       4  uart_out_queue_read
+       4  uart_out_queue_write
+      50  uart_test
+       4  uart_ui
+      54  ui_uart_handler
+      56  wifi_uart_handler
+
+ 
+  16 bytes in section .bss
+ 470 bytes in section .text
+ 
+ 470 bytes of CODE memory
+  16 bytes of DATA memory
+
+Errors: none
+Warnings: none

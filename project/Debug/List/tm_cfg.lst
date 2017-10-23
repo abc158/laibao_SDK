@@ -1,0 +1,368 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\cfg\tm_cfg.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\cfg\tm_cfg.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\tm_cfg.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\tm_cfg.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\cfg\tm_cfg.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*by liyongyong*/
+      6          #include "am_tm_api.h"
+      7          #include "am_type.h"
+      8          #include "syscall_api.h"
+      9          #include "am_device.h"
+     10          
+     11          int gtm0_id;
+     12          int gtm1_id;
+     13          int gtm2_id;
+     14          int gtm3_id;
+     15          int capture_id;
+     16          int m_pwm_id;
+     17          int m_capture_id;
+     18          int charge_pwm_id;
+     19          int side_pwm_id;
+     20          
+     21          void charger_pwm_handler(int arg)
+     22          {
+     23            ;
+     24          }
+     25          
+     26          /****************************************************************
+     27          *Function   :  sys_tm_cfg
+     28          *Author     :  lyy
+     29          *Date       :  2017.4.20
+     30          *Description:  初始化timer配置
+     31          *CallBy     :  任何地方，中断除外
+     32          *Input      :  无
+     33          *Output     :  无
+     34          *Return     :  无
+     35          *Others     :  
+     36          *History    : //修改历史
+     37              <author>       <time>      <version>           <desc>
+     38              lyy            17.4.28       v1.0         build this function
+     39          ******************************************************************/
+     40          void sys_tm_cfg(void)
+     41          {
+     42            GPTM_TimeBaseInitTypeDef_t gftmInit;
+     43            UserOutInit_t UserOutInit;
+     44          
+     45            MCTM_TimeBaseInitTypeDef mctmInit;
+     46            MUserOutInit_t MUserOutInit;
+     47            ////////////////////////////gftm pwm///////////////////////////////////////
+     48            //gtm1_id = tm_request(GPTM,GP_TM1_ID);//主刷和边刷
+     49            gtm1_id = open(DEV_GPTM,GP_TM1_ID);
+     50          
+     51            gftmInit.CounterReload = 1000;
+     52            gftmInit.Prescaler     = 5;  //lqw
+     53            gftmInit.CounterMode   = GPTM_CNT_MODE_UP;
+     54            gftmInit.PSCReloadTime = GPTM_PSC_RLD_IMMEDIATE;
+     55            //tm_gptm_cfg(gtm1_id,&gftmInit);
+     56            ioctl(gtm1_id, TM_GPTM_BASE_INIT, &gftmInit);
+     57          
+     58            UserOutInit.OutInit.OutputMode        = GPTM_OM_PWM1;//ACTIVE , WHEN  CNTR < CHxCCR
+     59            UserOutInit.OutInit.Control           = GPTM_CHCTL_ENABLE; //enable chx
+     60            UserOutInit.OutInit.Polarity          = GPTM_CHP_NONINVERTED;//h is active
+     61            UserOutInit.OutInit.Compare           = 0; //占空比
+     62            UserOutInit.OutInit.AsymmetricCompare = 0;
+     63          
+     64            UserOutInit.OutMode.irq         = 0;//GPTM_INT_CH0CC | GPTM_INT_CH1CC | GPTM_INT_CH2CC | GPTM_INT_CH3CC;//中断
+     65            UserOutInit.OutMode.dmaReqMode  = 0;//dma request
+     66            for(int i = 2; i<4; i++)
+     67            {
+     68              UserOutInit.OutInit.Channel  = (GPTM_CH_Enum)i;
+     69              //tm_gptm_output_pwm_cfg(gtm1_id, &UserOutInit);
+     70              ioctl(gtm1_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
+     71            }
+     72          ///////////////////////////////////////////////////
+     73          
+     74            gtm0_id = open(DEV_GPTM,GP_TM0_ID);//tm_request(GPTM,GP_TM0_ID);
+     75          
+     76            gftmInit.CounterReload = 1000;
+     77            gftmInit.Prescaler     = 3;//5; //by lqw
+     78            gftmInit.CounterMode   = GPTM_CNT_MODE_UP;
+     79            gftmInit.PSCReloadTime = GPTM_PSC_RLD_IMMEDIATE;
+     80            //tm_gptm_cfg(gtm0_id,&gftmInit);
+     81            ioctl(gtm0_id, TM_GPTM_BASE_INIT, &gftmInit);
+     82          
+     83            UserOutInit.OutInit.OutputMode        = GPTM_OM_PWM1;//ACTIVE , WHEN  CNTR < CHxCCR
+     84            UserOutInit.OutInit.Control           = GPTM_CHCTL_ENABLE; //enable chx
+     85            UserOutInit.OutInit.Polarity          = GPTM_CHP_NONINVERTED;//h is active
+     86            UserOutInit.OutInit.Compare           = 0; //占空比
+     87            UserOutInit.OutInit.AsymmetricCompare = 0;
+     88          
+     89            UserOutInit.OutMode.irq         = 0;//GPTM_INT_CH3CC;//中断
+     90            UserOutInit.OutMode.dmaReqMode  = 0;//dma request
+     91          
+     92            UserOutInit.OutInit.Channel  =(GPTM_CH_Enum)0;
+     93            //tm_gptm_output_pwm_cfg(gtm0_id, &UserOutInit);
+     94            ioctl(gtm0_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
+     95            
+     96            ///////////////////////////////////////////////////////////////////////////////
+     97            gtm3_id = open(DEV_GPTM,GP_TM2_ID);
+     98          
+     99            gftmInit.CounterReload = 270;
+    100            gftmInit.Prescaler     = 6;//5; //by lqw
+    101            gftmInit.CounterMode   = GPTM_CNT_MODE_UP;
+    102            gftmInit.PSCReloadTime = GPTM_PSC_RLD_IMMEDIATE;
+    103            //tm_gptm_cfg(gtm0_id,&gftmInit);
+    104            ioctl(gtm3_id, TM_GPTM_BASE_INIT, &gftmInit);
+    105          
+    106            UserOutInit.OutInit.OutputMode        = GPTM_OM_PWM1;//ACTIVE , WHEN  CNTR < CHxCCR
+    107            UserOutInit.OutInit.Control           = GPTM_CHCTL_ENABLE; //enable chx
+    108            UserOutInit.OutInit.Polarity          = GPTM_CHP_NONINVERTED;//h is active
+    109            UserOutInit.OutInit.Compare           = 0; //占空比
+    110            UserOutInit.OutInit.AsymmetricCompare = 0;
+    111          
+    112            UserOutInit.OutMode.irq         = 0;//GPTM_INT_CH3CC;//中断
+    113            UserOutInit.OutMode.dmaReqMode  = 0;//dma request
+    114          
+    115            UserOutInit.OutInit.Channel  =(GPTM_CH_Enum)1;
+    116            //tm_gptm_output_pwm_cfg(gtm0_id, &UserOutInit);
+    117            ioctl(gtm3_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
+    118            
+    119          ////////////////////////////gptm capture////////////////////////////////////////
+    120          
+    121            gtm2_id = open(DEV_GPTM,GP_TM0_ID);//tm_request(GPTM,GP_TM2_ID);
+    122            gftmInit.CounterReload = 270;
+    123            gftmInit.Prescaler     = 6;
+    124            gftmInit.CounterMode   = GPTM_CNT_MODE_UP;
+    125            gftmInit.PSCReloadTime = GPTM_PSC_RLD_IMMEDIATE;
+    126            //tm_gptm_cfg(gtm2_id,&gftmInit);
+    127            ioctl(gtm2_id, TM_GPTM_BASE_INIT, &gftmInit);
+    128          
+    129            UserOutInit.OutInit.OutputMode        = GPTM_OM_PWM1;//ACTIVE , WHEN  CNTR < CHxCCR
+    130            UserOutInit.OutInit.Control           = GPTM_CHCTL_ENABLE; //enable chx
+    131            UserOutInit.OutInit.Polarity          = GPTM_CHP_NONINVERTED;//h is active
+    132            UserOutInit.OutInit.Compare           = 0; //占空比
+    133            UserOutInit.OutInit.AsymmetricCompare = 0;
+    134          
+    135            UserOutInit.OutMode.irq         = 0;//GPTM_INT_CH3CC;//中断
+    136            UserOutInit.OutMode.dmaReqMode  = 0;//dma request
+    137          
+    138            //UserOutInit.OutInit.Channel  = 0;
+    139            //tm_gptm_output_pwm_cfg(gtm2_id, &UserOutInit);
+    140            for(int i = 0; i<4; i++)
+    141            {
+    142              UserOutInit.OutInit.Channel  = (GPTM_CH_Enum)i;
+    143              //tm_gptm_output_pwm_cfg(gtm2_id, &UserOutInit);
+    144              ioctl(gtm2_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
+    145            }
+    146          
+    147          
+    148          ///////////////////////////////mctm pwm///////////////////////////////////
+    149            charge_pwm_id = open(DEV_MCTM,MC_TM2_ID);//tm_request(MCTM,MC_TM2_ID);
+    150          
+    151            mctmInit.CounterReload = 720;
+    152            mctmInit.Prescaler     = 0;
+    153            mctmInit.CounterMode   = MCTM_CNT_MODE_UP;
+    154            mctmInit.PSCReloadTime = MCTM_PSC_RLD_IMMEDIATE;
+    155            //tm_mctm_cfg(charge_pwm_id,&mctmInit);
+    156            ioctl(charge_pwm_id, TM_MCTM_BASE_INIT, &mctmInit);
+    157          
+    158            MUserOutInit.OutInit.OutputMode = MCTM_OM_PWM2;
+    159            MUserOutInit.OutInit.Control    = MCTM_CHCTL_ENABLE;
+    160            MUserOutInit.OutInit.ControlN   = MCTM_CHCTL_ENABLE;
+    161            MUserOutInit.OutInit.Polarity   = MCTM_CHP_NONINVERTED;
+    162            MUserOutInit.OutInit.PolarityN  = MCTM_CHP_NONINVERTED;
+    163            MUserOutInit.OutInit.IdleState  = MCTM_OIS_LOW;
+    164            MUserOutInit.OutInit.IdleStateN = MCTM_OIS_HIGH;
+    165            MUserOutInit.OutInit.Compare    = 0;
+    166            MUserOutInit.OutMode.irq        = 0;
+    167            MUserOutInit.OutMode.dmaReqMode = 0;
+    168          
+    169            MUserOutInit.OutInit.Channel  = (MCTM_CH_Enum)1;
+    170            //tm_mctm_output_pwm_cfg(charge_pwm_id, &MUserOutInit);
+    171            ioctl(charge_pwm_id, TM_MCTM_OUT_MODE_INIT, &MUserOutInit);
+    172            request_irq(charge_pwm_id,(long)charger_pwm_handler,0);
+    173          }
+    174          
+    175          /****************************************************************
+    176          *Function   :  sys_tm_close
+    177          *Author     :  lyy
+    178          *Date       :  2017.4.20
+    179          *Description:  关闭各路timer
+    180          *CallBy     :  任何地方，中断除外
+    181          *Input      :  无
+    182          *Output     :  无
+    183          *Return     :  无
+    184          *Others     :  
+    185          *History    : //修改历史
+    186              <author>       <time>      <version>           <desc>
+    187              lyy            17.4.28       v1.0         build this function
+    188          ******************************************************************/
+    189          void sys_tm_close()
+    190          {
+    191            close(gtm0_id);
+    192            close(gtm1_id);
+    193            close(gtm2_id);
+    194           // close(gtm3_id);
+    195            close(side_pwm_id);
+    196            close(charge_pwm_id);
+    197          }
+    198          
+    199          /****************************************************************
+    200          *Function   :  sys_set_pwm_out_duty
+    201          *Author     :  lyy
+    202          *Date       :  2017.4.20
+    203          *Description:  配置各路timer的pwm输出
+    204          *CallBy     :  任何地方，中断除外
+    205          *Input      :  参数
+    206          *              channel：参考各路pwm的宏定义，如SIDE_BRUSH_PWM_CHANNEL，MAIN_BRUSH_PWM_CHANNEL等等
+    207          *              Duty   ：pwm占空比值，各路pwm值的范围按照timer配置决定
+    208          *Output     :  无
+    209          *Return     :  无
+    210          *Others     :  
+    211          *History    : //修改历史
+    212              <author>       <time>      <version>           <desc>
+    213              lyy            17.4.28       v1.0         build this function
+    214          ******************************************************************/
+    215          void sys_set_pwm_out_duty(s16 channel , s16 Duty)
+    216          {
+    217            int id = -1;
+    218          
+    219            s16 Dutyfactor = Duty;
+    220            switch(channel)
+    221            {
+    222            case SIDE_BRUSH_PWM_CHANNEL:
+    223              id = gtm1_id;
+    224          
+    225              ioctl(id,GPTM_CHAN3_SET_DUTY,(void *)&Dutyfactor);
+    226              break;
+    227            case MAIN_BRUSH_PWM_CHANNEL:
+    228              id = gtm1_id;
+    229          
+    230              ioctl(id,GPTM_CHAN2_SET_DUTY,(void *)&Dutyfactor);
+    231              break;
+    232            case BIN_LEFT_PWM_CHANNEL:
+    233              id = gtm1_id;
+    234          
+    235              ioctl(id,GPTM_CHAN0_SET_DUTY,(void *)&Dutyfactor);
+    236              break;
+    237            case BIN_RIGHT_PWM_CHANNEL:
+    238              id = gtm1_id;
+    239          
+    240              ioctl(id,GPTM_CHAN1_SET_DUTY,(void *)&Dutyfactor);
+    241              break;
+    242            case VACUUM_PWM_CHANNEL:
+    243              id = gtm0_id;
+    244          
+    245              ioctl(id,GPTM_CHAN0_SET_DUTY,(void *)&Dutyfactor);
+    246              break;
+    247            case CHARGER_PWM_CHANNEL:
+    248              id = charge_pwm_id;
+    249          
+    250              //tm_mctm_output_duty_set(id,chan,Dutyfactor);
+    251              ioctl(id,MCTM_CHAN1_SET_DUTY,(void *)&Dutyfactor);
+    252          	break;
+    253            case HOU2_IR_SEND_PWM_CHANNEL:
+    254              id = gtm2_id;
+    255          
+    256              break;
+    257            case HOU1_IR_SEND_PWM_CHANNEL:
+    258              id = gtm2_id;
+    259          
+    260              break;
+    261            case QIAN1_IR_SEND_PWM_CHANNEL:
+    262              id = gtm2_id;
+    263          
+    264              break;
+    265            case QIAN2_IR_SEND_PWM_CHANNEL:
+    266              id = gtm2_id;
+    267          
+    268              return;
+    269            case IR_SEND_PWM_CHANNEL:
+    270              id = gtm3_id;
+    271              ioctl(id,GPTM_CHAN1_SET_DUTY,(void *)&Dutyfactor);
+    272              break;
+    273            default:
+    274              id = -1;
+    275              break;
+    276            }
+    277          }
+    278          
+    279          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   charger_pwm_handler
+       8   sys_set_pwm_out_duty
+         8   -- Indirect call
+     112   sys_tm_cfg
+       112   -- Indirect call
+       112   -> request_irq
+      16   sys_tm_close
+         0   -- Indirect call
+        16   -- Indirect call
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+       4  ??DataTable2_1
+       4  ??DataTable2_10
+       4  ??DataTable2_2
+       4  ??DataTable2_3
+       4  ??DataTable2_4
+       4  ??DataTable2_5
+       4  ??DataTable2_6
+       4  ??DataTable2_7
+       4  ??DataTable2_8
+       4  ??DataTable2_9
+      20  ??Subroutine5_0
+      18  ?Subroutine0
+      14  ?Subroutine1
+      10  ?Subroutine2
+       8  ?Subroutine3
+       8  ?Subroutine4
+       4  capture_id
+       2  charger_pwm_handler
+      24  gtm0_id
+          gtm1_id
+          gtm2_id
+          gtm3_id
+          charge_pwm_id
+          side_pwm_id
+       4  m_capture_id
+       4  m_pwm_id
+      94  sys_set_pwm_out_duty
+     358  sys_tm_cfg
+      50  sys_tm_close
+
+ 
+  36 bytes in section .bss
+ 626 bytes in section .text
+ 
+ 626 bytes of CODE memory
+  36 bytes of DATA memory
+
+Errors: none
+Warnings: none

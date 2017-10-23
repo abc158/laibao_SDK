@@ -1,0 +1,238 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:10
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\sensor\sensor_comm.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\sensor\sensor_comm.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\sensor_comm.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\sensor_comm.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\sensor\sensor_comm.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          #include "sensor/sensor.h"
+      7          #include "syscall_api.h"
+      8          
+      9          static u8 g_sensor_start_gather;
+     10          extern volatile u16 time_4khz_counter_touch;
+     11          u8 cliff_touch_turn_switch =0;
+     12          
+     13          u16 mid_filter(s16* data_array, u16 new_data)
+     14          {
+     15            u16 temp;
+     16            u16 temp_array[3];
+     17            
+     18            temp_array[0]=*data_array;
+     19            temp_array[1]=*(data_array+1);
+     20            temp_array[2]=new_data;
+     21            
+     22            if(temp_array[0]>temp_array[1])
+     23            {
+     24              temp=temp_array[1];
+     25              temp_array[1]=temp_array[0];
+     26              temp_array[0]=temp;
+     27            }
+     28            if(temp_array[1]>temp_array[2])
+     29            {
+     30              temp=temp_array[2];
+     31              temp_array[2]=temp_array[1];
+     32              temp_array[1]=temp;
+     33            }
+     34            if(temp_array[0]>temp_array[1])
+     35            {
+     36              temp=temp_array[1];
+     37              temp_array[1]=temp_array[0];
+     38              temp_array[0]=temp;
+     39            }
+     40            
+     41            *data_array=*(data_array+1);
+     42            *(data_array+1)=new_data;
+     43            return temp_array[1]; 
+     44          }
+     45          
+     46          
+     47          /****************************************************************
+     48          *Function   :  robot_sensor_gather_start
+     49          *Author     :  lyy
+     50          *Date       :  2017.4.20
+     51          *Description:  控制采样使能
+     52          *CallBy     :  
+     53          *Input      :  参数
+     54          *              en: 1： 打开   0：关闭
+     55          *Output     :  无
+     56          *Return     :  无
+     57          *Others     :  
+     58          *History    : //修改历史
+     59              <author>       <time>      <version>           <desc>
+     60              lyy            17.4.28       v1.0         build this function
+     61          ******************************************************************/
+     62          void robot_sensor_gather_start(u8 en)
+     63          {
+     64            g_sensor_start_gather = en;
+     65            if(en == 1)
+     66            {
+     67               set_lighttouch_enable(0);
+     68            }
+     69          }
+     70          
+     71          /****************************************************************
+     72          *Function   :  robot_sensor_handler
+     73          *Author     :  lyy
+     74          *Date       :  2017.4.20
+     75          *Description:  4k的中断采样和处理过程
+     76          *CallBy     :  
+     77          *Input      :  参数
+     78          *              无
+     79          *Output     :  无
+     80          *Return     :  无
+     81          *Others     :  
+     82          *History    : //修改历史
+     83              <author>       <time>      <version>           <desc>
+     84              lyy            17.4.28       v1.0         build this function
+     85          ******************************************************************/
+     86          long robot_sensor_handler(void)
+     87          {
+     88            static u8 led_close = 0;
+     89            static u8 lt_cnt = 0;
+     90            if(g_sensor_start_gather)
+     91            {
+     92              led_close = 0;
+     93          	if(cliff_touch_turn_switch)
+     94          	{
+     95          		sensor_gather_cliff();
+     96          		sensor_handle_cliff();	
+     97          		hal_isr();
+     98          		cliff_touch_turn_switch =0;
+     99          	}
+    100          	else
+    101          	{
+    102          		lt_cnt++;
+    103          		if (lt_cnt >= 1)
+    104          		{
+    105          		  lt_cnt = 0;
+    106          		  sensor_gather_touch();
+    107          		  sensor_handle_touch();
+    108          		  time_4khz_counter_touch = (time_4khz_counter_touch + 1) & 0xff;
+    109          		  cliff_touch_turn_switch =1;
+    110          		} 		
+    111          	}
+    112            }
+    113            else
+    114            {
+    115              if(led_close == 0)
+    116              {
+    117                led_close = 1;
+    118                robot_sensor_init();
+    119                robot_close_sensor_led();
+    120              #ifdef USE_LT_AUTO_ADJUST
+    121                if (is_lt_offset_adjust_enable()) {
+    122                    reset_lt_auto_offset();
+    123                }
+    124              #endif
+    125              }
+    126              lt_cnt = 0;
+    127              time_4khz_counter_touch = 0;
+    128            }
+    129            return (1);
+    130          }
+    131          
+    132          /****************************************************************
+    133          *Function   :  robot_ir_detection_init
+    134          *Author     :  lyy
+    135          *Date       :  2017.4.20
+    136          *Description:  初始化lt，cliff采样模块，申请一个4k的中断来进行采样。
+    137                          所以整个采样和处理过程都是在中断里
+    138          *CallBy     :  
+    139          *Input      :  参数
+    140          *              无
+    141          *Output     :  无
+    142          *Return     :  无
+    143          *Others     :  
+    144          *History    : //修改历史
+    145              <author>       <time>      <version>           <desc>
+    146              lyy            17.4.28       v1.0         build this function
+    147          ******************************************************************/
+    148          void robot_ir_detection_init(void)
+    149          {
+    150            robot_sensor_init();
+    151            #ifdef USE_LT_AUTO_ADJUST
+    152              //reset_ht_auto_offset();    
+    153              printf("restore_lt_signal_offset!!!!\r\n");
+    154              restore_lt_signal_offset();
+    155            #endif
+    156            sys_timer_register(HZ_4K,(long)robot_sensor_handler,0);
+    157          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      12   mid_filter
+       8   robot_ir_detection_init
+         8   -- Indirect call
+         8   -> restore_lt_signal_offset
+         8   -> robot_sensor_init
+         0   -> sys_timer_register
+       0   robot_sensor_gather_start
+         0   -> set_lighttouch_enable
+      16   robot_sensor_handler
+        16   -> hal_isr
+        16   -> is_lt_offset_adjust_enable
+        16   -> reset_lt_auto_offset
+        16   -> robot_close_sensor_led
+        16   -> robot_sensor_init
+        16   -> sensor_gather_cliff
+        16   -> sensor_gather_touch
+        16   -> sensor_handle_cliff
+        16   -> sensor_handle_touch
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+      32  ?_0
+       4  g_sensor_start_gather
+          cliff_touch_turn_switch
+          led_close
+          lt_cnt
+      42  mid_filter
+      36  robot_ir_detection_init
+      16  robot_sensor_gather_start
+     106  robot_sensor_handler
+
+ 
+   4 bytes in section .bss
+ 248 bytes in section .text
+ 
+ 248 bytes of CODE memory
+   4 bytes of DATA memory
+
+Errors: none
+Warnings: none

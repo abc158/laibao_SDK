@@ -1,0 +1,1499 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<project>
+  <fileVersion>2</fileVersion>
+  <fileChecksum>3918019554</fileChecksum>
+  <configuration>
+    <name>Debug</name>
+    <outputs>
+      <file>$PROJ_DIR$\..\src\cfg\afio_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\spi_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\exti_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\gpio_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\tm_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\uart_cfg.c</file>
+      <file>$PROJ_DIR$\..\src\charge\charge.c</file>
+      <file>$PROJ_DIR$\..\src\dock\dock_ir_signal.c</file>
+      <file>$PROJ_DIR$\..\src\motor\hardward_check.c</file>
+      <file>$PROJ_DIR$\..\src\dock\docking-new.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\act.c</file>
+      <file>$PROJ_DIR$\..\src\dock\docking-sensors.c</file>
+      <file>$PROJ_DIR$\Debug\List\app.map</file>
+      <file>$PROJ_DIR$\..\src\local_process\local_key_check.h</file>
+      <file>$PROJ_DIR$\..\src\wireless\ARF2496K.H</file>
+      <file>$TOOLKIT_DIR$\lib\m7M_tl.a</file>
+      <file>$PROJ_DIR$\Debug\List\uart_queue.lst</file>
+      <file>$PROJ_DIR$\Debug\List\virtual-wall.lst</file>
+      <file>$PROJ_DIR$\Debug\List\ui-config.lst</file>
+      <file>$PROJ_DIR$\..\src\local_process\led_drv.h</file>
+      <file>$PROJ_DIR$\Debug\List\ui-manager.lst</file>
+      <file>$TOOLKIT_DIR$\inc\c\math.h</file>
+      <file>$PROJ_DIR$\Debug\List\spi_cfg.lst</file>
+      <file>$PROJ_DIR$\Debug\List\SimWifi.lst</file>
+      <file>$PROJ_DIR$\Debug\List\uart_wifi_check.lst</file>
+      <file>$PROJ_DIR$\Debug\List\song-player.lst</file>
+      <file>$PROJ_DIR$\Debug\List\uart_cfg.lst</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-msg-handler.h</file>
+      <file>$PROJ_DIR$\Debug\List\tm_cfg.lst</file>
+      <file>$PROJ_DIR$\Debug\List\ui-msg-handler.lst</file>
+      <file>$PROJ_DIR$\Debug\List\wall_follow_common.lst</file>
+      <file>$TOOLKIT_DIR$\inc\c\xtgmath.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-manager.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_queue.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimWifi.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\current.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\simwifi_demo2.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimSweep.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimSweep_demo2.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\wall_follow_common.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\ARF2496K.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\afio_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\hardward_check.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\exti_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\gpio_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\exception.o</file>
+      <file>$PROJ_DIR$\..\includes\am_uart_api.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stddef.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\remote_handle.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot-battery-monitor.o</file>
+      <file>$PROJ_DIR$\Debug\List\lib.lst</file>
+      <file>$PROJ_DIR$\Debug\List\motor.lst</file>
+      <file>$PROJ_DIR$\Debug\List\test_cmd_handle.lst</file>
+      <file>$PROJ_DIR$\Debug\List\SimSweep_demo2.lst</file>
+      <file>$PROJ_DIR$\Debug\List\simwifi_demo2.lst</file>
+      <file>$PROJ_DIR$\Debug\List\ir_decode.lst</file>
+      <file>$PROJ_DIR$\Debug\List\led_drv.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\act.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\led_drv.o</file>
+      <file>$TOOLKIT_DIR$\inc\c\string.h</file>
+      <file>$PROJ_DIR$\Debug\List\hardward_check.lst</file>
+      <file>$PROJ_DIR$\..\lib\irq_syscall.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_sensor_api.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_dock_api.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-typedef.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\xencoding_limits.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-config.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\ystdio.h</file>
+      <file>$PROJ_DIR$\..\includes\am_robot_type.h</file>
+      <file>$PROJ_DIR$\..\src\monitor\robot_univrsal_wheel.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-test_cmd_handle.h</file>
+      <file>$PROJ_DIR$\Debug\List\dock-avoid.lst</file>
+      <file>$PROJ_DIR$\Debug\List\exti_cfg.lst</file>
+      <file>$PROJ_DIR$\..\src\local_process\local_process.h</file>
+      <file>$PROJ_DIR$\Debug\List\gpio_cfg.lst</file>
+      <file>$PROJ_DIR$\Debug\List\docking-sensors.lst</file>
+      <file>$PROJ_DIR$\Debug\List\robot-battery-monitor.lst</file>
+      <file>$PROJ_DIR$\Debug\List\exception.lst</file>
+      <file>$PROJ_DIR$\Debug\List\docking-new.lst</file>
+      <file>$PROJ_DIR$\Debug\List\dock_ir_signal.lst</file>
+      <file>$PROJ_DIR$\Debug\List\act.lst</file>
+      <file>$PROJ_DIR$\Debug\List\afio_cfg.lst</file>
+      <file>$PROJ_DIR$\Debug\List\ARF2496K.lst</file>
+      <file>$PROJ_DIR$\Debug\List\charge.lst</file>
+      <file>$PROJ_DIR$\Debug\List\current.lst</file>
+      <file>$PROJ_DIR$\..\includes\am_app_cfg.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\BK2425_TxRx.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\Test_Func.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\BK2425_TxRx.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\Test_Func.pbi</file>
+      <file>$PROJ_DIR$\..\src\wireless\bk2425.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stdarg.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\BK2425_Initialization_141015.pbi</file>
+      <file>$PROJ_DIR$\Debug\List\BK2425_TxRx.lst</file>
+      <file>$PROJ_DIR$\Debug\List\Test_Func.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\BK2425_Initialization_141015.o</file>
+      <file>$TOOLKIT_DIR$\inc\c\DLib_Defaults.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\dock-avoid.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_battery.o</file>
+      <file>$PROJ_DIR$\..\src\dock\docking-sensors.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-commands.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\DLib_Threads.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\DLib_Product.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\DLib_Product_string.h</file>
+      <file>$PROJ_DIR$\..\src\dock\docking-core.h</file>
+      <file>$PROJ_DIR$\..\src\cfg\afio.h</file>
+      <file>$PROJ_DIR$\..\src\sensor\sensor.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\DLib_Config_Normal.h</file>
+      <file>$PROJ_DIR$\..\src\charge\charge.h</file>
+      <file>$PROJ_DIR$\..\src\util\current.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
+      <file>$PROJ_DIR$\..\includes\am_date_base.h</file>
+      <file>$PROJ_DIR$\..\includes\am_gptm_cfg.h</file>
+      <file>$PROJ_DIR$\..\includes\AM38x_mctm.h</file>
+      <file>$PROJ_DIR$\..\includes\am_tm_api.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-ir.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-song-player.h</file>
+      <file>$PROJ_DIR$\..\src\dock\docking-new.h</file>
+      <file>$PROJ_DIR$\Debug\List\SimSweep.lst</file>
+      <file>$PROJ_DIR$\Debug\List\robot_suction.lst</file>
+      <file>$PROJ_DIR$\Debug\List\robot_univrsal_wheel.lst</file>
+      <file>$PROJ_DIR$\..\src\monitor\robot_batter.h</file>
+      <file>$PROJ_DIR$\Debug\List\display.lst</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\ui-msg-handler.c</file>
+      <file>$PROJ_DIR$\..\src\ui_uart_handle\uart_queue.c</file>
+      <file>$PROJ_DIR$\..\src\wall_follow\wall_follow_common.c</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo2\SimSweep_demo2.c</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo1\SimSweep.c</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo1\SimWifi.c</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo2\simwifi_demo2.c</file>
+      <file>$PROJ_DIR$\..\src\wireless\ARF2496K.C</file>
+      <file>$PROJ_DIR$\..\src\wifi\uart_wifi_check.c</file>
+      <file>$PROJ_DIR$\..\src\wireless\BK2425_Initialization_141015.c</file>
+      <file>$PROJ_DIR$\..\src\wireless\Test_Func.c</file>
+      <file>$PROJ_DIR$\..\src\wireless\BK2425_TxRx.c</file>
+      <file>$PROJ_DIR$\..\src\main.c</file>
+      <file>$PROJ_DIR$\Debug\Obj\ir_decode.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_brush.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\charge.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-config.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\test_cmd_handle.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\song-player.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-msg-handler.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_wifi_check.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\docking-new.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\dock_ir_signal.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\hardward_check.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\remote.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\lib.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\local_process.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\lt_bump.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_suction.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\sensor.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimSweep.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\sensor_comm.o</file>
+      <file>$PROJ_DIR$\..\lib\syscall_api.h</file>
+      <file>$PROJ_DIR$\..\includes\am_device.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_univrsal_wheel.o</file>
+      <file>$PROJ_DIR$\..\src\cfg\gpio_init.h</file>
+      <file>$PROJ_DIR$\..\includes\AM38x_spi.h</file>
+      <file>$PROJ_DIR$\..\includes\am_spi_cfg.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_api.a</file>
+      <file>$PROJ_DIR$\startup\startup.a</file>
+      <file>$TOOLKIT_DIR$\lib\rt7M_tl.a</file>
+      <file>$PROJ_DIR$\Amicro_R10_flash_release.icf</file>
+      <file>$TOOLKIT_DIR$\inc\c\ymath.h</file>
+      <file>$TOOLKIT_DIR$\lib\shb_l.a</file>
+      <file>$PROJ_DIR$\Debug\Exe\app.s19</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_wifi_check.pbi</file>
+      <file>$PROJ_DIR$\..\src\cfg\hal_amicro_gpio.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_song_api.h</file>
+      <file>$PROJ_DIR$\..\src\includes\ui-manager.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\ycheck.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stdint.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\yvals.h</file>
+      <file>$PROJ_DIR$\..\src\motor\motor.h</file>
+      <file>$PROJ_DIR$\..\includes\am_rebound.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_thread_api.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stdlib.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_hal_api.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\stdio.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\ysizet.h</file>
+      <file>$PROJ_DIR$\..\includes\am_type.h</file>
+      <file>$PROJ_DIR$\..\src\cfg\adc_chan.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\ir_decode.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\exception.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot-battery-monitor.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\sensor_comm.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\remote_handle.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_battery.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\song-player.pbi</file>
+      <file>$PROJ_DIR$\Debug\List\local_process.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\docking-sensors.pbi</file>
+      <file>$PROJ_DIR$\..\src\ui_uart_handle\mqueue.h</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo1\simwifi.h</file>
+      <file>$PROJ_DIR$\Debug\List\lt_bump.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\motor.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\gpio_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\List\local_key_check.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\afio_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\exti_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\tm_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\spi_cfg.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\simwifi_demo2.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimSweep_demo2.pbi</file>
+      <file>$PROJ_DIR$\Debug\Exe\app.out</file>
+      <file>$PROJ_DIR$\Debug\Obj\app.pbd</file>
+      <file>$PROJ_DIR$\Debug\Obj\ARF2496K.pbi</file>
+      <file>$PROJ_DIR$\..\src\guardrail\dock-avoid.c</file>
+      <file>$PROJ_DIR$\..\src\guardrail\virtual-wall.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\lib.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\display.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\led_drv.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\local_key_check.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\local_process.c</file>
+      <file>$PROJ_DIR$\..\src\motor\motor.c</file>
+      <file>$PROJ_DIR$\..\src\local_process\remote.c</file>
+      <file>$PROJ_DIR$\..\src\motor\robot_brush.c</file>
+      <file>$PROJ_DIR$\..\src\motor\robot_suction.c</file>
+      <file>$PROJ_DIR$\..\src\sensor\lt_bump.c</file>
+      <file>$PROJ_DIR$\..\src\monitor\robot_univrsal_wheel.c</file>
+      <file>$PROJ_DIR$\..\src\sensor\sensor.c</file>
+      <file>$PROJ_DIR$\..\src\sensor\sensor_comm.c</file>
+      <file>$PROJ_DIR$\..\src\monitor\robot-battery-monitor.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\exception.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\ir_decode.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\remote_handle.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\test_cmd_handle.c</file>
+      <file>$PROJ_DIR$\..\src\monitor\robot_battery.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\song-player.c</file>
+      <file>$PROJ_DIR$\..\src\util\current.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\ui-config.c</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\ui-manager.c</file>
+      <file>$PROJ_DIR$\..\src\cfg\gpio_cfg.h</file>
+      <file>$PROJ_DIR$\..\lib\syscall_spi_nor_flash_api.h</file>
+      <file>$PROJ_DIR$\..\includes\am_gpio.h</file>
+      <file>$PROJ_DIR$\Debug\List\main.lst</file>
+      <file>$PROJ_DIR$\Debug\List\remote.lst</file>
+      <file>$TOOLKIT_DIR$\lib\dl7M_tln.a</file>
+      <file>$PROJ_DIR$\Debug\List\robot_battery.lst</file>
+      <file>$PROJ_DIR$\..\src\wall_follow\wall_follow_common.h</file>
+      <file>$PROJ_DIR$\Debug\List\remote_handle.lst</file>
+      <file>$PROJ_DIR$\Debug\List\robot_brush.lst</file>
+      <file>$PROJ_DIR$\Debug\List\sensor_comm.lst</file>
+      <file>$PROJ_DIR$\Debug\List\sensor.lst</file>
+      <file>$PROJ_DIR$\Debug\Obj\spi_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\tm_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_cfg.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\charge.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\dock_ir_signal.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\act.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\lib.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\display.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\docking-new.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\virtual-wall.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\led_drv.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\local_process.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\remote.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\motor.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_brush.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_suction.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\local_key_check.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\lt_bump.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\sensor.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\robot_univrsal_wheel.pbi</file>
+      <file>$PROJ_DIR$\..\includes\am_exti_cfg.h</file>
+      <file>$PROJ_DIR$\..\src\local_process\act.h</file>
+      <file>$PROJ_DIR$\..\src\local_process\lib.h</file>
+      <file>$PROJ_DIR$\..\src\ui-manager\exception.h</file>
+      <file>$PROJ_DIR$\..\includes\am_key.h</file>
+      <file>$PROJ_DIR$\..\src\local_process\display.h</file>
+      <file>$PROJ_DIR$\..\src\motor\robot_brush.h</file>
+      <file>$PROJ_DIR$\..\src\dock\dock_ir_signal.h</file>
+      <file>$PROJ_DIR$\..\src\guardrail\dock-avoid.h</file>
+      <file>$PROJ_DIR$\..\src\guardrail\virtual-wall.h</file>
+      <file>$PROJ_DIR$\Debug\List\BK2425_Initialization_141015.lst</file>
+      <file>$PROJ_DIR$\..\src\motor\robot_suction.h</file>
+      <file>$TOOLKIT_DIR$\inc\c\time.h</file>
+      <file>$PROJ_DIR$\..\src\local_process\remote.h</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo1\SimSweep.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-config.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-manager.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\ui-msg-handler.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\test_cmd_handle.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\uart_queue.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\current.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\SimWifi.pbi</file>
+      <file>$PROJ_DIR$\..\lib\syscall_sys_api.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\wall_follow_common.pbi</file>
+      <file>$PROJ_DIR$\Debug\Obj\virtual-wall.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\local_key_check.o</file>
+      <file>$PROJ_DIR$\Debug\Obj\dock-avoid.o</file>
+      <file>$PROJ_DIR$\..\includes\am_config_macro.h</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo2\SimSweep_demo2.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\docking-sensors.o</file>
+      <file>$PROJ_DIR$\..\src\wifi\wifi_demo2\simwifi_demo2.h</file>
+      <file>$PROJ_DIR$\Debug\Obj\display.o</file>
+    </outputs>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\afio_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 42</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 83 201</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 174 176 68 173 181 67 66 70 180 177 178 179 183 243 184 236 175 107 182 61 71 63 185 290 64 65 237 69 72 238 98 103 109 104 105 106 108 112 295</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 107</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\spi_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 248</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 22 204</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 174 172 176 183 171 161 173 181 104 70 180 177 178 179 98 103 109 182 238 61 71 63 185 290 64 65 237 69 67 105 106 108 66 112 175 184 295 157 68 72 243 236 162 158</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 162 161 158</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\exti_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 45</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 74 202</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 238 172 171 173 181 174 104 182 180 177 178 179 183 98 103 109 176 70 61 71 63 185 290 64 65 237 69 67 105 106 108 66 112 175 184 295 157 68 72 243 236 268 158</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 268 158</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\gpio_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 46</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 76 199</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 175 173 181 174 176 183 105 106 66 112 180 177 178 179 104 108 70 184 295 107 182 61 71 63 185 290 64 65 237 69 98 103 109 238 67 68 72 243 236 160</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 160 107</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\tm_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 249</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 28 203</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 116 115 180 177 178 179 98 103 109 182 238 61 71 63 185 290 64 65 237 69 67 68 72 243 236 157 158 114</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 116 114 115 158</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\cfg\uart_cfg.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 250</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 26 32</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 183 172 171 70 173 181 174 104 182 238 184 48 180 177 178 179 98 103 109 67 105 106 108 66 112 175 295 158 61 71 63 185 290 64 65 237 69 68 72 243 236 157 195 49</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 48 158 195 49</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\charge\charge.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 251</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 85 140</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 118 180 177 178 179 98 103 109 182 238 157 61 71 63 185 290 64 65 237 69 67 68 72 243 236 110 111 113</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 110 111 113 118</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\dock\dock_ir_signal.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 252</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 81 147</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 183 172 171 70 184 115 173 181 174 104 182 238 180 177 178 179 98 103 109 67 105 106 108 66 112 175 295 119 61 71 63 185 290 64 65 237 69 68 72 243 236 157 116 275 114</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 116 114 115 119 275</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\motor\hardward_check.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 43</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 62 148</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 183 176 172 171 66 70 173 181 174 104 68 180 177 178 179 98 103 109 243 184 236 182 61 71 63 185 290 64 65 237 69 67 72 175 105 106 108 112 295 238 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\dock\docking-new.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 256</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 80 146</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 106 172 183 175 171 173 181 174 274 180 177 178 179 67 72 184 108 61 182 71 63 185 290 64 65 237 176 69 68 243 66 70 236 119 98 103 109 104 105 112 295 238 101 123 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 119 101 123 274</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\act.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 253</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 82 59</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 280 172 296 184 171 175 173 181 174 104 108 70 295 281 110 180 177 178 179 98 103 109 182 13 272 279 61 71 63 185 290 64 65 237 69 67 68 72 243 238 157 271 274 102 236 113 270 269 273 118 298</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 271 279 118 110 298 296 274</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\dock\docking-sensors.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 194</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 77 297</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 70 277 182 173 181 174 176 183 61 157 180 177 178 179 104 238 184 101 106 71 63 185 290 64 65 237 69 98 103 109 67 105 108 66 112 175 295 68 72 243 236 119 117 276</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 119 101 117 276 277</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>[ROOT_NODE]</name>
+      <outputs>
+        <tool>
+          <name>ILINK</name>
+          <file> 208 12</file>
+        </tool>
+      </outputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\ui-msg-handler.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 285</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 29 144</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 103 172 171 238 173 181 174 98 182 184 27 180 177 178 179 183 109 176 70 61 71 63 185 290 64 65 237 69 104 105 106 108 66 112 175 295 157 67 68 72 243 236 118 273</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 27 118 273</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui_uart_handle\uart_queue.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 287</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 16 34</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 184 172 171 182 173 181 174 104 238 180 177 178 179 183 176 70 49 61 71 63 185 290 64 65 237 69 98 103 109 67 105 106 108 66 112 175 295 68 72 243 236 195 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 195 49</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wall_follow\wall_follow_common.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 291</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 30 40</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 157 171 175 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 31 61 71 63 185 290 64 65 237 69 67 68 72 243 236 21 167</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 21 167 31</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wifi\wifi_demo2\SimSweep_demo2.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 207</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 55 39</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 270 172 171 173 181 174 104 108 175 70 184 295 271 180 177 178 179 98 103 109 182 238 102 269 298 113 272 61 71 63 185 290 64 65 237 69 67 68 72 243 157 118 236 280 13 281 273 279 296</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 271 279 118 298 296</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wifi\wifi_demo1\SimSweep.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 155</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 120 38</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 238 112 183 66 176 105 106 172 108 171 175 173 181 174 104 70 184 295 280 113 272 180 177 178 179 98 103 109 182 236 68 281 273 61 71 63 185 290 64 65 237 69 67 72 243 13 279 282 102 270 157 269 271 118 196</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 271 279 118 196 282</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wifi\wifi_demo1\SimWifi.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 289</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 23 35</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 183 172 108 66 171 70 173 181 174 104 182 280 110 180 177 178 179 98 103 109 67 105 106 112 175 184 295 236 68 281 273 61 71 63 185 290 64 65 237 69 72 243 113 13 279 196 272 238 102 270 157 269 271 118 195 282 49</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 271 279 118 195 49 196 282 110</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wifi\wifi_demo2\simwifi_demo2.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 205</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 56 37</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 66 176 183 172 238 171 70 269 173 181 174 104 182 184 102 195 180 177 178 179 98 103 109 67 105 106 108 112 175 295 270 271 61 71 63 185 290 64 65 237 69 68 72 243 157 272 118 296 113 236 280 13 281 273 279 298 110 49</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 271 279 118 195 49 298 296 110</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wireless\ARF2496K.C</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 210</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 84 41</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 183 172 171 70 117 173 181 174 104 182 238 184 157 180 177 178 179 98 103 109 67 105 106 108 66 112 175 295 268 68 61 71 63 185 290 64 65 237 69 72 243 236 158 14 269 119</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 268 158 117 14 269 119</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wifi\uart_wifi_check.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 170</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 24 145</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 13 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 113 273 61 71 63 185 290 64 65 237 69 67 68 72 243 236 280 298 272 102 270 157 269</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 273 298 269</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wireless\BK2425_Initialization_141015.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 94</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 278 97</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 106 176 183 68 172 171 70 173 181 174 104 182 238 184 93 180 177 178 179 98 103 109 67 105 108 66 112 175 295 117 61 71 63 185 290 64 65 237 69 72 243 236 268 14 162 161 157 158 269 119 92</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 268 158 117 14 269 119 162 161 92</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wireless\Test_Func.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 91</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 96 89</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 67 105 106 66 112 173 181 174 104 175 93 180 177 178 179 183 98 103 109 176 108 70 184 295 182 61 71 63 185 290 64 65 237 69 238 68 72 243 236 92</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 92</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\wireless\BK2425_TxRx.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 90</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 95 88</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 174 183 172 176 171 173 181 104 70 93 180 177 178 179 98 103 109 182 238 61 71 63 185 290 64 65 237 69 67 105 106 108 66 112 175 184 295 68 72 243 236 92</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 92</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\main.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 206</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 239 44</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 87 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 48 61 71 63 185 290 64 65 237 69 67 68 72 243 236 75 162 114 158 157 116 115 161</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 87 158 75 48 116 114 115 162 161</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Debug\Exe\app.out</name>
+      <outputs>
+        <tool>
+          <name>ILINK</name>
+          <file> 12</file>
+        </tool>
+        <tool>
+          <name>OBJCOPY</name>
+          <file> 169</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>ILINK</name>
+          <file> 166 59 201 41 97 88 140 36 299 294 147 146 297 47 202 199 148 138 60 150 293 151 152 44 198 149 50 51 100 139 153 159 154 156 38 39 35 37 143 204 142 89 203 32 34 145 141 33 144 292 40 164 163 168 165 15 241</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\guardrail\dock-avoid.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 99</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 73 294</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 183 175 171 173 181 174 182 180 177 178 179 67 72 184 276 70 61 71 63 185 290 64 65 237 176 69 68 243 66 236 119 106 98 103 109 104 105 108 112 295 238 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 119 276</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\guardrail\virtual-wall.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 257</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 17 292</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 175 172 171 103 182 173 181 174 98 67 105 106 66 112 184 180 177 178 179 183 109 176 108 70 295 117 61 71 63 185 290 64 65 237 69 104 238 68 72 243 236 119 277 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 119 277 117</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\lib.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 254</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 52 150</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 61 71 63 185 290 64 65 237 69 67 68 72 243 236 113 118 102 157 269</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 113 102 118 269</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\display.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 255</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 124 299</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 270 172 171 175 173 181 174 104 108 70 184 295 110 180 177 178 179 98 103 109 182 238 113 269 61 71 63 185 290 64 65 237 69 67 68 72 243 236 13 157 102 280 281 273 19 272</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 270 13 272 281 269 273 19 110</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\led_drv.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 258</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 58 60</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 19 172 171 67 184 173 181 174 104 243 236 180 177 178 179 183 98 103 109 176 68 66 70 182 61 71 63 185 290 64 65 237 69 72 175 157 105 106 108 112 295 238</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 19</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\local_key_check.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 264</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 200 293</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 102 61 71 63 185 290 64 65 237 69 67 68 72 243 236 13 269 272 113 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 13 272 102 113 269</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\local_process.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 259</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 193 151</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 123 172 171 174 173 181 104 108 175 13 180 177 178 179 98 103 109 70 184 295 280 157 298 114 182 61 71 63 185 290 64 65 237 69 67 68 72 243 238 102 272 273 158 116 236 113 269 281 118 14 271 296 115</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 102 113 280 272 269 13 281 273 118 14 123 271 158 298 296 116 114 115</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\motor\motor.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 261</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 53 198</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 157 115 180 177 178 179 98 103 109 182 238 110 279 61 71 63 185 290 64 65 237 69 67 68 72 243 236 116 274 114</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 110 116 114 115 274 279</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\local_process\remote.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 260</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 240 149</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 183 172 171 70 269 157 173 181 174 104 182 238 184 13 180 177 178 179 98 103 109 67 105 106 108 66 112 175 295 102 119 272 61 71 63 185 290 64 65 237 69 68 72 243 236 281 117</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 13 272 281 102 269 119 117</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\motor\robot_brush.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 262</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 245 139</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 274 180 177 178 179 98 103 109 182 238 116 114 61 71 63 185 290 64 65 237 69 67 68 72 243 236 157 115</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 116 114 115 274</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\motor\robot_suction.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 263</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 121 153</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 157 114 180 177 178 179 98 103 109 182 238 110 61 71 63 185 290 64 65 237 69 67 68 72 243 236 116 279 115</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 110 116 114 115 279</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\sensor\lt_bump.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 265</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 197 152</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 172 175 171 184 173 181 174 104 72 180 177 178 179 183 98 103 109 182 61 71 63 185 290 64 65 237 69 67 68 243 66 70 236 157 105 106 108 112 295 238</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\monitor\robot_univrsal_wheel.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 267</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 122 159</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 66 172 70 171 173 181 174 104 176 68 180 177 178 179 183 98 103 109 67 243 184 236 157 182 61 71 63 185 290 64 65 237 69 72 175 108 105 106 112 295 238 268 158</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 268 158</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\sensor\sensor.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 266</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 247 154</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 176 174 183 173 181 109 70 180 177 178 179 98 103 182 238 184 61 71 63 185 290 64 65 237 69 104 105 106 108 66 112 175 295 157 67 68 72 243 236</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\sensor\sensor_comm.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 189</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 246 156</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 236 171 243 173 181 174 67 184 175 108 180 177 178 179 183 176 68 66 70 182 61 71 63 185 290 64 65 237 69 72 98 103 109 104 105 106 112 295 238 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\monitor\robot-battery-monitor.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 188</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 78 51</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 72 173 181 174 104 108 70 184 295 180 177 178 179 98 103 109 182 238 110 118 61 71 63 185 290 64 65 237 69 67 68 243 236 123 269 157 113 111</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 110 123 113 269 111 118</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\exception.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 187</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 79 47</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 118 171 175 173 181 174 104 108 70 184 295 157 113 180 177 178 179 98 103 109 182 238 269 61 71 63 185 290 64 65 237 69 67 68 72 243 236 270 102 274</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 113 269 270 102 118 274</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\ir_decode.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 186</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 57 138</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 172 171 238 173 181 174 104 182 184 180 177 178 179 183 98 103 109 70 61 71 63 185 290 64 65 237 69 67 105 106 108 66 112 175 295 68 72 243 236 117 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 117</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\remote_handle.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 190</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 244 50</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 112 183 66 176 105 106 172 171 175 173 181 174 104 108 70 184 295 116 180 177 178 179 98 103 109 182 238 117 157 61 71 63 185 290 64 65 237 69 67 68 72 243 236 114 115</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 117 116 114 115</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\test_cmd_handle.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 286</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 54 142</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 70 183 172 171 118 173 181 174 104 182 238 184 110 180 177 178 179 98 103 109 67 105 106 108 66 112 175 295 102 157 61 71 63 185 290 64 65 237 69 68 72 243 236 117 279 272 119 274 111 269</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 272 102 117 119 110 274 279 111 118 269</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\monitor\robot_battery.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 191</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 242 100</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 106 176 105 172 183 66 112 171 157 173 181 174 104 175 180 177 178 179 98 103 109 108 70 184 295 182 61 71 63 185 290 64 65 237 69 67 238 111 68 72 243 236 110 123</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 110 123 111</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\song-player.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 192</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 25 143</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 72 175 118 173 181 174 184 180 177 178 179 183 176 182 61 71 63 185 290 64 65 237 69 67 68 243 66 70 236 157 98 103 109 104 105 106 108 112 295 238</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 118</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\util\current.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 288</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 86 36</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 175 172 171 184 173 181 174 104 108 70 295 180 177 178 179 183 176 105 106 66 112 182 61 71 63 185 290 64 65 237 69 98 103 109 238 67 68 72 243 236 157</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\ui-config.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 283</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 18 141</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 172 171 174 176 175 173 181 180 177 178 179 183 72 184 157 182 61 71 63 185 290 64 65 237 69 67 68 243 66 70 236 98 103 109 104 105 106 108 112 295 238</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237</file>
+        </tool>
+      </inputs>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\src\ui-manager\ui-manager.c</name>
+      <outputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 284</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 20 33</file>
+        </tool>
+      </outputs>
+      <inputs>
+        <tool>
+          <name>BICOMP</name>
+          <file> 176 162 183 172 171 70 173 181 174 104 182 157 106 180 177 178 179 98 103 109 67 105 108 66 112 175 184 295 123 61 114 71 63 185 290 64 65 237 69 68 72 243 238 118 276 48 279 161 236 27 119 277 110 268 116 274 115</file>
+        </tool>
+        <tool>
+          <name>ICCARM</name>
+          <file> 157 182 174 176 98 109 104 67 103 183 69 180 61 105 173 68 66 175 112 184 106 72 70 243 108 71 295 177 63 171 236 238 185 178 290 181 64 179 65 172 237 118 27 119 276 277 110 48 268 162 161 116 114 115 279 274 123</file>
+        </tool>
+      </inputs>
+    </file>
+  </configuration>
+  <configuration>
+    <name>Release</name>
+    <outputs/>
+    <forcedrebuild>
+      <name>[MULTI_TOOL]</name>
+      <tool>ILINK</tool>
+    </forcedrebuild>
+  </configuration>
+</project>
+
+

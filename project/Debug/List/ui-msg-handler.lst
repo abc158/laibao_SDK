@@ -1,0 +1,245 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:13
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui-manager\ui-msg-handler.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui-manager\ui-msg-handler.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\ui-msg-handler.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\ui-msg-handler.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui-manager\ui-msg-handler.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "ui-manager.h"
+      6          #include "ui-msg-handler.h"
+      7          #include "ui-song-player.h"
+      8          #include "syscall_api.h"
+      9          #include <display.h>
+     10          
+     11          extern void cleaning_complete_handle(void);
+     12          /****************************************************************
+     13          *Function   :  ui_msg_handle
+     14          *Description:  系统给app发送消息的函数 
+     15          *Input      :  UiMsgType msg:消息定义     
+     16          *              int arg 参数
+     17          *              void* data 数据存放的指针   
+     18          *Output     :  无
+     19          *Return     :  接收头接收到的数据
+     20          *Others     :  
+     21          ******************************************************************/
+     22          int ui_msg_handle(UiMsgType msg, int arg, void* data)
+     23          {
+     24            switch(msg)
+     25            {        
+     26          //  case UI_MSG_BUTTON_REJECT:
+     27          //    songplayer_play_id(SONG_ID_BUTTON_REJECT, 0);
+     28          //    break;
+     29              
+     30              
+     31          //  case UI_MSG_MAP_SERCHING_START:
+     32          //    display_map_serching_start();
+     33          //    break;
+     34          //    
+     35          //  case UI_MSG_MAP_SERCHING_STOP:
+     36          //    display_map_serching_stop();
+     37          //    break;    
+     38              
+     39          //  case UI_MSG_SLEEPING_ENTER:
+     40          //    display_power_down();
+     41          //    break;
+     42          //  case UI_MSG_SLEEPING_EXIT:
+     43          //    display_enter_idle();
+     44          //    break;
+     45              
+     46          //  case UI_MSG_POWER_OFF_ENTER:
+     47          //    display_power_off();
+     48          //    songplayer_play_id(SONG_ID_POWER_OFF, 0);
+     49          //    break;
+     50          //    
+     51          //  case UI_MSG_POWER_UP_OK:
+     52          //    display_power_up();
+     53          //    songplayer_play_id(SONG_ID_POWER_UP, 0);
+     54          //    break;
+     55              
+     56          //  case UI_MSG_CRITICAL_LOW_POWER://严重低电
+     57          //    display_critical_low_power();
+     58          //    songplayer_play_id(SONG_ID_CRITICAL_LOW_POWER, 0);
+     59          //    break;
+     60          //  case UI_MSG_RESERVE_POWER://预留低电
+     61          //    display_battery_reserve();
+     62          //    songplayer_play_id(SONG_ID_RESERVE_POWER, 0);
+     63          //    break;
+     64          //  case UI_MSG_BATT_LOW://较低
+     65          //    display_low_power();
+     66          //    songplayer_play_id(SONG_ID_LOW_POWER, 0);
+     67          //    break;
+     68          //  case UI_MSG_BATT_ALMOST_FULL://几乎满电
+     69          //    display_battery_almost_full();
+     70          //    break;
+     71          //  case UI_MSG_BATT_FULL://满电
+     72          //    display_battery_full();
+     73          //    break;              
+     74              
+     75          //  case UI_MSG_CHARGING_START:
+     76          //    break;
+     77          //  case UI_MSG_CHARGING_STARTED:
+     78          //    display_charging_enter();
+     79          //    songplayer_play_id(SONG_ID_CHARGING_START, 0);
+     80          //    break;
+     81          //  case UI_MSG_CHARGING_STOPPED:
+     82          //    display_charging_stop();
+     83          //    //songplayer_play_id(SONG_ID_CHARGING_STOP, 0);
+     84          //    break;
+     85          //  case UI_MSG_CHARGING_COMPLETE:
+     86          //    display_charging_complete();
+     87          //    //songplayer_play_id(SONG_ID_CHARGING_COMPLETE, 0);
+     88          //    break;
+     89              
+     90          //  case UI_MSG_DOCKING_START:
+     91          //    break;
+     92          //  case UI_MSG_DOCKING_STARTED:
+     93          //    display_docking_enter();
+     94          //    songplayer_play_id(SONG_ID_DOCKING_START, 0);
+     95          //    break;
+     96          //  case UI_MSG_DOCKING_STOPPED:
+     97          //    display_docking_stop();
+     98          //    songplayer_play_id(SONG_ID_DOCKING_STOP, 0);
+     99          //    printf("UI_MSG_DOCKING_STOPPED\r\n"); 
+    100          //    break;
+    101          //  case UI_MSG_DOCKING_COMPLETE:
+    102          //    display_docking_complete();
+    103          //    //songplayer_play_id(SONG_ID_DOCKING_COMPLETE, 0);    
+    104          //    break;
+    105              
+    106          //  case UI_MSG_HOMING_START:
+    107          //    break;
+    108            case UI_MSG_HOMING_STARTED:  /*回到初始位置*/
+    109              //display_homing_enter();
+    110              songplayer_play_id(SONG_ID_HOMING_START, 0);
+    111              break;
+    112              
+    113            case UI_MSG_HOMING_STOPPED:  /*停止回到初始位置*/
+    114              //display_homing_stop();
+    115              songplayer_play_id(SONG_ID_HOMING_STOP, 0);
+    116              break;
+    117              
+    118            case UI_MSG_HOMING_COMPLETE: /*已经回到初始位置*/
+    119              //display_homing_complete();
+    120              songplayer_play_id(SONG_ID_HOMING_COMPLETE, 0); 
+    121              break;
+    122              
+    123          //  case UI_MSG_NORMAL_CLEANING_START:
+    124          //    break;
+    125          //  case UI_MSG_NORMAL_CLEANING_STARTED:
+    126          //    display_normal_cleaning_enter();
+    127          //    songplayer_play_id(SONG_ID_NORMAL_CLEANING_START, 0);
+    128          //    break;
+    129          //  case UI_MSG_NORMAL_CLEANING_STOPPED:
+    130          //    display_normal_cleaning_stop();
+    131          //    songplayer_play_id(SONG_ID_NORMAL_CLEANING_STOP, 0);
+    132          //    break;
+    133            
+    134            case UI_MSG_CLEANING_COMPLETE:     /*清扫完成*/
+    135          //    display_normal_cleaning_complete();
+    136          //    printf("UI_MSG_CLEANING_COMPLETE!!!\r\n");
+    137          //    songplayer_play_id(SONG_ID_NORMAL_CLEANING_COMPLETE, 1);
+    138          	cleaning_complete_handle();  
+    139              break;
+    140              
+    141            case UI_MSG_CLEANING_PICKUP_STOP:  /*清扫时被抬起*/
+    142              songplayer_play_id(SONG_ID_BE_PICKED_UP, 0);
+    143              break;
+    144              
+    145          //  case UI_MSG_SPOT_CLEANING_START:
+    146          //    break;
+    147          //  case UI_MSG_SPOT_CLEANING_STARTED:
+    148          //    display_spot_cleaning_enter();
+    149          //    songplayer_play_id(SONG_ID_SPOT_CLEANING_START, 0);
+    150          //    break;
+    151          //  case UI_MSG_SPOT_CLEANING_STOPPED:
+    152          //    display_spot_cleaning_stop();
+    153          //    songplayer_play_id(SONG_ID_SPOT_CLEANING_STOP, 0);
+    154          //    break;
+    155          //  case UI_MSG_SPOT_CLEANING_COMPLETE:
+    156          //    display_spot_cleaning_complete();
+    157          //    songplayer_play_id(SONG_ID_SPOT_CLEANING_COMPLETE, 0);
+    158          //    break;
+    159          //    
+    160          //  case UI_MSG_WALLFOLLOW_CLEANING_START:
+    161          //    break;
+    162          //  case UI_MSG_WALLFOLLOW_CLEANING_STARTED:
+    163          //    display_wallfollow_cleaning_enter();
+    164          //    songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_START, 0);
+    165          //    break;
+    166          //  case UI_MSG_WALLFOLLOW_CLEANING_STOPPED:
+    167          //    display_wallfollow_cleaning_stop();
+    168          //    songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_STOP, 0);
+    169          //    break;
+    170          //  case UI_MSG_WALLFOLLOW_CLEANING_COMPLETE:
+    171          //    display_wallfollow_cleaning_complete();
+    172          //    songplayer_play_id(SONG_ID_WALLFOLLOW_CLEANING_COMPLETE, 0);
+    173          //    break;
+    174              
+    175            default:
+    176              break;
+    177              
+    178            }
+    179            return 0;
+    180          }
+    181          
+    182          
+    183          
+    184          
+    185          
+    186          
+    187          
+    188          
+    189          
+    190          
+    191          
+    192          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   ui_msg_handle
+         8   -> cleaning_complete_handle
+         8   -> songplayer_play_id
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      60  ui_msg_handle
+
+ 
+ 60 bytes in section .text
+ 
+ 60 bytes of CODE memory
+
+Errors: none
+Warnings: none

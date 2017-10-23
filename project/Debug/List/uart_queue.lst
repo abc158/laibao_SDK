@@ -1,0 +1,273 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui_uart_handle\uart_queue.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui_uart_handle\uart_queue.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\uart_queue.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\uart_queue.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui_uart_handle\uart_queue.c
+      1          /* uiqueue.c - uart tx rx 队列管理 */
+      2          
+      3          #include "mqueue.h"
+      4          #include "am_type.h"
+      5          #include "syscall_api.h"
+      6          #include "am_config_macro.h"
+      7          #define QUEUE_LEN  100
+      8          #define QUEUE_LEN2  100
+      9          
+     10          #if defined(USE_UART_WIFI)
+     11          /* function templates */
+     12          U8 txrx_queue[2][QUEUE_LEN];
+     13          U8 wifi_rx_queue[2][QUEUE_LEN2];
+     14          U16 write_ptr[4];
+     15          U16 read_ptr[4];
+     16          U16 data_length[4];
+     17          
+     18          U16 data_length2 = 0;
+     19          
+     20          U16 queue_len[4] = {QUEUE_LEN,QUEUE_LEN,QUEUE_LEN2,QUEUE_LEN2};
+     21          
+     22          
+     23          void uart_txrx_init(void)
+     24          {
+     25              memset(txrx_queue, 0, sizeof(txrx_queue));
+     26              memset(write_ptr, 0, sizeof(write_ptr));
+     27              memset(read_ptr, 0, sizeof(read_ptr));
+     28              memset(data_length, 0, sizeof(data_length));
+     29              memset(wifi_rx_queue,0,sizeof(wifi_rx_queue));
+     30              //memset(working_byte, 0, sizeof(working_byte));
+     31              //memset(capture_counter, 0, sizeof(capture_counter));
+     32          }
+     33          
+     34          void uart_txrx_q_put(U8 index, U8 value)
+     35          {
+     36          	 u8 tmp;
+     37          	 tmp = write_ptr[index];
+     38          
+     39              if(data_length[index] < queue_len[index])
+     40              {
+     41                  if(index < 2)
+     42                  {
+     43                      txrx_queue[index][tmp] = value;
+     44                  }
+     45                  else
+     46                  {
+     47                      wifi_rx_queue[index-2][tmp] = value;
+     48                  }
+     49                  
+     50                  write_ptr[index]++;
+     51                  if (write_ptr[index] >= queue_len[index])
+     52                  {
+     53                      write_ptr[index] = 0;
+     54                  }
+     55                  data_length[index]++;
+     56              }
+     57          		
+     58              #if 0
+     59              if(index == 0)
+     60              {
+     61                  data_length2++;
+     62                  if(data_length2 > 65000)
+     63                  {
+     64                      data_length2 = 0;
+     65                  }
+     66              }
+     67              #endif
+     68          }
+     69          
+     70          U8 uart_txrx_q_get(U8 index)
+     71          {
+     72              U8 state;
+     73          	u8 tmp; 
+     74          	tmp = read_ptr[index];
+     75          
+     76          	if(data_length[index] > 0)
+     77          	{
+     78                  if(index < 2)
+     79                  {
+     80                      state = txrx_queue[index][tmp];         
+     81                  }
+     82                  else
+     83                  {
+     84                      state = wifi_rx_queue[index-2][tmp]; 
+     85                  }
+     86                  read_ptr[index]++;
+     87                  if (read_ptr[index] >= queue_len[index])
+     88                  {
+     89                      read_ptr[index] = 0;
+     90                  }
+     91                  data_length[index]--;
+     92          	}
+     93              //hal_ints_on( );
+     94              return state;  
+     95            
+     96          }
+     97          
+     98          U8 uart_txrx_q_empty(U8 index)
+     99          {
+    100              if (data_length[index] == 0)
+    101              {
+    102                  return 1;
+    103              }
+    104              else
+    105              {
+    106                  return 0;
+    107              }
+    108          }
+    109          
+    110          U8 uart_txrx_q_get_offset(U8 index,U8 offset, U8 len, U8 *buf)
+    111          {
+    112            int readptr = read_ptr[index]+offset;
+    113            int i = 0;
+    114            U16 state;
+    115            if( data_length[index] >= (offset+len) )
+    116            {
+    117              while(i<len)
+    118              {
+    119                if(index < 2)
+    120                {
+    121                   state = txrx_queue[index][readptr];
+    122                }
+    123                else
+    124                {
+    125                   state = wifi_rx_queue[index-2][readptr]; 
+    126                }
+    127                readptr++;
+    128                if (readptr >= queue_len[index])
+    129                {
+    130                  readptr = 0;
+    131                }
+    132                buf[i] = (U8)state;
+    133                i++;
+    134              }
+    135            }  
+    136            return 0;
+    137          }
+    138          
+    139          U8 uart_txrx_q_full(U8 index)
+    140          {
+    141              if (data_length[index] >= queue_len[index])
+    142              {
+    143                  if(index == WIFI_RX_INDEX)
+    144                  {
+    145                      printf("q_full!!\r\n");
+    146                  }
+    147                  return 1;
+    148              }
+    149              else
+    150              {
+    151                  return 0;
+    152              }
+    153          }
+    154          
+    155          U16 uart_txrx_get_datalength(U8 index)
+    156          {
+    157              return data_length[index];
+    158          }
+    159          
+    160          U16 uart_txrx_get_space(U8 index)
+    161          {
+    162              if(data_length[index] > queue_len[index])
+    163              {
+    164                  return 0;
+    165              }
+    166              else
+    167              {
+    168                  return (queue_len[index] - data_length[index]);
+    169              }
+    170          }
+    171          void uart_txrx_reset_writeptr(U8 index)
+    172          {
+    173              write_ptr[index] = 0;
+    174          }
+    175          
+    176          void uart_txrx_reset_readptr(U8 index)
+    177          {
+    178              read_ptr[index] = 0;
+    179          }
+    180          
+    181          void uart_txrx_reset_datalength(U8 index)
+    182          {
+    183              data_length[index] = 0;
+    184          }
+    185          #endif
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   uart_txrx_get_datalength
+       0   uart_txrx_get_space
+       8   uart_txrx_init
+         0   -> __aeabi_memclr4
+         8   -> __aeabi_memclr4
+       0   uart_txrx_q_empty
+       8   uart_txrx_q_full
+         8   -- Indirect call
+      16   uart_txrx_q_get
+      20   uart_txrx_q_get_offset
+      20   uart_txrx_q_put
+       0   uart_txrx_reset_datalength
+       0   uart_txrx_reset_readptr
+       0   uart_txrx_reset_writeptr
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable11
+       4  ??DataTable11_1
+       4  ??DataTable11_2
+      12  ?_0
+       2  data_length2
+     200  txrx_queue
+      10  uart_txrx_get_datalength
+      24  uart_txrx_get_space
+      42  uart_txrx_init
+      18  uart_txrx_q_empty
+      40  uart_txrx_q_full
+      64  uart_txrx_q_get
+      74  uart_txrx_q_get_offset
+      78  uart_txrx_q_put
+      12  uart_txrx_reset_datalength
+      12  uart_txrx_reset_readptr
+      10  uart_txrx_reset_writeptr
+     232  write_ptr
+          read_ptr
+          data_length
+          queue_len
+          wifi_rx_queue
+
+ 
+ 202 bytes in section .bss
+ 232 bytes in section .data
+ 408 bytes in section .text
+ 
+ 408 bytes of CODE memory
+ 434 bytes of DATA memory
+
+Errors: none
+Warnings: none

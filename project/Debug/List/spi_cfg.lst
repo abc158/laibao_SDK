@@ -1,0 +1,155 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:11
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\cfg\spi_cfg.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\cfg\spi_cfg.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\spi_cfg.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\spi_cfg.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\cfg\spi_cfg.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*by liyongyong*/
+      6          #include "am_spi_cfg.h"
+      7          #include "syscall_api.h"
+      8          #include "am_device.h"
+      9          
+     10          /*spi nor 速度8M*/
+     11          #define SPI_NOR_SPEED  (72000000/8000000)
+     12          
+     13          int SPI_NOR_ID  = -1;
+     14          int SPI_GYRO_ID = -1;
+     15          
+     16          /****************************************************************
+     17          *Function   :  sys_spi_cfg
+     18          *Author     :  lyy
+     19          *Date       :  2017.4.20
+     20          *Description:  spi初始化
+     21          *CallBy     :  
+     22          *Input      :  无
+     23          *Output     :  无
+     24          *Return     :  无
+     25          *Others     :  
+     26          *History    : //修改历史
+     27              <author>       <time>      <version>           <desc>
+     28              lyy            17.4.28       v1.0         build this function
+     29          ******************************************************************/
+     30          void sys_spi_cfg(void)
+     31          {
+     32              UserSpiInit_t  SPI_InitStructure;
+     33              SPI_NOR_ID = open(DEV_SPI,SPI_CH0);//spi0 
+     34          		
+     35              SPI_InitStructure.SpiInit.SPI_Mode = SPI_MASTER;             
+     36              SPI_InitStructure.SpiInit.SPI_FIFO = SPI_FIFO_DISABLE;//SPI_FIFO_ENABLE;//       
+     37              SPI_InitStructure.SpiInit.SPI_DataLength  =  SPI_DATALENGTH_8;      
+     38              SPI_InitStructure.SpiInit.SPI_SELMode     =  SPI_SEL_SOFTWARE;//SPI_SEL_HARDWARE;       
+     39              SPI_InitStructure.SpiInit.SPI_SELPolarity =  SPI_SELPOLARITY_LOW;
+     40              SPI_InitStructure.SpiInit.SPI_CPOL        =  SPI_CPOL_LOW;//SPI_CPOL_HIGH;             
+     41              SPI_InitStructure.SpiInit.SPI_CPHA        =  SPI_CPHA_FIRST;//SPI_CPHA_SECOND;    
+     42              SPI_InitStructure.SpiInit.SPI_FirstBit    =  SPI_FIRSTBIT_MSB;     
+     43              SPI_InitStructure.SpiInit.SPI_RxFIFOTriggerLevel = 1;
+     44              SPI_InitStructure.SpiInit.SPI_TxFIFOTriggerLevel = 4;
+     45              SPI_InitStructure.SpiInit.SPI_ClockPrescaler     = SPI_NOR_SPEED*3/2;  //36   1M   //20 SPI_NOR_SPEED*2/5;
+     46              SPI_InitStructure.irqMode = 0;
+     47              SPI_InitStructure.DmaMode = 0;
+     48              ioctl(SPI_NOR_ID,SPI_INIT,&SPI_InitStructure);
+     49              ioctl(SPI_NOR_ID,SPI_SET_NOR_ID,&SPI_NOR_ID);
+     50              //////////////////7001////////////////////////
+     51              SPI_GYRO_ID = open(DEV_SPI,SPI_CH1); //spi1，目前陀螺仪使用这一路
+     52              SPI_InitStructure.SpiInit.SPI_Mode = SPI_MASTER;             
+     53              SPI_InitStructure.SpiInit.SPI_FIFO = SPI_FIFO_DISABLE;//SPI_FIFO_ENABLE;//       
+     54              SPI_InitStructure.SpiInit.SPI_DataLength  =  SPI_DATALENGTH_8;      
+     55              SPI_InitStructure.SpiInit.SPI_SELMode     =  SPI_SEL_SOFTWARE;//SPI_SEL_HARDWARE;       
+     56              SPI_InitStructure.SpiInit.SPI_SELPolarity =  SPI_SELPOLARITY_LOW;
+     57              SPI_InitStructure.SpiInit.SPI_CPOL        =  SPI_CPOL_LOW;//SPI_CPOL_HIGH;             
+     58              SPI_InitStructure.SpiInit.SPI_CPHA        =  SPI_CPHA_FIRST;//SPI_CPHA_SECOND;    
+     59              SPI_InitStructure.SpiInit.SPI_FirstBit    =  SPI_FIRSTBIT_MSB;     
+     60              SPI_InitStructure.SpiInit.SPI_RxFIFOTriggerLevel = 1;
+     61              SPI_InitStructure.SpiInit.SPI_TxFIFOTriggerLevel = 4;
+     62              SPI_InitStructure.SpiInit.SPI_ClockPrescaler     = SPI_NOR_SPEED;  //36   1M
+     63              SPI_InitStructure.irqMode = 0;
+     64              SPI_InitStructure.DmaMode = 0;
+     65              
+     66              ioctl(SPI_GYRO_ID,SPI_INIT,&SPI_InitStructure); 
+     67              ioctl(SPI_GYRO_ID,SPI_SET_GYRO_ID,&SPI_GYRO_ID);//配置陀螺仪ID号
+     68          }
+     69          
+     70          void sys_spi_close(void)
+     71          {
+     72             close(SPI_NOR_ID);
+     73             close(SPI_GYRO_ID);  
+     74             SPI_NOR_ID = -1;
+     75             SPI_GYRO_ID =-1;
+     76          }
+     77          
+     78          int spi0_id_get(void)
+     79          {
+     80            return SPI_NOR_ID;
+     81          }
+     82          
+     83          int spi1_id_get(void)
+     84          {
+     85            return SPI_GYRO_ID;
+     86          }
+     87          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   spi0_id_get
+       0   spi1_id_get
+      72   sys_spi_cfg
+        72   -- Indirect call
+      16   sys_spi_close
+        16   -- Indirect call
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+      22  ?Subroutine0
+      14  ?Subroutine1
+       8  SPI_NOR_ID
+          SPI_GYRO_ID
+       6  spi0_id_get
+       6  spi1_id_get
+     116  sys_spi_cfg
+      32  sys_spi_close
+
+ 
+   8 bytes in section .data
+ 212 bytes in section .text
+ 
+ 212 bytes of CODE memory
+   8 bytes of DATA memory
+
+Errors: none
+Warnings: none

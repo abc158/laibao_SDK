@@ -1,0 +1,1174 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:11
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimSweep.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimSweep.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\SimSweep.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\SimSweep.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimSweep.c
+      1          
+      2          #include <ui-config.h>
+      3          #include "ui-commands.h"
+      4          #include "am_date_base.h"
+      5          #include "am_config_macro.h"
+      6          #include "time.h"
+      7          #include "lib.h"
+      8          #include "local_key_check.h"
+      9          #include "syscall_api.h"
+     10          #include "remote.h"
+     11          #include "act.h"
+     12          #include "display.h"
+     13          #include "am_key.h"
+     14          #include "sensor/sensor.h"
+     15          #include "ui-manager/exception.h"
+     16          #include "motor/robot_suction.h"
+     17          #include "ui-song-player.h"
+     18          #include "display.h"
+     19          
+     20          #include "simwifi.h"
+     21          #include "simsweep.h"
+     22          
+     23          #if defined(USE_WIFI_DEMO_1)
+     24          
+     25          #define Big_Endian
+     26          //****************************************
+     27          uint8_t Status_WifiDevice;
+     28          //******以下为仿真扫地机内部变量，客户根据自身程序修改
+     29          uint8_t  Sim_oData0[4]={0,0,0,0};           //0 状态数据项 扫地机状态信号,32bit
+     30          uint8_t  Sim_oData1[8]={0,0,0,0,0,0,0,0};   //1 状态数据项 扫地机当前预约参数,64bit 
+     31          uint8_t  Sim_oData2[8]={0,0,0,0,0,0,0,0};   //2 状态数据项 扫地机当前预约参数,64bit
+     32          uint8_t  Sim_oData3[4]={0X55,0X66,88,0};    //3 状态数据项 扫地机产品代码,电池电量，音乐音量
+     33          uint8_t  Sim_oData4[1]={0x08};           //0X54~0X54,UV,MP3存在性，及相关下载参数
+     34          uint8_t  Sim_oData5[1]={0x01};           //0X55~0X55,地图编号
+     35          uint16_t Sim_E2ROM_OEMCode=0X0000;          //OEM_CODE
+     36          //************************RTC**********************
+     37          uint16_t year=0;  //年 
+     38          uint8_t mon=0;   //月
+     39          uint8_t day=0;   //日
+     40          uint8_t hour=0;  //时
+     41          uint8_t min=0;   //分 
+     42          uint8_t Sec=0;   //秒
+     43          uint8_t week=0;  //星期几
+     44          uint8_t LeapYearFlag=0;//润年标志 =0平,=1润
+     45          //*************************************************
+     46          
+     47          //******以下为仿真扫地机地图变量，客户根据自身程序修改
+     48          
+     49          uint16_t  Map_Sim_Index=0;            //扫地机当前位置索引
+     50          
+     51          uint8_t   Sim_oData0x70_0x8F[32]={0};//扫地机推送位置数据，用户需按实际赋值
+     52          
+     53          uint8_t   Sim_oData0x90_0xAF[3][32]={0};//扫地机获取位置数据，用户需按实际赋值
+     54          
+     55          uint8_t   Sim_oData0xB0_0xCF[32]={0};//扫地机历史地图数据，用户需按实际赋值
+     56          
+     57          
+     58          uint8_t   Sim_oData6[8]={0,0,0,0,0,0,0,0};   //获取位置1缓存
+     59          uint8_t   Sim_oData7[8]={0,0,0,0,0,0,0,0};   //获取位置2缓存 
+     60          uint8_t   Sim_oData8[8]={0,0,0,0,0,0,0,0};   //获取位置3缓存
+     61          uint8_t   Sim_oData9[8]={0,0,0,0,0,0,0,0};   //获取位置4缓存
+     62          
+     63          
+     64          //************************RTC**********************
+     65          
+     66          static tm tmp_day;
+     67          static U16 uart_cmd = 0;
+     68          
+     69          
+     70          static U8 init_time = 0;
+     71          //static U8 sos_state = 0;
+     72          //static U8 power_state = 0;
+     73          //real_map_points_t *current_point;
+     74          static real_map_points_t map_points_data;
+     75          U16 current_index;
+     76           U8 type_three_ok=0;
+     77          extern U8 clean_index;
+     78          
+     79          bitmap_info_t BitmapMsg;  
+     80          t_map_info *map_info=NULL;
+     81          uint8_t tmp_length=0;
+     82          uint8_t send_cur_data_flag = 1;
+     83          uint8_t send_old_data_flag = 0;
+     84          uint8_t send_history_map_flag = 0;
+     85          uint16_t history_index=0,history_cnt=0;
+     86          static sys_state_info sys_state_info_p;      /*系统状态*/
+     87          
+     88          //U16 map_index = 0;
+     89          U8  modetype_code[3]={0x00,0x10,0x20};//,0x20,0x10,0x08,0x04}; 
+     90          U8  send_save_his_flag = 0;
+     91          
+     92          U32  time_count = 0; 
+     93          U32  time_count2 = 0;
+     94          U8  save_map_index = 0;
+     95          U8  target_index = 0;
+     96          U16 wifi_uart_cmd0[]=
+     97          {
+     98              UART_FORWARD,
+     99              UART_LEFT,
+    100              UART_RIGHT,
+    101              UART_CMD_NULL,
+    102              UART_VOL_SUB,
+    103              UART_VOL_ADD,
+    104              UART_CMD_NULL,
+    105              UART_CMD_NULL
+    106          };
+    107          
+    108          U16 wifi_uart_cmd1[]=
+    109          {
+    110              UART_DOCK,
+    111              UART_START,
+    112              UART_ENHANCE,
+    113              UART_CMD_NULL,
+    114              UART_MODE1,
+    115              UART_MODE2,
+    116              UART_CMD_NULL,
+    117              UART_CMD_NULL
+    118              
+    119          };
+    120          
+    121          U16 wifi_uart_cmd2[]=
+    122          {
+    123              UART_START,
+    124              UART_STOP,
+    125              UART_SOS_ON,
+    126              UART_SOS_OFF,
+    127              UART_MPLAY_ON,
+    128              UART_MPLAY_OFF,
+    129              UART_UV_ON,
+    130              UART_UV_OFF
+    131              
+    132          };
+    133          
+    134          U16 wifi_uart_cmd3[]=
+    135          {
+    136              UART_POWER_ON,
+    137              UART_POWER_DOWN,
+    138              UART_SCHEDULE,
+    139              UART_MODE2,
+    140              UART_PLAY_MUSIC,
+    141              UART_STOP_MUSIC,
+    142              UART_GET_PRODUCT_ID,
+    143              UART_GET_SCHDULE_INFO
+    144          };
+    145          
+    146          void Action_0X00(uint8_t AppKeySig0X00)  //1Byte 控制命令下发
+    147          {
+    148              uint8_t i;
+    149              
+    150              for(i=0;i<8;i++)
+    151              {
+    152                  if(AppKeySig0X00&(1<<i))
+    153                  {
+    154                     uart_cmd = wifi_uart_cmd0[i];
+    155                  }
+    156              }
+    157          }
+    158          void Action_0X01(uint8_t AppKeySig0X01)  //1Byte 控制命令下发
+    159          {
+    160              uint8_t i;
+    161          
+    162              for(i=0;i<8;i++)
+    163              {
+    164                  if(AppKeySig0X01&(1<<i))
+    165                  {
+    166                      uart_cmd = wifi_uart_cmd1[i];
+    167          
+    168          	                
+    169                  }
+    170              }
+    171          }
+    172          void Action_0X02(uint8_t AppKeySig0X02)  //1Byte 控制命令下发
+    173          {
+    174              uint8_t i;
+    175          
+    176              for(i=0;i<8;i++)
+    177              {
+    178                  if(AppKeySig0X02&(1<<i))
+    179                  {
+    180          			uart_cmd = wifi_uart_cmd2[i];
+    181          	    /*
+    182                      if(uart_cmd == UART_SOS_ON)
+    183                      {
+    184                          sos_state = 1;
+    185                      }
+    186                      else
+    187                      {
+    188                          sos_state = 0;
+    189                      }
+    190                      */
+    191                  }
+    192              }
+    193          }
+    194          void Action_0X03(uint8_t AppKeySig0X03)  //1Byte 控制命令下发
+    195          {
+    196              uint8_t i;
+    197          
+    198              for(i=0;i<8;i++)
+    199              {
+    200                  if(AppKeySig0X03&(1<<i))
+    201                  {
+    202                      uart_cmd = wifi_uart_cmd3[i];
+    203                  }
+    204              }
+    205          }
+    206          extern uint8_t MapFunFlag;
+    207          void Action_0X04(uint8_t AppKeySig0X04)  //1Byte 用户修改代码
+    208          {
+    209           if(AppKeySig0X04&0X01) ;
+    210             if(AppKeySig0X04&0X02) ;
+    211               if(AppKeySig0X04&0X04) ;              
+    212                 if(AppKeySig0X04&0X08);       
+    213                    if(AppKeySig0X04&0X10) ;
+    214                    if(AppKeySig0X04&0X20)
+    215                    {MapFunFlag=ONCE; }
+    216                
+    217                    if(AppKeySig0X04&0X40)
+    218                    {
+    219                       Sim_oData4[0]|=0X10;
+    220                       if(send_cur_data_flag == 0)
+    221                       {
+    222                           send_cur_data_flag = 1;
+    223                           time_count = timer_ms();
+    224          			     printf("open curdata!!!!!\r\n");
+    225                       }
+    226                    }//扫地机推送功能打开
+    227                    if(AppKeySig0X04&0X80)
+    228                    {
+    229                       Sim_oData4[0]&=~0X10;
+    230                       printf("close curdata>>>>>\r\n");
+    231                       send_cur_data_flag = 0;
+    232                    }//扫地机推送功能关闭
+    233                    
+    234          }
+    235          
+    236          extern U8 MapDatCount;
+    237          
+    238          void Action_0X05(uint8_t AppKeySig0X05)  //1Byte 用户修改代码
+    239          {
+    240          
+    241           if(AppKeySig0X05&0X01) ;
+    242             if(AppKeySig0X05&0X02) ;
+    243               if(AppKeySig0X05&0X04) ;              
+    244                 if(AppKeySig0X05&0X08);       
+    245                    if(AppKeySig0X05&0X10) ;
+    246                    if(AppKeySig0X05&0X20){/*MapFunFlag=ONCE;*/ }
+    247                    if((AppKeySig0X05&0X40))//获取历史数据预处理
+    248                    {
+    249                        
+    250                        Sim_oData4[0]|=0X04;
+    251                    
+    252                        if(send_history_map_flag == 0)
+    253                        {
+    254                           printf("############SSopen history!!!!!\r\n");
+    255                           MapDatCount=MapDatDelay;
+    256                           history_index = 0xffff;
+    257                           memset(Sim_oData0xB0_0xCF,0x00,32);
+    258                           BitmapMsg.err_map_data_flag = 0;
+    259                           BitmapMsg.update_his_map_flag = 0;
+    260                           send_save_his_flag=0;
+    261                       
+    262                           time_count2 = timer_ms();
+    263                           
+    264                        }
+    265                        send_history_map_flag = 1;
+    266                    }//扫地机位置历史推送功能打开
+    267                    if(AppKeySig0X05&0X80)
+    268                    {
+    269                        Sim_oData4[0]&=~0X04;
+    270                        if(send_history_map_flag == 1)
+    271          			 {
+    272                            send_history_map_flag = 0;
+    273                            BitmapMsg.err_map_data_flag = 0;
+    274                           // err_map_data_count = 0;
+    275                            send_save_his_flag=0;
+    276                            memset(Sim_oData0xB0_0xCF,0x00,32);
+    277                            printf("***********SSclose history----\r\n");
+    278          			 }
+    279                       time_count2 = timer_ms();
+    280                    }//扫地机位置历史推送功能关闭
+    281          }
+    282          
+    283           //*************1V3_Begin 
+    284          void Action_0X1A(uint8_t AppKeySig0X1A)  //音量APP 设定
+    285          {
+    286              uint8_t tmp;
+    287              tmp = AppKeySig0X1A;
+    288              tmp = tmp*3;
+    289          //    set_mplayer_volume(tmp);
+    290          }
+    291          void Action_0X08_0X17(uint8_t *pAppointBuf,uint8_t len)  //16Byte 预约处理 用户修改代码
+    292          {
+    293              uint8_t i,j,tmp;
+    294              schedule_time_info *schedule_info_p;
+    295              schedule_info_p = get_schedule_info();
+    296          
+    297              tmp = (pAppointBuf[0]&0x40)>>6;
+    298              schedule_info_p->SCH_ENABLE.BYTE = (pAppointBuf[0]<<1)|tmp;
+    299           
+    300              schedule_info_p->t[0].hour = pAppointBuf[14];
+    301              schedule_info_p->t[0].min  = pAppointBuf[15];
+    302              
+    303              j = 2;
+    304              for(i=1;i<7;i++)
+    305              {
+    306                  schedule_info_p->t[i].hour = pAppointBuf[j];
+    307                  schedule_info_p->t[i].min  = pAppointBuf[j+1];
+    308                  j += 2;
+    309              }
+    310          
+    311              send_schedule_cmd();
+    312            
+    313          }
+    314          void Action_0X20_0X21(uint8_t *pAppointBuf,uint8_t len)  //2Byte 实时点补点处理
+    315          {
+    316              uint8_t  i;
+    317            
+    318             
+    319              for(i=0;i<3;i++)
+    320              {
+    321                  if((Sim_oData0x90_0xAF[i][0] == pAppointBuf[0]) &&
+    322                      (Sim_oData0x90_0xAF[i][1] == pAppointBuf[1]))
+    323                  {
+    324                      send_old_data_flag = 1;
+    325                      target_index = i;
+    326                      break;
+    327                  }
+    328               
+    329              }
+    330              
+    331              if(i==3)
+    332              {
+    333                  send_old_data_flag = 0;
+    334              }
+    335          
+    336          }
+    337          
+    338          void Action_0X20_0X25(uint8_t *pAppointBuf,uint8_t len)  //4Byte 历史数据补漏处理
+    339          {
+    340              U16 TMP_X,TMP_Y;
+    341          
+    342              if(send_save_his_flag == 0)
+    343              {
+    344                  
+    345                  BitmapMsg.param.frame_h = pAppointBuf[0];
+    346                  BitmapMsg.param.frame_l = pAppointBuf[1];
+    347                  TMP_X = BitmapMsg.param.frame_h;
+    348                  TMP_Y = BitmapMsg.param.frame_l;
+    349                  
+    350                  BitmapMsg.param.start_x = pAppointBuf[2];
+    351                  BitmapMsg.param.start_y = pAppointBuf[3];
+    352                  BitmapMsg.param.end_x   = pAppointBuf[4];
+    353                  BitmapMsg.param.end_y   = pAppointBuf[5];
+    354                  if((pAppointBuf[2]!=Sim_oData0xB0_0xCF[2])
+    355                      &&(pAppointBuf[3]!=Sim_oData0xB0_0xCF[3])
+    356                      &&(pAppointBuf[4]!=Sim_oData0xB0_0xCF[4])
+    357                      &&(pAppointBuf[5]!=Sim_oData0xB0_0xCF[5])
+    358                      )
+    359                  {
+    360                      if(pAppointBuf[5]>=pAppointBuf[3])
+    361                      {
+    362                         printf("#### no ok index!!\r\n");
+    363                          memset(Sim_oData0xB0_0xCF,0x00,32);
+    364                          send_save_his_flag = 1;
+    365                      }
+    366                      else
+    367                      {
+    368                          TMP_Y = pAppointBuf[5];
+    369                         // printf("error y2=%u\r\n",TMP_Y);
+    370                      }
+    371                  }
+    372                  else
+    373                  {
+    374                      //TMP_X = Sim_oData0xB0_0xCF[0];
+    375                      //TMP_Y = Sim_oData0xB0_0xCF[1];
+    376                      printf("&&&&&ok index,index0=%d,index1=%d\r\n",TMP_X,TMP_Y);
+    377                      memset(Sim_oData0xB0_0xCF,0x00,32);
+    378                  }
+    379                  
+    380                  time_count2 = timer_ms();
+    381              }
+    382          }
+    383          
+    384          void Action_0X18_0X19(uint16_t OEMCode)  //2Byte 用户修改代码
+    385          {
+    386            Sim_E2ROM_OEMCode=OEMCode;//仿存入E2ROM,
+    387          }
+    388          
+    389          void Action_0X1B_0X1E(uint8_t *pAppointBuf)  //4Byte 获取索引处理 用户修改代码
+    390          {
+    391            
+    392             //仿获取索引参数,位置获取期间，判断历史数据起点 和终点
+    393             // Map_Sim_LowIndex=pAppointBuf[0]<<8|pAppointBuf[1];
+    394            
+    395             // Map_Sim_HighIndex=pAppointBuf[2]<<8|pAppointBuf[3];
+    396              
+    397          	 // tmp_mappoint.start_x = pAppointBuf[0];
+    398          	 // tmp_mappoint.start_y = pAppointBuf[1];
+    399          	 // request_map_points();
+    400          }
+    401          
+    402          void Action_0XF1(uint8_t WifiCardStatusReg)  //1Byte 可用作Wifi指示灯,判断wifi是否连接上
+    403          {
+    404          
+    405              if(((WifiCardStatusReg&0X03)==0X00)&&((WifiCardStatusReg&0X0c)==0X08)&&((WifiCardStatusReg&0X20)==0x20))
+    406              {
+    407                  Status_WifiDevice=5;
+    408          		
+    409                  if((get_reset_wifi_flag()) == 2)
+    410                  {
+    411                      set_reset_wifi_flag(0);
+    412                      songplayer_play_id(SONG_ID_WIFI_CONNET_OK, 0);
+    413                  }
+    414          
+    415              }
+    416              else if((get_reset_wifi_flag() == 1))
+    417              {
+    418                  set_reset_wifi_flag(2);    //one step
+    419          			  //letter_load(1,2);
+    420              }
+    421          }
+    422          void Action_0XF8_0XFF(uint8_t *pRTCBuf,uint8_t len,uint8_t APPinstalledEvent)  //16Byte RTC处理
+    423          {
+    424            //计算本地RTC（变换时区后）
+    425            int8_t TimeZoneHour;//时区小时差，含正负值
+    426            uint8_t TimeZoneMin;//时区分钟差,绝对值，根据小时差选正负号
+    427          
+    428            if((APPinstalledEvent)||(init_time == 0))//设备发现事件时，校对RTC时间
+    429            {
+    430              TimeZoneHour=*(int8_t *)pRTCBuf;//时区差
+    431              TimeZoneMin=pRTCBuf[1];         
+    432              year=pRTCBuf[2];            //年
+    433              year+=2000;                 //加千位数   
+    434              mon=pRTCBuf[3];             //月
+    435              mon>>=4;
+    436              day=pRTCBuf[4];             //日
+    437              hour=(pRTCBuf[5]&0X7F);     //时
+    438              min=pRTCBuf[6];             //分 
+    439              Sec=pRTCBuf[7];             //秒
+    440              week=(pRTCBuf[3]&0X0F);  //星期几=0,星期日,=1,星期一,...=6，星期六
+    441          
+    442                                            //判断平润
+    443              if((year%4==0&&year%100!=0)||year%400==0)
+    444              {
+    445                  LeapYearFlag=1; //润年
+    446               }else
+    447               {
+    448                  LeapYearFlag=0;//平年   
+    449               }    
+    450                                        //校时区差
+    451              if(TimeZoneHour>0)//标准时间+TimeZoneHour+TimeZoneMin
+    452              {
+    453                min+=TimeZoneMin;if(min>=60) {min-=60;hour++;}
+    454                hour+=TimeZoneHour;//加小时
+    455                if(hour>=24) 
+    456                  { 
+    457                    hour-=24; //进一日          
+    458                    DayDayADD1();
+    459                  }
+    460              }      
+    461              else if(TimeZoneHour<0) //标准时间+TimeZoneHour-TimeZoneMin
+    462              {
+    463                hour+=24;//预借位1天，24小时
+    464                min+=60;//预借位1小时,60分钟
+    465                min-=TimeZoneMin;//计算当前分钟数
+    466                if(min>=60)
+    467                  min-=60;//退预借60分钟
+    468                else 
+    469                  hour--;//扣除1小时     
+    470                hour+=TimeZoneHour;//加负数小时
+    471                
+    472                if(hour>=24)
+    473                  hour-=24;//退预借24小时
+    474                else 
+    475                  DayDaySub1();//减一天     
+    476              }
+    477              //*****************用户可增加写入RTC代码*********
+    478              if(year != 2000)
+    479              {
+    480                  tmp_day.w_year  = 0;
+    481                  tmp_day.w_month = 0;
+    482                  tmp_day.w_date  = 0;
+    483                  tmp_day.week    = week;
+    484                  tmp_day.hour    = hour;
+    485                  tmp_day.min     = min;
+    486                  tmp_day.sec     = Sec;
+    487                  set_current_time(&tmp_day); 
+    488                  send_time_cmd(); //写入主板的RTC,这里写入主控不更新时间，在disp写入
+    489                  printf("week:%d hour:%d min:%d\r\n",week,hour,min);
+    490                  init_time = 1;
+    491              }
+    492             // init_time = 1;
+    493            }
+    494          }
+    495          
+    496          void DayDayADD1(void)//加一天
+    497          {
+    498              uint8_t MaxDayM=0;//当月最大天数
+    499              if(week==6)
+    500              {
+    501                  week=0;
+    502              }
+    503              else 
+    504              {
+    505                  week++;//星期几，校正
+    506              }
+    507             // MaxDayM=GetMaxDayM(mon);//取当月最大天数        
+    508              if(++day>MaxDayM)
+    509              { 
+    510                  day=1;
+    511                  mon++;
+    512              }//进1月
+    513              if(mon>12) 
+    514              {
+    515                  year++;
+    516                  mon=1;
+    517              }//进一年,12月31日 ==>1月1日
+    518              
+    519          }
+    520          void DayDaySub1()//减一天
+    521          {     
+    522              uint8_t PreMon;//上个月
+    523              PreMon=mon-1;
+    524              if(PreMon==0) PreMon=12;//上个月，是去年12月    
+    525              if(week==0) week=6;else week--;//校正星期几  
+    526              if(--day==0) { day=GetMaxDayM(PreMon);if(--mon==0) {mon=12;--year;}};//退1月或退一年 (1月1日的前一天)==>> 12月31日 
+    527               
+    528          }
+    529          uint8_t GetMaxDayM(uint8_t mon_8t)//取某月的最大天数
+    530          {
+    531              uint8_t MaxDayM=0;//当月最大天数
+    532              if((mon_8t==1)||(mon_8t==3)||(mon_8t==5)||(mon_8t==7)||(mon_8t==8)||(mon_8t==10)||(mon_8t==12))
+    533                MaxDayM=31;
+    534              else if(mon_8t==2)
+    535              { MaxDayM=28;if(LeapYearFlag) MaxDayM=29;}   
+    536              else MaxDayM=30;
+    537              return MaxDayM;
+    538          }
+    539          
+    540          //********************************************
+    541          
+    542          //********************************************
+    543          
+    544          void  Get_oData0_0X50_0X53(uint8_t *p_oData0Buf,uint8_t BufByteLen) //上传 系统状态到APP
+    545          {
+    546          //  uint8_t i;
+    547            //SYSTEM_STATE_E s = get_system_state();
+    548            //U8 mode_type = get_mode_type();
+    549           // sys_state_info *sys_state_info_p; 
+    550          
+    551            U8 mode_type = 0;
+    552            UI_STATE_E   s = get_ui_state();
+    553            
+    554             
+    555            sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    556          
+    557            p_oData0Buf[0] = sys_state_info_p.pause_id;
+    558            
+    559              
+    560            p_oData0Buf[1] = 0x00;
+    561            
+    562            
+    563            if(s == UI_ENTER_SLEEPING)
+    564            {
+    565               p_oData0Buf[1]|=0X01;  
+    566               wifi_send_sleep_flag = 1;
+    567              // printf("wifi enter sleep!!!!!\r\n");
+    568            }
+    569            if((sys_state_info_p.robot_state == ROBOT_STATE_WAITING))
+    570            {
+    571                p_oData0Buf[1]|=0X02;
+    572            }
+    573            if((sys_state_info_p.robot_state == ROBOT_STATE_CLEANING_ROOM)||
+    574              (sys_state_info_p.robot_state == ROBOT_STATE_SPOTTING))
+    575            {
+    576                p_oData0Buf[1]|=0X08;
+    577            }
+    578            if(sys_state_info_p.pause_id > 0)
+    579            {
+    580                p_oData0Buf[1]|=0X10;
+    581            }
+    582            //if(s == SYS_MPLAY)
+    583            p_oData0Buf[4] = 0x08; 
+    584          
+    585            if(send_cur_data_flag == 1)
+    586            {
+    587               p_oData0Buf[4] |= 0x10;
+    588            }
+    589          
+    590            if(send_history_map_flag == 1)
+    591            {
+    592               p_oData0Buf[4] |= 0x04;
+    593            }
+    594            p_oData0Buf[2] = 0x00;
+    595            /*
+    596            if(sos_state == 1)
+    597            {
+    598                p_oData0Buf[2]|=0X01;
+    599            }*/
+    600            if(mode_type > 0)
+    601            {
+    602               // p_oData0Buf[2]|= modetype_code[mode_type]; 
+    603            }
+    604            else if(sys_state_info_p.robot_state == ROBOT_STATE_CHARGING)
+    605            {
+    606                if(mode_type == 0)
+    607                {
+    608                    p_oData0Buf[2]|=0X02;
+    609                }
+    610                /*
+    611                else
+    612                {
+    613                    p_oData0Buf[2]|= modetype_code[mode_type];
+    614                }*/
+    615            }
+    616          
+    617          
+    618            p_oData0Buf[3] = 0x00;
+    619            if(sys_state_info_p.robot_state == ROBOT_STATE_CHARGING)
+    620            {
+    621                p_oData0Buf[3] |= 0X08;  
+    622                //p_oData0Buf[3] |= 0X20;  
+    623            }
+    624            else if(sys_state_info_p.robot_state == ROBOT_STATE_DOCK)
+    625            {
+    626                p_oData0Buf[3] |= 0X01;
+    627            }
+    628            else
+    629            {
+    630               p_oData0Buf[3] |= 0x04;
+    631            }
+    632          
+    633          
+    634          }
+    635          
+    636          
+    637          
+    638          void  Get_oData1_0X58_0X5F(uint8_t *p_oData1Buf,uint8_t BufByteLen)// 上传 预约数据到APP
+    639          {
+    640            uint8_t tmp;
+    641            schedule_time_info *schedule_info_p;
+    642            schedule_info_p = get_schedule_info();
+    643          
+    644            tmp = ((schedule_info_p->SCH_ENABLE.BYTE)&0x01)<<6;
+    645            p_oData1Buf[0] = ((schedule_info_p->SCH_ENABLE.BYTE)>>1)|tmp;
+    646          
+    647            p_oData1Buf[2] = schedule_info_p->t[1].hour;
+    648            p_oData1Buf[3] = schedule_info_p->t[1].min;
+    649          
+    650            p_oData1Buf[4] = schedule_info_p->t[2].hour;
+    651            p_oData1Buf[5] = schedule_info_p->t[2].min;
+    652          
+    653            p_oData1Buf[6] = schedule_info_p->t[3].hour;
+    654            p_oData1Buf[7] = schedule_info_p->t[3].min;
+    655            
+    656          
+    657          }  
+    658          void  Get_oData2_0X60_0X67(uint8_t *p_oData2Buf,uint8_t BufByteLen)// 上传 预约数据到APP
+    659          {
+    660          //  uint8_t i;
+    661            schedule_time_info *schedule_info_p;
+    662            schedule_info_p = get_schedule_info();
+    663            
+    664            p_oData2Buf[0] = schedule_info_p->t[4].hour;
+    665            p_oData2Buf[1] = schedule_info_p->t[4].min;
+    666          
+    667            p_oData2Buf[2] = schedule_info_p->t[5].hour;
+    668            p_oData2Buf[3] = schedule_info_p->t[5].min;
+    669          
+    670            p_oData2Buf[4] = schedule_info_p->t[6].hour;
+    671            p_oData2Buf[5] = schedule_info_p->t[6].min;
+    672          
+    673            p_oData2Buf[6] = schedule_info_p->t[0].hour;
+    674            p_oData2Buf[7] = schedule_info_p->t[0].min;
+    675          
+    676          }
+    677          
+    678          void  Get_oData3_0X68_0X6B(uint8_t *p_oData3Buf,uint8_t BufByteLen)//get oData3
+    679          {
+    680          //  uint8_t i;
+    681            *(U16 *)(p_oData3Buf)=0xc001;
+    682           // p_oData3Buf[2] = get_now_electricity(); 
+    683            p_oData3Buf[2] = get_bat_level(); 
+    684          //  p_oData3Buf[3] = get_mplayer_volume(); 
+    685            p_oData3Buf[3] = 0;
+    686            //for(i=0;i<BufByteLen;i++) //输给APP 娄据项Sim_oData1
+    687              //p_oData3Buf[i]=Sim_oData3[i];  
+    688          }
+    689          void  Get_oData4_0X54_0X54(uint8_t *p_oData4Buf,uint8_t BufByteLen)//get oData4,
+    690          {
+    691              p_oData4Buf[0] = 0x08; 
+    692          }
+    693          void  Get_oData5_0X55_0X55(uint8_t *p_oData5Buf,uint8_t BufByteLen)//get oData5,
+    694          {
+    695            uint8_t i;
+    696            for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData5
+    697              p_oData5Buf[i]=clean_index;
+    698          }
+    699          
+    700          void  Get_oData6_0X70_0X77(uint8_t *p_oData6Buf,uint8_t BufByteLen)//get oData5,上传地图实时数据到APP
+    701          {
+    702          //	int tmp;
+    703            uint8_t i,j;
+    704          
+    705          
+    706            if(time_count == 0)
+    707            {
+    708               time_count = timer_ms();
+    709            }
+    710            if(timer_elapsed(time_count) > 1500)
+    711            {
+    712               // printf("$$$$$$$$$send data++++++\r\n");
+    713                if(timer_elapsed(time_count) > 1600)
+    714                {
+    715                    time_count = timer_ms();
+    716                }
+    717              //  tmp_length = map_rx_get_datalength();
+    718            
+    719                if(((map_points_data.count > 0)&&(send_history_map_flag == 0)&&(type_three_ok == 1))
+    720                  ||(map_points_data.count >= 5))
+    721                {
+    722                    //test_cnt = test_cnt + 1;
+    723                    type_three_ok = 0;
+    724                    time_count = 0;
+    725                    Map_Sim_Index = Map_Sim_Index + 1;
+    726                    if(map_points_data.count >= 7)
+    727                    {
+    728                        tmp_length = 7;
+    729                    }
+    730                    else
+    731                    {
+    732                       tmp_length = map_points_data.count;
+    733                    }
+    734                    if(++save_map_index >= 3)
+    735                    {
+    736                        save_map_index = 0;
+    737                    }
+    738                    memcpy(Sim_oData0x90_0xAF[save_map_index],Sim_oData0x70_0x8F,32);
+    739                    memset(Sim_oData0x70_0x8F,0x00,32);
+    740                    Sim_oData0x70_0x8F[0] = Map_Sim_Index>>8;
+    741                    Sim_oData0x70_0x8F[1] = Map_Sim_Index&0x00ff;
+    742                    j=2;
+    743                    //printf("send: ");
+    744                    for(i=0;i<tmp_length;i++)
+    745                    {
+    746                        //current_point = map_rx_q_get();
+    747                         
+    748                        Sim_oData0x70_0x8F[j] = map_points_data.points[i].type;
+    749                        Sim_oData0x70_0x8F[j+1] = map_points_data.points[i].x;
+    750                        Sim_oData0x70_0x8F[j+2] = map_points_data.points[i].y;
+    751          
+    752                        /*
+    753                        tmp_type = Sim_oData0x70_0x8F[j];
+    754                        tmp_x = Sim_oData0x70_0x8F[j+1];
+    755                        tmp_y = Sim_oData0x70_0x8F[j+2];
+    756                  
+    757                        printf("%d ",tmp_x);
+    758                        printf("%d ",tmp_y);
+    759                        printf("%d ",tmp_type);
+    760                        */
+    761                       j = j + 3;
+    762                    }
+    763                    map_points_data.count = 0;
+    764                    
+    765                    // printf("\r\n");
+    766                    //Action_0X05(0x00);
+    767                    time_count = timer_ms();
+    768                }
+    769                
+    770               // printf("time_count=%u\r\n",time_count); 
+    771            }
+    772           // printf("send data++++++++++++++++++\r\n");
+    773            {
+    774                for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData5
+    775                 p_oData6Buf[i]=Sim_oData0x70_0x8F[i];
+    776            }
+    777          }
+    778          
+    779          void  Get_oData7_0X78_0X7F(uint8_t *p_oData7Buf,uint8_t BufByteLen)//get oData7,上传地图实时数据到APP2
+    780          {
+    781            uint8_t i;
+    782            {
+    783               for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x70_0x8F
+    784               p_oData7Buf[i]=Sim_oData0x70_0x8F[i+8];
+    785            }
+    786          }
+    787          
+    788          
+    789          void  Get_oData8_0X80_0X87(uint8_t *p_oData8Buf,uint8_t BufByteLen)//get oData6，上传地图实时数据到APP3
+    790          {
+    791              uint8_t i;
+    792          
+    793              {
+    794                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x70_0x8F
+    795                  p_oData8Buf[i]=Sim_oData0x70_0x8F[i+8+8];
+    796              }
+    797                
+    798          }  
+    799          void  Get_oData9_0X88_0X8F(uint8_t *p_oData9Buf,uint8_t BufByteLen)//get oData7，上传地图实时数据到APP4
+    800          {
+    801              uint8_t i;
+    802          
+    803              {
+    804                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    805                  p_oData9Buf[i]=Sim_oData0x70_0x8F[i+8+8+8];
+    806              }
+    807          } 
+    808          void  Get_oData10_0X90_0X97(uint8_t *p_oData10Buf,uint8_t BufByteLen)//get oData8，上传丢失的地图实时数据到APP
+    809          {
+    810              uint8_t i;
+    811              
+    812              if(send_old_data_flag > 0)
+    813              {
+    814                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    815                  p_oData10Buf[i]=Sim_oData0x90_0xAF[target_index][i];
+    816              }
+    817              else
+    818              {
+    819                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    820                  p_oData10Buf[i]=0x00;
+    821              }
+    822              /*
+    823              for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    824                  p_oData10Buf[i]=Sim_oData0x90_0xAF[i];*/
+    825              
+    826          } 
+    827          void  Get_oData11_0X98_0X9F(uint8_t *p_oData11Buf,uint8_t BufByteLen)//get oData9，上传丢失的地图实时数据到APP2
+    828          {
+    829              uint8_t i;
+    830              
+    831              if(send_old_data_flag > 0)
+    832              {
+    833                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    834                  p_oData11Buf[i]=Sim_oData0x90_0xAF[target_index][i+8];
+    835              }
+    836              else
+    837              {
+    838                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    839                  p_oData11Buf[i]=0x00;
+    840              }
+    841              //for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    842                //  p_oData11Buf[i]=Sim_oData0x90_0xAF[i+8];
+    843          } 
+    844          
+    845          void  Get_oData12_0XA0_0XA7(uint8_t *p_oData12Buf,uint8_t BufByteLen)//get oData12，上传丢失的地图实时数据到APP3
+    846          {
+    847              uint8_t i;
+    848              
+    849              if(send_old_data_flag > 0)
+    850              {
+    851                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    852                  p_oData12Buf[i]=Sim_oData0x90_0xAF[target_index][i+8+8];
+    853              }
+    854              else
+    855              {
+    856                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    857                  p_oData12Buf[i]=0x00;
+    858              }
+    859              //for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    860                //  p_oData12Buf[i]=Sim_oData0x90_0xAF[i+8+8];
+    861              
+    862          }
+    863          
+    864          void  Get_oData13_0XA8_0XAF(uint8_t *p_oData13Buf,uint8_t BufByteLen)//get oData13，上传丢失的地图实时数据到APP4
+    865          {
+    866              uint8_t i;
+    867              
+    868              if(send_old_data_flag > 0)
+    869              {
+    870                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    871                  p_oData13Buf[i]=Sim_oData0x90_0xAF[target_index][i+8+8+8];
+    872                  send_old_data_flag = 0;
+    873              }
+    874              else
+    875              {
+    876                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    877                  p_oData13Buf[i]=0x00;
+    878              }
+    879              //for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0x90_0xAF
+    880                //  p_oData13Buf[i]=Sim_oData0x90_0xAF[i+8+8+8];
+    881              
+    882          }
+    883          
+    884          void  Get_oData14_0XB0_0XB7(uint8_t *p_oData14Buf,uint8_t BufByteLen)//get oData14,上传地图历史数据到APP
+    885          {
+    886              uint8_t i;  
+    887          
+    888              if((send_history_map_flag > 0)&&(BitmapMsg.update_his_map_flag > 0))
+    889              {
+    890                 // bitmap_info = get_bitmap_info();
+    891                  Sim_oData0xB0_0xCF[0] = BitmapMsg.param.frame_h;
+    892                  Sim_oData0xB0_0xCF[1] = BitmapMsg.param.frame_l;
+    893                  Sim_oData0xB0_0xCF[2] = BitmapMsg.param.start_x;
+    894                  Sim_oData0xB0_0xCF[3] = BitmapMsg.param.start_y;
+    895                  Sim_oData0xB0_0xCF[4] = BitmapMsg.param.end_x;
+    896                  Sim_oData0xB0_0xCF[5] = BitmapMsg.param.end_y;
+    897                  memcpy(&Sim_oData0xB0_0xCF[6],BitmapMsg.bitdata,26);
+    898                  //printf("send Get_oData14_0XB0_0XB7\r\n");
+    899                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+    900                  p_oData14Buf[i]=Sim_oData0xB0_0xCF[i];
+    901              }
+    902              else
+    903              {
+    904                  //if(send_history_map_flag == 0)
+    905                  if((send_history_map_flag > 0)&&(BitmapMsg.err_map_data_flag > 0))
+    906                  {
+    907                      
+    908                      {
+    909                          printf("^^^^^^^^^^^^** send 0x80 $$\r\n");
+    910                          BitmapMsg.err_map_data_flag = 0;
+    911                          //Sim_oData0xB0_0xCF[0] = 0x80;
+    912                         // memset(Sim_oData0xB0_0xCF,0x00,32);
+    913                         // send_history_map_flag = 0;
+    914                          history_index = 0;
+    915                          BitmapMsg.update_his_map_flag = 0;
+    916                          send_save_his_flag=0;
+    917                          time_count2  = timer_ms();
+    918                      }
+    919                  }
+    920                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+    921                  p_oData14Buf[i]=Sim_oData0xB0_0xCF[i];
+    922              }
+    923          }
+    924          
+    925          void  Get_oData15_0XB8_0XBF(uint8_t *p_oData15Buf,uint8_t BufByteLen)//get oData15,上传地图历史数据到APP2
+    926          {
+    927              uint8_t i;
+    928          
+    929              {
+    930                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+    931                  p_oData15Buf[i]=Sim_oData0xB0_0xCF[i+8];
+    932              }
+    933          }
+    934          
+    935          void  Get_oData16_0XC0_0XC7(uint8_t *p_oData16Buf,uint8_t BufByteLen)//get oData16,上传地图历史数据到APP3
+    936          {
+    937              uint8_t i;
+    938          
+    939          
+    940              {
+    941                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+    942                  p_oData16Buf[i]=Sim_oData0xB0_0xCF[i+8+8];
+    943              }
+    944          
+    945          }
+    946          
+    947          void  Get_oData17_0XC8_0XCF(uint8_t *p_oData17Buf,uint8_t BufByteLen)//get oData17,上传地图历史数据到APP4
+    948          {
+    949              uint8_t i;
+    950              U16 tmp_len = 0;
+    951              U16 x1,y1,x2,y2;
+    952              if((send_history_map_flag > 0)&&(BitmapMsg.update_his_map_flag > 0))
+    953              {
+    954                  // printf("send Get_oData17_0XC8_0XCF\r\n");
+    955                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+    956                  p_oData17Buf[i]=Sim_oData0xB0_0xCF[i+8+8+8];
+    957                  x1=Sim_oData0xB0_0xCF[0];
+    958                  y1=Sim_oData0xB0_0xCF[1];
+    959                  //printf("index0=%d index1=%d\r\n",x1,y1);
+    960                  if((Sim_oData0xB0_0xCF[0]==0x00)&&(Sim_oData0xB0_0xCF[1]==0x00))
+    961                  {
+    962                      x1 = Sim_oData0xB0_0xCF[2];
+    963                      y1 = Sim_oData0xB0_0xCF[3];
+    964                      x2 = Sim_oData0xB0_0xCF[4];
+    965                      y2 = Sim_oData0xB0_0xCF[5];
+    966                      tmp_len = (abs(Sim_oData0xB0_0xCF[3]-Sim_oData0xB0_0xCF[5]))*(abs(Sim_oData0xB0_0xCF[4]-Sim_oData0xB0_0xCF[2]));
+    967                      printf("tmp_len=%d\r\n",tmp_len);
+    968                      printf("x1=%d,y1=%d,x2=%d,y2=%d\r\n",x1,y1,x2,y2);
+    969                      if(tmp_len%104 > 0)
+    970                      {
+    971                          history_cnt = tmp_len/104 + 1;
+    972                      }
+    973                      else
+    974                      {
+    975                          history_cnt = tmp_len/104;
+    976                      }
+    977                      tmp_len = history_cnt;
+    978                      
+    979                      printf("history_cnt=%d\r\n",tmp_len);
+    980                 
+    981                  }
+    982                  history_index = history_index + 1;
+    983                  BitmapMsg.update_his_map_flag = 0;
+    984                  
+    985              }
+    986              else
+    987              {
+    988                  if((send_history_map_flag > 0)&&(send_save_his_flag==0))
+    989                  {
+    990                      if(timer_elapsed(time_count2) > 600)
+    991                      {
+    992                          if(history_index == 0xffff)
+    993                          {
+    994                              history_index = 0;
+    995                              history_cnt   = 1;
+    996                              //tmp_map_request_info = get_history_map_info();
+    997                              BitmapMsg.param.frame_h = 0;
+    998                              BitmapMsg.param.frame_l = 0;
+    999                              BitmapMsg.param.start_x = 0;
+   1000                              BitmapMsg.param.start_y = 0;
+   1001                              BitmapMsg.param.end_x   = 255;
+   1002                              BitmapMsg.param.end_y   = 255;
+   1003                              //request_history_map_info();
+   1004                          }
+   1005                          else
+   1006                          {
+   1007                              
+   1008                              //history_index = 0xff00;
+   1009                              BitmapMsg.param.frame_h = history_index>>8;
+   1010                              BitmapMsg.param.frame_l = history_index&0x00ff;
+   1011                              BitmapMsg.param.start_x = Sim_oData0xB0_0xCF[2];
+   1012                              BitmapMsg.param.start_y = Sim_oData0xB0_0xCF[3];
+   1013                              BitmapMsg.param.end_x   = Sim_oData0xB0_0xCF[4];
+   1014                              BitmapMsg.param.end_y   = Sim_oData0xB0_0xCF[5];
+   1015                          }
+   1016                          x1 = BitmapMsg.param.frame_h;
+   1017                          y1 = BitmapMsg.param.frame_l;
+   1018                          printf("***************frame_h=%d,frame_l=%d\r\n",x1,y1);
+   1019                  
+   1020                          sys_info_get(SYS_BITMAP_INFO, (long )&BitmapMsg);
+   1021                          //request_history_map_info();
+   1022                          //uartTx();
+   1023                          time_count2 = timer_ms();
+   1024                      }
+   1025                  }
+   1026          
+   1027                  if((send_save_his_flag == 1)&&(timer_elapsed(time_count2) > 500))
+   1028                  {
+   1029                      if((Sim_oData0xB0_0xCF[2] == 0)&&(Sim_oData0xB0_0xCF[3]==0)
+   1030                          &&(Sim_oData0xB0_0xCF[4]==0)&&(Sim_oData0xB0_0xCF[5]==0))
+   1031                      {
+   1032                          sys_info_get(SYS_BITMAP_INFO, (long )&BitmapMsg);
+   1033                          send_save_his_flag = 0;
+   1034                          //uartTx();
+   1035                          //printf("444444request_history_map_info!!!\r\n");
+   1036                      }
+   1037                      else
+   1038                      {
+   1039                          send_save_his_flag = 0;
+   1040                         // printf("222222his_flag time out!!!\r\n");
+   1041                      }
+   1042                      
+   1043                      //send_save_his_flag = 0;
+   1044                      time_count2 = timer_ms();
+   1045                  }
+   1046                  for(i=0;i<BufByteLen;i++) //输给APP 数据项Sim_oData0xB0_0xCF
+   1047                  p_oData17Buf[i]=Sim_oData0xB0_0xCF[i+8+8+8];
+   1048              }
+   1049            
+   1050          }
+   1051          
+   1052          //*******************
+   1053          uint16_t  Get_OEM_CODE(void)//取OEM CODE
+   1054          {
+   1055              //用户加电初始化,需要重E2ROM中加载此值。
+   1056          
+   1057               return Sim_E2ROM_OEMCode;
+   1058          }
+   1059          
+   1060          #define Index_Mask_C      63
+   1061          #define Index_MaskNum_C   6 
+   1062          
+   1063          //******************************************************************************
+   1064          
+   1065          
+   1066          /****************************************************************
+   1067          *Function   :  ui_put_map_point_info
+   1068          *Author     :  lyh    
+   1069          *Date       :  2017.6.30
+   1070          *Description:  保存实时地图路径数据
+   1071          *CallBy     :  由底层调用，把实时的地图路径数据上传到应用层
+   1072          *Input      :  参数
+   1073          *              x: X 坐标
+   1074                         y: Y 坐标
+   1075                         type:    当前点的类型 范围是1-3 
+   1076                                  1:走过的无障碍点
+   1077                                  2:有障碍的点
+   1078                                  3:当前点
+   1079                         direction:机器角度
+   1080          *             
+   1081          *Output     :  无
+   1082          *Return     :  无
+   1083          *Others     :  
+   1084          *History    : //修改历史
+   1085              <author>       <time>      <version>           <desc>
+   1086              lyh            17.6.30       v1.0         build this function
+   1087          ******************************************************************/
+   1088          void ui_put_map_point_info(uint16_t x, uint16_t y, uint8_t type, uint16_t direction)
+   1089          {
+   1090              uint8_t i;
+   1091              real_map_points_t * real_map_points;
+   1092              real_map_points = &map_points_data;
+   1093              if(type == 3)
+   1094              {
+   1095                  type_three_ok = 1;
+   1096              }
+   1097              if (real_map_points->count >= MAP_POINT_BUFFER_SIZE) {
+   1098                  for (i=0; i<MAP_POINT_BUFFER_SIZE-1; i++) {
+   1099                      real_map_points->points[i].x = real_map_points->points[i+1].x;
+   1100                      real_map_points->points[i].y = real_map_points->points[i+1].y;
+   1101                      real_map_points->points[i].type = real_map_points->points[i+1].type;
+   1102                  }
+   1103                  real_map_points->count = MAP_POINT_BUFFER_SIZE;
+   1104              } else {
+   1105                  real_map_points->count++;
+   1106              }
+   1107              real_map_points->points[real_map_points->count-1].x = x;
+   1108              real_map_points->points[real_map_points->count-1].y = y;
+   1109              real_map_points->points[real_map_points->count-1].type = type;
+   1110              if (type == MAP_POINT_TYPE_CURRENT) {
+   1111                real_map_points->direction = direction;
+   1112              }
+   1113          }
+   1114          
+   1115          
+   1116          U16 get_uart_cmd(void)
+   1117          {
+   1118            static U16 tmp;
+   1119            tmp = uart_cmd;
+   1120            uart_cmd = 0;
+   1121            return tmp;
+   1122          }
+   1123          
+   1124          U8 *get_his_map_buffer(void)
+   1125          {
+   1126              return Sim_oData0xB0_0xCF;
+   1127          }
+   1128          
+   1129          void clear_map_index(void)
+   1130          {
+   1131              Map_Sim_Index = 0;
+   1132          }
+   1133          
+   1134          #endif
+   1135          
+
+
+ 
+
+ 
+
+
+Errors: none
+Warnings: none

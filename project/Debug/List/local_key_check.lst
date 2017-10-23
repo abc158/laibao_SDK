@@ -1,0 +1,284 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:09
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\local_key_check.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\local_key_check.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  
+#        F:\1708\SDK - unlock\project\Debug\List\local_key_check.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\local_key_check.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\local_key_check.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "local_key_check.h"
+      6          #include "am_key.h"
+      7          #include "ui-commands.h"
+      8          #include "am_date_base.h"
+      9          #include "act.h"
+     10          #include "syscall_api.h"
+     11          
+     12          static U16 key_press_on[TOTAL_KEY_NUM];  /*按键按下的次数*/
+     13          static U8 key_press_off[TOTAL_KEY_NUM];  /*按键抬起的次数*/
+     14          
+     15          /*物理按键定义*/
+     16          static key_state_t key_press_state[TOTAL_KEY_NUM]=
+     17          {	
+     18            {PRESS_NULL, AM_IO_MC_KEY_WAKE_ON, 1, KEY_CLEAN}	,
+     19            {PRESS_NULL, AM_IO_BUTTON_SPOT, 0, KEY_NULL },
+     20            {PRESS_NULL, AM_IO_BUTTON_DOCK, 0, KEY_NULL },
+     21            {PRESS_NULL, AM_IO_BUTTON_CLOCK, 0, KEY_NULL},
+     22            {PRESS_NULL, AM_IO_BUTTON_CLEAN, 0, KEY_NULL}
+     23          };
+     24          
+     25          /****************************************************************
+     26          *Function   :  key_single_init
+     27          *Description:  申请物理按键使用的IO  
+     28          *Input      :  无
+     29          *Output     :  无用
+     30          *Return     :  无
+     31          *Others     :  
+     32          ******************************************************************/
+     33          U8 key_single_init()
+     34          {
+     35            int ret = -1;
+     36            for( int i=0; i<TOTAL_KEY_NUM; i++ )
+     37            {
+     38              ret = gpio_request_one(key_press_state[i].am_io, GPIO_F_DIR_IN);
+     39              
+     40              if(ret != -1)
+     41              {
+     42                ;
+     43              }
+     44              else
+     45              {
+     46                printf("key io not ok\r\n");
+     47              }
+     48            }  
+     49            return 0;
+     50          }
+     51          
+     52          /****************************************************************
+     53          *Function   :  key_single_init
+     54          *Description:  释放物理按键使用的IO  
+     55          *Input      :  无
+     56          *Output     :  无用
+     57          *Return     :  无
+     58          *Others     :  
+     59          ******************************************************************/
+     60          U8 key_single_exit()
+     61          {
+     62            for( int i=0; i<TOTAL_KEY_NUM; i++ )
+     63            {
+     64              gpio_free(key_press_state[i].am_io);
+     65            }     
+     66            return 0;
+     67          }
+     68          
+     69          /****************************************************************
+     70          *Function   :  _key_init
+     71          *Description:  按键检测初始化  
+     72          *Input      :  无
+     73          *Output     :  无
+     74          *Return     :  无
+     75          *Others     :  
+     76          ******************************************************************/
+     77          void _key_init(void)
+     78          {  
+     79            U8 i;
+     80          
+     81            key_single_init();
+     82            for(i=0; i<TOTAL_KEY_NUM; i++)
+     83            {
+     84              key_press_state[i].state = PRESS_NULL;
+     85              key_press_on[i]          = 0;
+     86              key_press_off[i]         = 0;
+     87            }
+     88          }
+     89          
+     90          /****************************************************************
+     91          *Function   :  _key_exit
+     92          *Description:  按键退出  
+     93          *Input      :  无
+     94          *Output     :  无
+     95          *Return     :  无
+     96          *Others     :  
+     97          ******************************************************************/
+     98          void _key_exit(void)
+     99          {
+    100            key_single_exit();
+    101          }
+    102          
+    103          
+    104          /****************************************************************
+    105          *Function   :  key_routine
+    106          *Description:  按键检测，记录按键消息  
+    107          *Input      :  无
+    108          *Output     :  无
+    109          *Return     :  无
+    110          *Others     :  
+    111          ******************************************************************/
+    112          void key_routine(void)
+    113          { 
+    114          	u8 i;
+    115          	u8 gpio_state;
+    116          	
+    117            //read all gpio
+    118            for(i=0; i<TOTAL_KEY_NUM; i++)
+    119            {
+    120              if(key_press_state[i].keyval==KEY_NULL)
+    121              {
+    122                continue;
+    123              }
+    124              else
+    125              {
+    126                gpio_state = gpio_get_value(key_press_state[i].am_io);
+    127                if (gpio_state == key_press_state[i].input_gpio_state)
+    128                {
+    129                  key_press_on[i]++; 
+    130                  key_press_off[i] = 0;    
+    131                  if (key_press_on[i] >= 4 && key_press_on[i] < 200)
+    132                  {
+    133                    key_press_state[i].state = KEY_DOWN;
+    134                  }
+    135                  else if (key_press_on[i] >= 200 && key_press_on[i] < 400)
+    136                  {
+    137                    key_press_state[i].state = KEY_LONG;
+    138                  }
+    139                  else if (key_press_on[i] >= 400)
+    140                  {
+    141                    key_press_state[i].state = KEY_HOLD;
+    142                    key_press_on[i] = 400;
+    143                  }
+    144                } 
+    145                else
+    146                {
+    147                  key_press_off[i]++;
+    148                  if (key_press_off[i] >= 4)
+    149                  {
+    150                    if (key_press_on[i] >= 4 && key_press_on[i] < 200)
+    151                    {
+    152                      key_press_state[i].state = KEY_SHORT_UP;          
+    153                    } 
+    154                    else if (key_press_on[i] >= 200 && key_press_on[i] < 400)
+    155                    {
+    156                      key_press_state[i].state = KEY_LONG_UP; 
+    157                    }
+    158                    else if (key_press_on[i] >= 400)
+    159                    {
+    160                      key_press_state[i].state = KEY_HOLD_UP; 
+    161                    }
+    162                    key_press_on[i] = 0;         
+    163                  }
+    164                }                     
+    165              }
+    166            }  
+    167          }
+    168          
+    169          /****************************************************************
+    170          *Function   :  get_key_state
+    171          *Description:  返回物理按键存放的地址
+    172          *Input      :  无
+    173          *Output     :  物理按键消息存放的地址
+    174          *Return     :  无
+    175          *Others     :  
+    176          ******************************************************************/
+    177          key_state_t *get_key_state(void)
+    178          {
+    179            return &key_press_state[0];
+    180          }
+    181          
+    182          /****************************************************************
+    183          *Function   :  any_key
+    184          *Description:  是否有物理按键按下 
+    185          *Input      :  无
+    186          *Output     :  1：有按键 0：无按键
+    187          *Return     :  无
+    188          *Others     :  
+    189          ******************************************************************/
+    190          u8 any_key(void)
+    191          {
+    192            u8 i = 0;
+    193            u8 gpio_state;
+    194            for(i=0; i<TOTAL_KEY_NUM; i++)
+    195            {
+    196              gpio_state = gpio_get_value(key_press_state[i].am_io);
+    197              if ((gpio_state == key_press_state[i].input_gpio_state)&&(key_press_state[i].keyval!=KEY_NULL))
+    198              {
+    199                //key_press_state[i].state = PRESS_NULL;
+    200                return 1;
+    201              }
+    202            }
+    203            return 0;
+    204          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   _key_exit
+         0   -> key_single_exit
+       8   _key_init
+         8   -> key_single_init
+      16   any_key
+        16   -- Indirect call
+       0   get_key_state
+      32   key_routine
+        32   -- Indirect call
+      16   key_single_exit
+        16   -- Indirect call
+      24   key_single_init
+        24   -- Indirect call
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable6
+       4  ??DataTable6_1
+       4  ??DataTable6_2
+      16  ?_0
+       2  _key_exit
+      34  _key_init
+      48  any_key
+       4  get_key_state
+      20  key_press_off
+          key_press_on
+      80  key_press_state
+     166  key_routine
+      30  key_single_exit
+      50  key_single_init
+
+ 
+  20 bytes in section .bss
+  80 bytes in section .data
+ 362 bytes in section .text
+ 
+ 362 bytes of CODE memory
+ 100 bytes of DATA memory
+
+Errors: none
+Warnings: none

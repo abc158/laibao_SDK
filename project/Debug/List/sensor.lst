@@ -1,0 +1,980 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  13:37:00
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\sensor\sensor.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\sensor\sensor.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\sensor.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\sensor.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\sensor\sensor.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*****************************************************************************
+      6          * edit by yongyong.li
+      7          *****************************************************************************/
+      8          #include "sensor.h"
+      9          #include "hal_amicro_gpio.h"
+     10          #include "adc_chan.h"
+     11          #include "syscall_api.h"
+     12          #include "ui-config.h"
+     13          #include "sensor/sensor.h"
+     14          
+     15          
+     16          extern const adc_chan_t adc_chan_table[ADC_CHAN_MAX];
+     17          extern const IO_PIN_CFG io_table[HAL_MAX];
+     18          extern u8 cliff_touch_turn_switch;
+     19          
+     20          /*缓存每次采样的adc值*/
+     21          static U16 adcCache[ADC_CHAN_MAX];
+     22          
+     23          volatile u16 time_4khz_counter = 0;
+     24          volatile u16 time_4khz_counter_touch = 0;
+     25          
+     26          /*cliff计数采样过程统计的次数*/
+     27          volatile u8 cliff_index_on = 0;
+     28          volatile u8 cliff_index_off= 0;	
+     29          
+     30          /*lt计数采样过程统计的次数*/
+     31          volatile u8 light_index_on[2]={0};
+     32          volatile u8 light_index_off[2]={0};
+     33          
+     34          static u8 useok=0;
+     35          static u8 robot_ir_init=0;
+     36          
+     37          static s16 cliff_filter[4];
+     38          
+     39          
+     40          #ifdef USE_LT_AUTO_ADJUST
+     41          //#define LT_AUTO_ADJUST_THROD 400
+     42          //s16 signal_offset[8];
+     43          #endif
+     44          
+     45          typedef struct
+     46          {
+     47            u8 logic_chan;/*逻辑通道*/
+     48            u8 phy_chan;  /*物理通道*/
+     49          }ir_sensor_map_t;
+     50          
+     51          /*cliff , lt 的阈值配置， 变量会在sensor_threshold_update里初始化，on: led灯打开时， off：led关闭时*/
+     52          static u16 signal_threshold_on[IR_SENSOR_NUM];
+     53          static u16 signal_threshold_off[IR_SENSOR_NUM];
+     54          
+     55          /*逻辑通道和物理通道影响关系结构体表*/
+     56          const ir_sensor_map_t remap[IR_SENSOR_NUM]={
+     57            {CLIFF_RIGHT,ADC_CHAN_CLIFF_RIGHT}, 
+     58            {CLIFF_FRONTRIGHT,ADC_CHAN_CLIFF_FRONTLEFT},
+     59            {CLIFF_FRONTLEFT,ADC_CHAN_CLIFF_FRONTLEFT},
+     60            {CLIFF_LEFT,ADC_CHAN_CLIFF_LEFT},
+     61            {CLIFF_REAR_RIGHT,0xFF},
+     62            {CLIFF_REAR_LEFT,0xFF},
+     63            {CLIFF_REV1,0xff},
+     64            {CLIFF_REV2,0xff},  
+     65            {LT_CENTERRIGHT,ADC_CHAN_LT_CENTERRIGHT},
+     66            {LT_FRONTLEFT,ADC_CHAN_LT_FRONTLEFT},
+     67            {LT_RIGHT,ADC_CHAN_LT_RIGHT},
+     68            {LT_LEFT,ADC_CHAN_LT_LEFT},
+     69            {LT_FRONTRIGHT,ADC_CHAN_LT_FRONTRIGHT},
+     70            {LT_CENTERLEFT,ADC_CHAN_LT_CENTERLEFT},
+     71            {LT_CENTERLEFT_L,0xff},
+     72            {LT_CENTERRIGHT_L,0xff},
+     73          };
+     74          
+     75          /*cliff，lt的结果*/
+     76          static u8 signal_result[IR_SENSOR_NUM] = {0};
+     77          /*保存最近4次led on 时的adc值*/
+     78          static s16 signal_queue_on[IR_SENSOR_NUM][4];
+     79          /*保存最近4次led off 时的adc值*/
+     80          static s16 signal_queue_off[IR_SENSOR_NUM][4];
+     81          /*保存最近4次led on 时的adc值总和*/
+     82          static s16 signal_average_on[IR_SENSOR_NUM] ={0};
+     83          /*保存最近4次led off 时的adc值总和*/
+     84          static s16 signal_average_off[IR_SENSOR_NUM] = {0};
+     85          /*保存一个周期 led on 和 off 的采样差值*/
+     86          volatile s16 signal_delta[IR_SENSOR_NUM]  = {0};
+     87          
+     88          #define CLIFF_LED_ADC(M)          \
+     89            M( ADC_CHAN_CLIFF_RIGHT)        \
+     90            M( ADC_CHAN_CLIFF_FRONTRIGHT ) \
+     91            M( ADC_CHAN_CLIFF_FRONTLEFT) \
+     92            M( ADC_CHAN_CLIFF_LEFT)
+     93          
+     94          #define LT_LED_ADC(M)          \
+     95            M( ADC_CHAN_LT_CENTERRIGHT)        \
+     96            M( ADC_CHAN_LT_FRONTLEFT ) \
+     97            M( ADC_CHAN_LT_RIGHT)       \
+     98            M( ADC_CHAN_LT_LEFT) \
+     99            M( ADC_CHAN_LT_FRONTRIGHT) \
+    100            M( ADC_CHAN_LT_CENTERLEFT)
+    101          
+    102          #define SAMPLE_ADC(i)           adcCache[i] = (U16)(adcResult_p[adc_chan_table[i].phy_chan]); 
+    103          #define SAMPLE_LT_LED()         LT_LED_ADC(SAMPLE_ADC)
+    104          #define SAMPLE_CLIFF_LED()      CLIFF_LED_ADC(SAMPLE_ADC)
+    105                  
+    106          #define SENSOR_LED_ON   1
+    107          #define SENSOR_LED_OFF  0
+    108          
+    109          /*lt 控制开关*/
+    110          static u8 lt_onoff_swith = 0;
+    111          
+    112          /*cliff 控制开关*/
+    113          static u8 cliff_onoff_swith = 0;
+    114          
+    115          /****************************************************************
+    116          *Function   :  sensor_threshold_update
+    117          *Author     :  lyy
+    118          *Date       :  2017.4.20
+    119          *Description:  初始化lt，cliff阈值
+    120          *CallBy     :  
+    121          *Input      :  参数
+    122          *              ui_config:  参考 ui_config_t 结构
+    123          *Output     :  无
+    124          *Return     :  无
+    125          *Others     :  
+    126          *History    : //修改历史
+    127              <author>       <time>      <version>           <desc>
+    128              lyy            17.4.28       v1.0         build this function
+    129          ******************************************************************/
+    130          void sensor_threshold_update(const ui_local_config_t* ui_config)
+    131          {
+    132            //CLIFF ON
+    133          
+    134            signal_threshold_on[CLIFF_RIGHT]      = ui_config->cliff_threshold.right_on;
+    135            signal_threshold_on[CLIFF_FRONTRIGHT] = ui_config->cliff_threshold.front_right_on;
+    136            signal_threshold_on[CLIFF_FRONTLEFT]  = ui_config->cliff_threshold.front_left_on;  
+    137            signal_threshold_on[CLIFF_LEFT]       = ui_config->cliff_threshold.left_on;
+    138            signal_threshold_on[CLIFF_REAR_RIGHT] = ui_config->cliff_threshold.rear_right_on;
+    139            signal_threshold_on[CLIFF_REAR_LEFT]  = ui_config->cliff_threshold.rear_left_on;
+    140            //CLIFF OFF
+    141            signal_threshold_off[CLIFF_RIGHT]     = ui_config->cliff_threshold.right_off; 
+    142            signal_threshold_off[CLIFF_FRONTRIGHT]= ui_config->cliff_threshold.front_right_off;
+    143            signal_threshold_off[CLIFF_FRONTLEFT] = ui_config->cliff_threshold.front_left_off;
+    144            signal_threshold_off[CLIFF_LEFT]      = ui_config->cliff_threshold.left_off;
+    145            signal_threshold_off[CLIFF_REAR_RIGHT]= ui_config->cliff_threshold.rear_right_off;
+    146            signal_threshold_off[CLIFF_REAR_LEFT] = ui_config->cliff_threshold.rear_left_off;  
+    147            
+    148            //LT ON  
+    149            signal_threshold_on[LT_CENTERRIGHT]  = ui_config->lighttouch_threshold.center_right_on;
+    150            signal_threshold_on[LT_FRONTLEFT]    = ui_config->lighttouch_threshold.front_left_on;
+    151            signal_threshold_on[LT_RIGHT]        = ui_config->lighttouch_threshold.right_on;
+    152            signal_threshold_on[LT_LEFT]         = ui_config->lighttouch_threshold.left_on;
+    153            signal_threshold_on[LT_FRONTRIGHT]   = ui_config->lighttouch_threshold.front_right_on;
+    154            signal_threshold_on[LT_CENTERLEFT]   = ui_config->lighttouch_threshold.center_left_on;
+    155            //LT OFF
+    156            signal_threshold_off[LT_CENTERRIGHT] = ui_config->lighttouch_threshold.center_right_off; 
+    157            signal_threshold_off[LT_FRONTLEFT]   = ui_config->lighttouch_threshold.front_left_off;
+    158            signal_threshold_off[LT_RIGHT]       = ui_config->lighttouch_threshold.right_off;
+    159            signal_threshold_off[LT_LEFT]        = ui_config->lighttouch_threshold.left_off;
+    160            signal_threshold_off[LT_FRONTRIGHT]  = ui_config->lighttouch_threshold.front_right_off;
+    161            signal_threshold_off[LT_CENTERLEFT]  = ui_config->lighttouch_threshold.center_left_off;
+    162          }
+    163          
+    164          #ifdef USE_LT_AUTO_ADJUST
+    165          //am_uint32 lt_auto_adjust_time_stp;
+    166          #define LT_SIGNAL_OFFSET 2
+    167          #define LT_AUTO_ADJUST_THROD 600
+    168          static int16_t signal_offset[8]= {LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD
+    169          ,LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD,LT_AUTO_ADJUST_THROD};
+    170          static uint8_t lt_signal_adjust_enable = 0;
+    171          static uint8_t reset_lt_auto_adjust_flag = 0;
+    172          static uint8_t restore_lt_signal_offset_ok = 0;
+    173          void reset_ht_auto_offset(void);
+    174          
+    175          void save_lt_signal_offset(void)
+    176          {    
+    177              uint8_t buf[sizeof(signal_offset)+4];
+    178              uint16_t sum = 0;
+    179              uint8_t i;
+    180              lt_signal_adjust_enable=0;
+    181              
+    182              
+    183              //sleep_ms(1);
+    184              buf[0] = 0x55;
+    185              buf[1] = 0xAA;
+    186              memcpy(&buf[4], signal_offset, sizeof(signal_offset));
+    187              for (i=4; i<sizeof(buf); i++) {
+    188                  sum += buf[i];
+    189              }
+    190              buf[2] = (uint8_t)(sum >> 8);
+    191              buf[3] = (uint8_t)(sum >> 0);
+    192              vram_write(LT_SIGNAL_OFFSET, (uint32_t*)&buf[0], sizeof(buf)/4);
+    193              
+    194              printf("save lt (%d,%d,%d,%d,%d,%d)\r\n", (int)(signal_offset[0]),(int)(signal_offset[1]),(int)(signal_offset[2]),(int)(signal_offset[3]),(int)(signal_offset[4]),(int)(signal_offset[5]));
+    195          }
+    196          void restore_lt_signal_offset(void)
+    197          {
+    198          
+    199              uint8_t buf[sizeof(signal_offset)+4];
+    200              uint16_t sum = 0;
+    201              uint8_t i;
+    202              vram_read(LT_SIGNAL_OFFSET, (uint32_t*)&buf[0], sizeof(buf)/4);
+    203              
+    204              if (buf[0] == 0x55 && buf[1] == 0xAA) {
+    205                  for (i=4; i<sizeof(buf); i++) {
+    206                      sum += buf[i];
+    207                  }
+    208                  if (sum == buf[2]*256+buf[3]) {
+    209                      memcpy(signal_offset, &buf[4], sizeof(signal_offset));
+    210                      restore_lt_signal_offset_ok = 1;
+    211                      printf("read lt (%d,%d,%d,%d,%d,%d)\r\n", (int)(signal_offset[0]),(int)(signal_offset[1]),(int)(signal_offset[2]),(int)(signal_offset[3]),(int)(signal_offset[4]),(int)(signal_offset[5]));
+    212                  } else {
+    213                      restore_lt_signal_offset_ok = 0;
+    214                      reset_lt_auto_offset();
+    215                  }
+    216              } else {
+    217                  restore_lt_signal_offset_ok = 0;
+    218                  reset_lt_auto_offset();
+    219              }   
+    220          }
+    221          
+    222          void reset_lt_signal_offset(void)
+    223          {    
+    224              uint8_t buf[sizeof(signal_offset)+4];
+    225              uint16_t sum = 0;
+    226              uint8_t i;
+    227              lt_signal_adjust_enable=0;
+    228              restore_lt_signal_offset_ok = 0;
+    229              
+    230              //sleep_ms(1);
+    231              buf[0] = 0xff;
+    232              buf[1] = 0xff;
+    233              memcpy(&buf[4], signal_offset, sizeof(signal_offset));
+    234              for (i=4; i<sizeof(buf); i++) {
+    235                  sum += buf[i];
+    236              }
+    237              buf[2] = (uint8_t)(sum >> 8);
+    238              buf[3] = (uint8_t)(sum >> 0);
+    239              vram_write(LT_SIGNAL_OFFSET, (uint32_t*)&buf[0], sizeof(buf)/4);
+    240              
+    241              printf("save lt (%d,%d,%d,%d,%d,%d)\r\n", (int)(signal_offset[0]),(int)(signal_offset[1]),(int)(signal_offset[2]),(int)(signal_offset[3]),(int)(signal_offset[4]),(int)(signal_offset[5]));
+    242          }
+    243          uint8_t get_restore_lt_signal_offset_state(void)
+    244          {
+    245              return restore_lt_signal_offset_ok;
+    246          }
+    247          void enable_lt_offset_adjust(uint8_t enable)
+    248          {
+    249              lt_signal_adjust_enable = enable ? 1 : 0;
+    250          }
+    251          uint8_t is_lt_offset_adjust_enable(void)
+    252          {
+    253              return lt_signal_adjust_enable;
+    254          }
+    255          #endif
+    256          /****************************************************************
+    257          *Function   :  set_cliff_threshold
+    258          *Author     :  lyy
+    259          *Date       :  2017.4.20
+    260          *Description:  设置cliff的阈值
+    261          *CallBy     :  
+    262          *Input      :  参数
+    263          *              chan:  SENSOR_E cliff逻辑通道
+    264          *              val :  阈值(adc)
+    265          *Output     :  无
+    266          *Return     :  无
+    267          *Others     :  
+    268          *History    : //修改历史
+    269              <author>       <time>      <version>           <desc>
+    270              lyy            17.4.28       v1.0         build this function
+    271          ******************************************************************/
+    272          void set_cliff_threshold(SENSOR_E chan, int val)
+    273          {
+    274            signal_threshold_on[chan] = val;
+    275            signal_threshold_off[chan] = val;
+    276          }
+    277          
+    278          /****************************************************************
+    279          *Function   :  reset_cliff_threshold
+    280          *Author     :  lyy
+    281          *Date       :  2017.4.20
+    282          *Description:  复位cliff阈值
+    283          *CallBy     :  
+    284          *Input      :  参数
+    285          *              无
+    286          *Output     :  无
+    287          *Return     :  无
+    288          *Others     :  
+    289          *History    : //修改历史
+    290              <author>       <time>      <version>           <desc>
+    291              lyy            17.4.28       v1.0         build this function
+    292          ******************************************************************/
+    293          void reset_cliff_threshold(void)
+    294          {
+    295            sensor_threshold_update(get_local_ui_config());
+    296          }
+    297          
+    298          /****************************************************************
+    299          *Function   :  sensor_gather
+    300          *Author     :  lyy
+    301          *Date       :  2017.4.20
+    302          *Description:  cliff，lt 的采样流程
+    303          *CallBy     :  
+    304          *Input      :  参数
+    305          *              无
+    306          *Output     :  无
+    307          *Return     :  无
+    308          *Others     :  
+    309          *History    : //修改历史
+    310              <author>       <time>      <version>           <desc>
+    311              lyy            17.4.28       v1.0         build this function
+    312          ******************************************************************/
+    313          void sensor_gather_cliff(void)
+    314          {
+    315            if(robot_ir_init==0)
+    316              return;
+    317            
+    318            U32 *adcResult_p = (U32 *)ADC_BASE_ADDR;
+    319            int  adcStep = (time_4khz_counter & 0x7);
+    320            switch (adcStep)
+    321            {
+    322            case 0:    
+    323              if(!cliff_onoff_swith)
+    324              {
+    325                gpio_set_value(AM_IO_TOUCH_CLIFF_LED_FAR_EN,SENSOR_LED_ON); //
+    326              }
+    327              break;
+    328            case 1: 
+    329              break;
+    330            case 2:
+    331              SAMPLE_CLIFF_LED();  
+    332              gpio_set_value(AM_IO_TOUCH_CLIFF_LED_FAR_EN,SENSOR_LED_OFF); //    
+    333              break;	    
+    334            case 3:  
+    335              break;
+    336            case 4:
+    337              SAMPLE_CLIFF_LED();//CLIFF OFF
+    338              break;
+    339            case 5:
+    340              break;
+    341            case 6:   
+    342              break;
+    343            case 7:
+    344              break;
+    345            }
+    346          }
+    347          
+    348          void sensor_gather_touch(void)
+    349          {
+    350            if(robot_ir_init==0)
+    351              return;
+    352            
+    353            U32 *adcResult_p = (U32 *)ADC_BASE_ADDR;
+    354            int  adcStep = (time_4khz_counter_touch & 0x7);
+    355            switch (adcStep)
+    356            {
+    357            case 0:
+    358              if(!lt_onoff_swith)
+    359              {
+    360                gpio_set_value(AM_IO_TOUCH_LED_NEAR_EN,SENSOR_LED_ON);
+    361          	  gpio_set_value(AM_IO_TOUCH_LED_FAR_EN,SENSOR_LED_ON);	  
+    362              }
+    363              break;
+    364            case 1: 
+    365              break;
+    366            case 2:
+    367              SAMPLE_LT_LED();//lt on 
+    368              gpio_set_value(AM_IO_TOUCH_LED_NEAR_EN,SENSOR_LED_OFF);   
+    369          	gpio_set_value(AM_IO_TOUCH_LED_FAR_EN,SENSOR_LED_OFF);	
+    370              break;	    
+    371            case 3:  
+    372              break;
+    373            case 4:
+    374              SAMPLE_LT_LED();  //lt off
+    375              break;
+    376            case 5:
+    377              break;
+    378            case 6:   
+    379              break;
+    380            case 7:
+    381              break;
+    382            }
+    383          }
+    384          
+    385          /****************************************************************
+    386          *Function   :  sensor_handle
+    387          *Author     :  lyy
+    388          *Date       :  2017.4.20
+    389          *Description:  cliff，lt 的采样后，结果处理流程
+    390          *CallBy     :  
+    391          *Input      :  参数
+    392          *              无
+    393          *Output     :  无
+    394          *Return     :  无
+    395          *Others     :  
+    396          *History    : //修改历史
+    397              <author>       <time>      <version>           <desc>
+    398              lyy            17.4.28       v1.0         build this function
+    399          ******************************************************************/
+    400          void sensor_handle_cliff(void)
+    401          {
+    402            s16 temp = 0;
+    403            if(robot_ir_init==0)
+    404              return;
+    405            
+    406            int  adcStep = time_4khz_counter & 0x7; 
+    407            
+    408            if( cliff_index_off > 3 )
+    409            {
+    410                useok = 1;
+    411            }
+    412            
+    413            switch (adcStep)
+    414            {
+    415            case 0:  
+    416              break;
+    417            case 1: //calc result 
+    418              break;
+    419            case 2:   
+    420              {//cliff
+    421                  u8 i = 0;
+    422                  if(cliff_index_on >=4)
+    423                  {
+    424                      cliff_index_on = 0;             
+    425                  }
+    426                  
+    427                  {
+    428                     for(i=0;i<=3;i++) 
+    429                     {
+    430                         signal_average_on[i] = 0;
+    431                         signal_queue_on[i][cliff_index_on] = (adcCache[remap[i].phy_chan] & 0x00000fff);
+    432                         for(int j=0;j<4;j++)
+    433                         {
+    434                           signal_average_on[i] += signal_queue_on[i][j]; 
+    435                         }               
+    436                     }
+    437                  }
+    438                  cliff_index_on++;   
+    439              }    
+    440              break;
+    441            case 3:  
+    442              break;
+    443            case 4://off
+    444              { 
+    445                  u8 i = 0;
+    446                  if(cliff_index_off >=4)
+    447                  {
+    448                      cliff_index_off = 0;             
+    449                  }
+    450                  
+    451                  {
+    452                     for(i=0;i<=3;i++)
+    453                     {
+    454                         signal_average_off[i] = 0;
+    455                         signal_queue_off[i][cliff_index_off] = (adcCache[remap[i].phy_chan] & 0x00000fff);
+    456                         for(int j = 0; j<4; j++)
+    457                         {
+    458                           signal_average_off[i] += signal_queue_off[i][j]; 
+    459                         }
+    460                     }
+    461                  }
+    462                  cliff_index_off++; 
+    463              }         
+    464              break;
+    465            case 5://calc result
+    466              if(cliff_index_off >= 4 && cliff_index_on >= 4)
+    467              {
+    468              	u8 cliff = 0;
+    469                  u8 i = 0;
+    470                  s16 temp_s16;
+    471          	if(useok==0)
+    472          	{
+    473          	    break;
+    474          	}
+    475                  
+    476              	for(i = 0;i<=3;i++)
+    477                  {
+    478                      temp_s16 = (abs(signal_average_off[i] - signal_average_on[i]));
+    479                      if(temp_s16 > cliff_filter[i])
+    480                      {
+    481                        signal_delta[i]=temp_s16;
+    482                      }
+    483                      else
+    484                      {
+    485                        signal_delta[i]=cliff_filter[i];
+    486                      }
+    487                         
+    488                      
+    489                      if(((signal_average_off[i] + signal_average_on[i])<1024) && (signal_delta[i]  < signal_threshold_off[i]))
+    490                      {
+    491                        signal_delta[i]=signal_delta[i]<<4;
+    492                      }
+    493                      
+    494          
+    495                      if(signal_delta[i]  >= signal_threshold_on[i])
+    496                      {
+    497                          cliff = 0;
+    498                      }
+    499                      else if(signal_delta[i]  < signal_threshold_off[i])
+    500                      {
+    501                          cliff = 0;
+    502                      }
+    503                      else
+    504                      {
+    505                          cliff = signal_result[i] & 0x1;
+    506                      }
+    507                      
+    508                      cliff_filter[i]=temp_s16;
+    509                      
+    510                      signal_result[i] = signal_result[i] << 1 ;
+    511                      signal_result[i] = signal_result[i] | cliff ;
+    512                      signal_result[i] = signal_result[i] & 0xff;
+    513                  }
+    514                  cliff_index_off = 0;
+    515                  cliff_index_on  = 0;
+    516              }    
+    517              break;
+    518            case 6:    
+    519              break;
+    520            case 7:
+    521              break;
+    522            }
+    523            /*把lt的结果传送到sdk*/
+    524            robot_lt_update(signal_result);
+    525          }
+    526          
+    527          void sensor_handle_touch(void)
+    528          {
+    529            s16 temp = 0;
+    530            if(robot_ir_init==0)
+    531              return;
+    532            
+    533            int  adcStep = time_4khz_counter_touch & 0x7; 
+    534            
+    535            if( light_index_on[0] > 3 )
+    536            {
+    537                useok = 1;
+    538            }
+    539            
+    540            switch (adcStep)
+    541            {
+    542            case 0:  
+    543              break;
+    544            case 1: //calc result 
+    545              break;
+    546            case 2:
+    547              {//lt
+    548                    int i = 0;
+    549                    if(light_index_on[0] >=4)
+    550                    {
+    551                      light_index_on[0] = 0;             
+    552                    }          
+    553                     for(i=8;i<=13;i++) 
+    554                     {
+    555                         signal_average_on[i] = 0;
+    556                         signal_queue_on[i][light_index_on[0]] = (adcCache[remap[i].phy_chan] & 0x00000fff);
+    557                         for(int j = 0; j<4; j++)
+    558                         {               
+    559                           signal_average_on[i] += signal_queue_on[i][j]; 
+    560                         }               
+    561                     }
+    562                     light_index_on[0]++; 
+    563              }       
+    564              break;
+    565            case 3:  
+    566              break;
+    567            case 4://off       
+    568              {//lt
+    569                    u8 i = 0;
+    570                    if(light_index_off[0] >=4)
+    571                    {
+    572                      light_index_off[0] = 0;             
+    573                    }          
+    574                     for(i=8;i<=13;i++) 
+    575                     {
+    576                         signal_average_off[i] = 0;
+    577                         signal_queue_off[i][light_index_off[0]] = (adcCache[remap[i].phy_chan] & 0x00000fff);
+    578                         for(int j = 0; j<4; j++)
+    579                         {
+    580                           signal_average_off[i] += signal_queue_off[i][j];
+    581          				 //printf("sof%d\r\n",signal_average_off[i]);
+    582                         }
+    583                     }
+    584                     light_index_off[0]++; 
+    585              }
+    586            
+    587              break;
+    588            case 5://calc result   
+    589              if(light_index_off[0] >=4 && light_index_on[0]>=4)
+    590              {
+    591              	u8 lt = 0;
+    592                  u8 i = 0;
+    593          	if(useok==0)
+    594          	{
+    595          	    break;
+    596          	}
+    597              	for(i = 8;i<=13;i++)
+    598                  {
+    599               
+    600          #ifdef USE_LT_AUTO_ADJUST
+    601                      temp = abs(signal_average_off[i] - signal_average_on[i]);
+    602                      //if(temp < signal_offset[i-8] && temp>30)
+    603                      //printf("111111\r\n");
+    604                      if (lt_signal_adjust_enable)
+    605                      {
+    606                        printf("signal_offset[%d]=%d\r\n",(i-8),temp);
+    607                        signal_offset[i-8]=temp;
+    608                      }
+    609                      //signal_delta[i] = abs(temp - signal_offset[i-8]);
+    610                      signal_delta[i] =(temp > signal_offset[i-8]) ?(temp - signal_offset[i-8]):0;
+    611          #else
+    612                      signal_delta[i] = abs(signal_average_off[i] - signal_average_on[i]);			
+    613          #endif  
+    614          			
+    615          			//printf("on%d,off%d,de%d\r\n",signal_average_on[i],signal_average_off[i],signal_delta[i]);			
+    616                      if(signal_delta[i]  >= signal_threshold_on[i])
+    617                      {
+    618                          lt = 0;//lyy 1--0
+    619                      }
+    620                      else if(signal_delta[i]  < signal_threshold_off[i])
+    621                      {
+    622                          lt = 0;
+    623                      }
+    624                      else
+    625                      {
+    626                          lt = signal_result[i] & 0x1;
+    627                      }
+    628                      signal_result[i] = signal_result[i] << 1 ;
+    629                      signal_result[i] = signal_result[i] | lt ;
+    630                      signal_result[i] = signal_result[i] & 0xff;
+    631                  }   
+    632                  light_index_off[0] =0;
+    633                  light_index_on[0]  =0;
+    634              }
+    635              break;
+    636            case 6:    
+    637              break;
+    638            case 7:
+    639              break;
+    640            }
+    641            /*把lt的结果传送到sdk*/
+    642            robot_lt_update(signal_result);
+    643          }
+    644          
+    645          /****************************************************************
+    646          *Function   :  robot_close_sensor_led
+    647          *Author     :  lyy
+    648          *Date       :  2017.4.20
+    649          *Description:  闭关led灯，主要是节省功耗
+    650          *CallBy     :  
+    651          *Input      :  参数
+    652          *              无
+    653          *Output     :  无
+    654          *Return     :  无
+    655          *Others     :  
+    656          *History    : //修改历史
+    657              <author>       <time>      <version>           <desc>
+    658              lyy            17.4.28       v1.0         build this function
+    659          ******************************************************************/
+    660          void robot_close_sensor_led(void)
+    661          {
+    662              gpio_set_value(AM_IO_TOUCH_LED_NEAR_EN,SENSOR_LED_OFF); 
+    663          	gpio_set_value(AM_IO_TOUCH_LED_FAR_EN,SENSOR_LED_OFF); 
+    664              gpio_set_value(AM_IO_TOUCH_CLIFF_LED_FAR_EN,SENSOR_LED_OFF);     
+    665          }
+    666          
+    667          
+    668          uint16_t hal_isr(void)
+    669          {
+    670            if(robot_ir_init==0)
+    671              return 1;
+    672            time_4khz_counter = (time_4khz_counter + 1) & 0xff;
+    673            return (1);
+    674          }
+    675          
+    676          s16 robot_rear_lt_distance(u8 ingdex)
+    677          {
+    678            return 0;
+    679          }
+    680          
+    681          s16 robot_signal_distance(u8 index)
+    682          {
+    683            return signal_delta[index];
+    684          }
+    685          
+    686          u8 robot_is_cliff(u8 index)
+    687          {
+    688          //  if(signal_result[index])
+    689          //  	return 1;
+    690          //  else
+    691            	return 0;
+    692          }
+    693          
+    694          u8 robot_is_lighttouch(u8 index)
+    695          {
+    696            if(signal_result[index])
+    697            {
+    698          	//printf("+++++++++++lt:%d\r\n",index);
+    699            	return 1;  
+    700            }
+    701            else
+    702            	return 0;
+    703          }
+    704          
+    705          u8 robot_is_rear_cliff(void)
+    706          {
+    707            return 0;
+    708          }
+    709          
+    710          u8 robot_is_front_cliff(void)
+    711          {
+    712            return 0;
+    713          }
+    714          
+    715          void set_lighttouch_enable(u8 en)
+    716          {
+    717            if(en == 1)
+    718              printf("#####en === 1\r\n");
+    719            lt_onoff_swith = en;
+    720          }
+    721          
+    722          void set_cliff_enable(u8 en)
+    723          {
+    724            cliff_onoff_swith = en;
+    725          }
+    726          
+    727          void reset_lt_auto_offset()
+    728          {
+    729          #ifdef USE_LT_AUTO_ADJUST
+    730            int i;
+    731            if(reset_lt_auto_adjust_flag == 0)
+    732            {
+    733               for(i=0;i<6;i++)
+    734               {
+    735                   //printf("reset LT_AUTO_ADJUST_THROD!!!\r\n");
+    736                   signal_offset[i] = LT_AUTO_ADJUST_THROD;
+    737               }
+    738               reset_lt_auto_adjust_flag = 1;
+    739            }
+    740          #endif
+    741          }
+    742          
+    743          void robot_sensor_init(void)
+    744          {
+    745            int j,i;
+    746            useok = 0;	  
+    747            time_4khz_counter   = 0;  
+    748            cliff_index_on     = 0;
+    749            cliff_index_off    = 0;
+    750            light_index_on[0]  = 0;
+    751            light_index_on[1]  = 0;
+    752            light_index_off[0] = 0;
+    753            light_index_off[1] = 0;
+    754            
+    755            for(i=0;i<IR_SENSOR_NUM;i++)
+    756            {
+    757              signal_result[i]=0;
+    758              signal_average_on[i] =0;
+    759              signal_average_off[i]=0;
+    760              signal_delta[i]=0;
+    761            }
+    762            
+    763            for(i=0;i<IR_SENSOR_NUM;i++)
+    764            {
+    765              for(j=0;j<4;j++)
+    766              {
+    767                signal_queue_on[i][j] = 0;
+    768                signal_queue_off[i][j]= 0; 
+    769              }
+    770            }
+    771            reset_lt_auto_offset();
+    772            //reset_cliff_threshold();
+    773            sensor_threshold_update(get_local_ui_config());
+    774            robot_ir_init = 1;
+    775          }
+    776          
+    777          
+    778          void print_touch(void)
+    779          {
+    780          	robot_sensor_gather_start(1);
+    781          	if(signal_delta[LT_LEFT]||signal_delta[LT_CENTERLEFT]||signal_delta[LT_FRONTLEFT]||\
+    782          	  signal_delta[LT_FRONTRIGHT]||signal_delta[LT_CENTERRIGHT]||signal_delta[LT_RIGHT])
+    783          	{
+    784          	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
+    785          			 signal_delta[LT_LEFT], signal_delta[LT_CENTERLEFT], signal_delta[LT_FRONTLEFT], \
+    786          			 signal_delta[LT_FRONTRIGHT], signal_delta[LT_CENTERRIGHT], signal_delta[LT_RIGHT]);		
+    787          	}
+    788          }
+    789          
+    790          void print_cliff(void)
+    791          {
+    792          	robot_sensor_gather_start(1);
+    793              if(signal_delta[CLIFF_LEFT]||signal_delta[CLIFF_FRONTLEFT]||signal_delta[CLIFF_FRONTRIGHT]||signal_delta[CLIFF_RIGHT])	
+    794          	{
+    795          //	  printf("cliff: cl=%d fl=%d fr=%d cr=%d \r\n",\
+    796          //	         signal_delta[CLIFF_LEFT], signal_delta[CLIFF_FRONTLEFT], signal_delta[CLIFF_FRONTRIGHT], \
+    797          //	         signal_delta[CLIFF_RIGHT]);  	
+    798          	}     
+    799          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   enable_lt_offset_adjust
+       0   get_restore_lt_signal_offset_state
+       0   hal_isr
+       0   is_lt_offset_adjust_enable
+       8   print_cliff
+         8   -> robot_sensor_gather_start
+      24   print_touch
+        24   -- Indirect call
+        24   -> robot_sensor_gather_start
+       8   reset_cliff_threshold
+         8   -> get_local_ui_config
+         0   -> sensor_threshold_update
+       0   reset_lt_auto_offset
+      56   reset_lt_signal_offset
+        56   -- Indirect call
+        56   -> vram_write
+      48   restore_lt_signal_offset
+        48   -- Indirect call
+        48   -> __aeabi_memcpy
+        48   -> reset_lt_auto_offset
+        48   -> vram_read
+       8   robot_close_sensor_led
+         0   -- Indirect call
+         8   -- Indirect call
+       0   robot_is_cliff
+       0   robot_is_front_cliff
+       0   robot_is_lighttouch
+       0   robot_is_rear_cliff
+       0   robot_rear_lt_distance
+      16   robot_sensor_init
+        16   -> get_local_ui_config
+        16   -> reset_lt_auto_offset
+        16   -> sensor_threshold_update
+       0   robot_signal_distance
+      56   save_lt_signal_offset
+        56   -- Indirect call
+        56   -> vram_write
+      24   sensor_gather_cliff
+         0   -- Indirect call
+        24   -- Indirect call
+      24   sensor_gather_touch
+         0   -- Indirect call
+        24   -- Indirect call
+      40   sensor_handle_cliff
+         0   -- Indirect call
+        40   -> abs
+      40   sensor_handle_touch
+         0   -- Indirect call
+        40   -- Indirect call
+        40   -> abs
+       0   sensor_threshold_update
+       0   set_cliff_enable
+       0   set_cliff_threshold
+       8   set_lighttouch_enable
+         8   -- Indirect call
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable29
+       4  ??DataTable29_1
+       4  ??DataTable29_10
+       4  ??DataTable29_2
+       4  ??DataTable29_3
+       4  ??DataTable29_4
+       4  ??DataTable29_5
+       4  ??DataTable29_6
+       4  ??DataTable29_7
+       4  ??DataTable29_8
+       4  ??DataTable29_9
+      20  ?Subroutine0
+      40  ?Subroutine1
+      26  ?Subroutine2
+      10  ?Subroutine3
+      18  ?Subroutine4
+      16  ?Subroutine5
+      12  ?Subroutine6
+      32  ?_0
+      32  ?_1
+      24  ?_2
+      16  ?_3
+      44  ?_4
+       1  cliff_onoff_swith
+      14  enable_lt_offset_adjust
+       8  get_restore_lt_signal_offset_state
+      18  hal_isr
+       8  is_lt_offset_adjust_enable
+      64  light_index_on
+          light_index_off
+          cliff_index_on
+          cliff_index_off
+          useok
+          robot_ir_init
+          adcCache
+          time_4khz_counter
+          time_4khz_counter_touch
+       1  lt_onoff_swith
+      52  lt_signal_adjust_enable
+          reset_lt_auto_adjust_flag
+          restore_lt_signal_offset_ok
+          signal_threshold_on
+          signal_offset
+      38  print_cliff
+     102  print_touch
+      32  remap
+      12  reset_cliff_threshold
+      28  reset_lt_auto_offset
+      64  reset_lt_signal_offset
+     104  restore_lt_signal_offset
+      38  robot_close_sensor_led
+       4  robot_is_cliff
+       4  robot_is_front_cliff
+      10  robot_is_lighttouch
+       4  robot_is_rear_cliff
+       4  robot_rear_lt_distance
+     106  robot_sensor_init
+      12  robot_signal_distance
+      64  save_lt_signal_offset
+      80  sensor_gather_cliff
+     154  sensor_gather_touch
+     382  sensor_handle_cliff
+     390  sensor_handle_touch
+     106  sensor_threshold_update
+       6  set_cliff_enable
+      20  set_cliff_threshold
+      26  set_lighttouch_enable
+      64  signal_average_off
+          signal_delta
+     128  signal_queue_off
+     128  signal_queue_on
+      56  signal_result
+          cliff_filter
+          signal_average_on
+      32  signal_threshold_off
+
+ 
+   474 bytes in section .bss
+    52 bytes in section .data
+ 2 172 bytes in section .text
+ 
+ 2 172 bytes of CODE memory
+   526 bytes of DATA memory
+
+Errors: none
+Warnings: 2

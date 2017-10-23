@@ -1,0 +1,310 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:09
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\monitor\robot-battery-monitor.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\monitor\robot-battery-monitor.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  
+#        F:\1708\SDK - unlock\project\Debug\List\robot-battery-monitor.lst
+#    Object file  =  
+#        F:\1708\SDK - unlock\project\Debug\Obj\robot-battery-monitor.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\monitor\robot-battery-monitor.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          
+      7          #include <charge/charge.h>
+      8          #include <ui-config.h>
+      9          #include "robot_batter.h"
+     10          #include "syscall_api.h"
+     11          #include "ui-test_cmd_handle.h"
+     12          #include "am_date_base.h"
+     13          #include "act.h"
+     14          #include "util/current.h"
+     15          #include "ui-song-player.h"
+     16          
+     17          static u16 _battery_low_continue;
+     18          static u16 _battery_cut_continue;
+     19          static u8  _battery_cut_cnt;
+     20          static u16 battery_voltage_dock    = CHARGING_LOW_VOLTAGE;
+     21          static u16 battery_voltage_shutoff = CHARGING_CUTOFF_VOLTAGE;
+     22          extern uint32_t dock_signal_get_time;
+     23          /****************************************************************
+     24          *Function   :  robot_docking_kidnap_monitor
+     25          *Author     :  lyy
+     26          *Date       :  2017.4.20
+     27          *Description:  检测机器在充电状态过程中是否被意外移除动
+     28          *CallBy     :  10ms call it again
+     29          *Input      :  参数
+     30          *              battery_status ： 当前的状态
+     31          *Output     :  无
+     32          *Return     :  无
+     33          *Others     :  
+     34          *History    : //修改历史
+     35              <author>       <time>      <version>           <desc>
+     36              lyy            17.4.28       v1.0         build this function
+     37          ******************************************************************/
+     38          void robot_docking_kidnap_monitor(BatteryStatus *battery_status)
+     39          {
+     40              static DockingKidnap prev_status;
+     41              static uint8_t debounce_none = 0;
+     42              static uint8_t debounce_ing = 0;
+     43          
+     44              static DockingKidnap cur_status;
+     45          
+     46              if( (IS_RUNNING_MODE(sys_runing_mode_get())) && (sys_runing_mode_get()!=ROBOT_STATE_DOCK) )
+     47              {
+     48                debounce_ing = 0;
+     49                debounce_none = 0;
+     50                prev_status =DOCK_NONE;
+     51                cur_status=DOCK_NONE;
+     52                return;
+     53              }
+     54              
+     55              if(battery_status->charging_state == 0)
+     56              {
+     57                  debounce_ing = 0;
+     58                  debounce_none ++;
+     59                  if(debounce_none > 150)//10
+     60                  {
+     61                    debounce_none = 0;
+     62                    cur_status = DOCK_NONE;
+     63                  }
+     64              }
+     65              else
+     66              {
+     67                  debounce_none = 0;
+     68                  debounce_ing++;
+     69                  if(debounce_ing >= 2)//20ms
+     70                  {
+     71                    debounce_ing = 0;
+     72                    cur_status = DOCK_ING;
+     73                  }
+     74              }
+     75          
+     76              if( (prev_status == DOCK_ING) && (cur_status == DOCK_NONE) && \
+     77                  ((sys_runing_mode_get() == ROBOT_STATE_WAITING)|| (sys_runing_mode_get() == ROBOT_STATE_SLEEP)) )
+     78              {
+     79                cur_status = DOCK_KIDNAP;
+     80                if( !IS_RUNNING_MODE(sys_runing_mode_get()) && (sys_runing_mode_get()!=ROBOT_STATE_TESTING) )
+     81                {
+     82                  printf("dock kidnap \r\n");
+     83          
+     84                  if( (battery_status->last_status == DOCKING) )
+     85                  {
+     86                      if(robot_wheel_drop_mask()==(WHEEL_DROP_STATE_RIGHT|WHEEL_DROP_STATE_LEFT))
+     87                      {
+     88                        printf("w drop\r\n");
+     89                      }
+     90                      else
+     91                      {
+     92                        //go_to_dock();//need to do ,,,,,...... //to do...
+     93                        printf("need to dock\r\n");
+     94                        local_map_reset(0);
+     95                        if(timer_elapsed(dock_signal_get_time)<250)
+     96                        set_start_docking_state(1);
+     97                      }
+     98                  }
+     99                  else
+    100                  {
+    101                      printf("sta=%d\r\n",battery_status->last_status);
+    102                  }
+    103                  
+    104                }
+    105              }
+    106              prev_status = cur_status;    
+    107          }
+    108          
+    109          void delayus()
+    110          {
+    111          	uint16_t i;
+    112          	for(i=0;i<0x3000;i++)//3.6us
+    113          	{
+    114          	   ;
+    115          	}
+    116          }
+    117          
+    118          /****************************************************************
+    119          *Function   :  sys_shutdown
+    120          *Description:  关闭DCDC
+    121          *Input      :  无
+    122          *Output     :  无
+    123          *Return     :  无
+    124          *Others     :  
+    125          ******************************************************************/
+    126          void sys_shutdown(void)
+    127          {
+    128            int i=0;
+    129            
+    130            songplayer_play_id(SONG_ID_LOW_POWER, 0);
+    131            while(songplayer_is_playing())
+    132            {
+    133              sleep(10);
+    134            }
+    135            
+    136            while(i<0xffff)
+    137            {
+    138              i++;
+    139              gpio_set_value(IO_VCC_KILL, 0);
+    140              delayus();
+    141              gpio_set_value(IO_VCC_KILL, 1);
+    142              delayus();
+    143            }
+    144          }
+    145          
+    146          /****************************************************************
+    147          *Function   :  robot_docking_kidnap_monitor
+    148          *Author     :  lyy
+    149          *Date       :  2017.4.20
+    150          *Description:  检测机器电压是否过低，或者是否低电回座
+    151          *CallBy     :  10ms call it again
+    152          *Input      :  参数
+    153          *              无
+    154          *Output     :  无
+    155          *Return     :  无
+    156          *Others     :  
+    157          *History    : //修改历史
+    158              <author>       <time>      <version>           <desc>
+    159              lyy            17.4.28       v1.0         build this function
+    160          ******************************************************************/
+    161          void robot_battery_monitor(void)
+    162          {
+    163              
+    164              if(charging_detect())
+    165              {
+    166                _battery_low_continue = 0;
+    167                _battery_cut_continue = 0;
+    168                _battery_cut_cnt = 0;
+    169              }
+    170              else
+    171              {
+    172                if(battery_voltage_average() <= battery_voltage_shutoff)
+    173                {
+    174                   _battery_cut_continue++;
+    175                   if(_battery_cut_continue > 5*100)//5S
+    176                   {
+    177                       if(!charging_detect())
+    178                       {
+    179                         printf("bvl,shutdown\r\n");
+    180                         _battery_cut_continue=0;
+    181                         //to do ,,,, go to shutdown system
+    182                         sys_shutdown();
+    183                       }
+    184                   }
+    185                }
+    186                else if(battery_voltage_average() <= battery_voltage_dock)
+    187                {
+    188                    _battery_low_continue++;
+    189                    if(_battery_low_continue > 10*100)//15S
+    190                    {            
+    191                      _battery_low_continue = 0;
+    192                      if( ( sys_runing_mode_get()==ROBOT_STATE_CLEANING_ROOM ))
+    193                      {
+    194                        //go_to_dock();//need to do ,,,,,
+    195                        printf("bat is low,go home...\r\n");
+    196                        set_start_docking_state(1);
+    197                      }
+    198                    }
+    199                }
+    200                else
+    201                {
+    202                  if(_battery_cut_continue)
+    203                    _battery_cut_continue--;
+    204                  
+    205                  if(_battery_low_continue)
+    206                    _battery_low_continue--;
+    207                  
+    208                  if(_battery_cut_cnt)
+    209                    _battery_cut_cnt--;
+    210                }
+    211              }
+    212          }
+    213          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   delayus
+      16   robot_battery_monitor
+        16   -- Indirect call
+        16   -> battery_voltage_average
+        16   -> charging_detect
+         0   -> set_start_docking_state
+         0   -> sys_shutdown
+      24   robot_docking_kidnap_monitor
+        24   -- Indirect call
+        24   -> local_map_reset
+        24   -> robot_wheel_drop_mask
+        24   -> set_start_docking_state
+        24   -> timer_elapsed
+      16   sys_shutdown
+        16   -- Indirect call
+        16   -> delayus
+        16   -> sleep
+        16   -> songplayer_is_playing
+        16   -> songplayer_play_id
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable8
+       4  ??DataTable8_1
+       4  ??DataTable8_2
+       4  ??DataTable8_3
+       6  ?Subroutine0
+      16  ?_0
+      12  ?_1
+      16  ?_2
+      12  ?_3
+      16  ?_4
+      24  ?_5
+       6  _battery_cut_cnt
+          _battery_low_continue
+          _battery_cut_continue
+       2  battery_voltage_dock
+       2  battery_voltage_shutoff
+       2  delayus
+       4  prev_status
+          debounce_none
+          debounce_ing
+          cur_status
+     156  robot_battery_monitor
+     258  robot_docking_kidnap_monitor
+      70  sys_shutdown
+
+ 
+  10 bytes in section .bss
+   4 bytes in section .data
+ 604 bytes in section .text
+ 
+ 604 bytes of CODE memory
+  14 bytes of DATA memory
+
+Errors: none
+Warnings: none

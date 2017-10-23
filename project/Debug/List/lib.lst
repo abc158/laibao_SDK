@@ -1,0 +1,432 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:08
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\local_process\lib.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\local_process\lib.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\lib.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\lib.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\local_process\lib.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include <ui-config.h>
+      6          #include "am_date_base.h"
+      7          #include "ui-commands.h"
+      8          #include "am_config_macro.h"
+      9          #include "syscall_api.h"
+     10          #include "ui-song-player.h"
+     11          #include "act.h"
+     12          /*命令结构的长度*/
+     13          #define CMD_LEN  7
+     14          
+     15          U8 uart_send_buf[70];                      /*存放与系统通信的数据的数组*/
+     16          schedule_time_info tmp_schedule_info;
+     17          
+     18          /*配置主板当前的时间*/
+     19          static tm set_current_day;
+     20          
+     21          schedule_time_info obj_schedule_info_msg_t;
+     22          
+     23          extern u8 last_state;
+     24          extern u8 direction_key_up_flag;
+     25          /****************************************************************
+     26          *Function   :  act_command_q
+     27          *Description:  发送命令  
+     28          *Input      :  CONTROL_CMD_E ui_cmd 
+     29          *              CMD_STATE_E cmd_state
+     30          *              void *msg :数据存放的地址
+     31          *              U16 msg_len:数据长度
+     32          *Output     :  无
+     33          *Return     :  无
+     34          *Others     :  
+     35          ******************************************************************/
+     36          void act_command_q(U32 ui_cmd, U8 cmd_state, void *msg, U16 msg_len)
+     37          {
+     38            command   cmd; 
+     39            cmd.cmd       =ui_cmd;
+     40            cmd.cmd_type  = CONTROL_CMD;
+     41            cmd.cmd_state = cmd_state;
+     42            cmd.len = msg_len;
+     43            
+     44            
+     45            memcpy(uart_send_buf,&cmd,CMD_LEN);
+     46            if(msg_len >0)
+     47            {
+     48              memcpy(uart_send_buf + CMD_LEN, (U8 *)msg, msg_len);    
+     49            }
+     50            act_ctrl_cmd(uart_send_buf);     
+     51          }
+     52          
+     53          /*pack for a kind of data*/
+     54          U32 send_schedule_cmd(void)
+     55          { 
+     56            schedule_time_info *msg = &obj_schedule_info_msg_t;
+     57            U16 msg_len = sizeof(schedule_time_info);
+     58            act_command_q((U32)CMD_SCHDULE, (U8)CMD_RUN, (void *)msg, msg_len);
+     59            return (U32)CMD_SCHDULE;
+     60          }
+     61          
+     62          U32 send_time_cmd(void)
+     63          { 
+     64            tm *msg = &set_current_day;
+     65            U16 msg_len = sizeof(tm);
+     66            act_command_q((U32)CMD_CLOCK, (U8)CMD_RUN, (void *)msg, msg_len);
+     67            return (U32)CMD_CLOCK;
+     68          }
+     69          
+     70          U32 send_sleep_time_cmd(void)
+     71          { 
+     72            tm *msg = &set_current_day;
+     73            printf("week=%d,hour=%d,min=%d\r\n",set_current_day.week,set_current_day.hour,set_current_day.min);
+     74            U16 msg_len = sizeof(tm);
+     75            act_command_q((U32)CMD_TIMING, (U8)CMD_RUN, (void *)msg, msg_len);
+     76            return (U32)CMD_TIMING;
+     77          }
+     78          
+     79          U32 send_standby_cmd(void)
+     80          {
+     81            act_command_q((U32)CMD_POWER, (U8)CMD_RUN, (void *)NULL, 0);
+     82            return (U32)CMD_POWER;    
+     83          }
+     84          
+     85          /*get state info */
+     86          tm *get_current_time(void)
+     87          {
+     88            return NULL;
+     89          }
+     90          
+     91          schedule_time_info *get_schedule_info(void)
+     92          {
+     93            return &(obj_schedule_info_msg_t);
+     94          }
+     95          
+     96          schedule_time_info *get_tmp_schedule_info(void)
+     97          {
+     98          
+     99            return NULL;
+    100          }
+    101          
+    102          void make_schedule_time(tm *t, bool en)
+    103          {
+    104            U8 bit = (0x1<< t->week);
+    105            tmp_schedule_info.SCH_ENABLE.BYTE &= ~bit;
+    106            bit = (en << t->week);
+    107            tmp_schedule_info.SCH_ENABLE.BYTE |= bit;
+    108            memcpy(&(tmp_schedule_info.t[t->week]),t,sizeof(tm));
+    109          }
+    110          
+    111          void set_schedule_time(void)
+    112          {
+    113            memcpy(&(obj_schedule_info_msg_t),&(tmp_schedule_info),sizeof(schedule_time_info));    
+    114          }
+    115          
+    116          void set_current_time(tm *t)
+    117          {
+    118            memcpy(&set_current_day, t, sizeof(tm));
+    119          }
+    120          
+    121          
+    122          u8 send_drive_forward_cmd = 0;
+    123          u8 send_drive_backward_cmd = 0;
+    124          u8 send_drive_left_cmd = 0;
+    125          u8 send_drive_right_cmd = 0;
+    126          /****************************************************************
+    127          *Function   :  send_forward_cmd
+    128          *Description:  发送向前命令  
+    129          *Input      :  CMD_STATE_E mode
+    130          *Output     :  无
+    131          *Return     :  无
+    132          *Others     :  
+    133          ******************************************************************/
+    134          void send_forward_cmd(CMD_STATE_E mode)
+    135          { 
+    136            s16 msg[1];
+    137            
+    138            if (mode == CMD_RUN)
+    139            {
+    140            	if (send_drive_forward_cmd == 0)
+    141            	{  
+    142          	  if((direction_key_up_flag == 0)&&(get_robot_current_state() !=ROBOT_STATE_REMOTE_DRIVE))
+    143          	  {
+    144          	  	set_save_state(get_robot_current_state());
+    145          	  }
+    146          	  direction_key_up_flag =0;
+    147                msg[0] = -1;//前进的距离，单位是cm，-1表示一直向前
+    148                act_command_q(CMD_FORWARD, CMD_RUN, (void *)&msg[0], 2);	
+    149          	  send_drive_forward_cmd = 1;
+    150          	  send_drive_backward_cmd = 0;
+    151          	  send_drive_left_cmd = 0;
+    152          	  send_drive_right_cmd = 0;	  
+    153              }
+    154            }
+    155            else
+    156            {
+    157          	act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);	
+    158          	direction_key_up_flag =1;	
+    159            	send_drive_forward_cmd = 0;
+    160            }
+    161          }
+    162          
+    163          /****************************************************************
+    164          *Function   :  send_forward_cmd
+    165          *Description:  发送向后命令  
+    166          *Input      :  CMD_STATE_E mode
+    167          *Output     :  无
+    168          *Return     :  无
+    169          *Others     :  
+    170          ******************************************************************/
+    171          void send_backward_cmd(CMD_STATE_E mode)
+    172          { 
+    173            s16 msg[1];
+    174            
+    175            if (mode == CMD_RUN)
+    176            {
+    177            	if (send_drive_backward_cmd == 0)
+    178            	{
+    179          	  if((direction_key_up_flag == 0)&&(get_robot_current_state() !=ROBOT_STATE_REMOTE_DRIVE))
+    180          	  {
+    181          	  	set_save_state(get_robot_current_state());
+    182          	  } 
+    183          	  direction_key_up_flag =0;
+    184                msg[0] = -1;//后退的距离，单位是cm，-1表示一直向前
+    185                act_command_q(CMD_BACK, CMD_RUN, (void *)&msg[0], 2);
+    186          	  send_drive_backward_cmd = 1;	  
+    187          	  send_drive_forward_cmd = 0;
+    188          	  send_drive_left_cmd = 0;
+    189          	  send_drive_right_cmd = 0;	  	  
+    190              }
+    191            }
+    192            else
+    193            {
+    194          	act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);	
+    195          	direction_key_up_flag =1;	
+    196            	send_drive_backward_cmd = 0;
+    197            }
+    198          }
+    199          
+    200          /****************************************************************
+    201          *Function   :  send_left_cmd
+    202          *Description:  发送向左命令  
+    203          *Input      :  CMD_STATE_E mode
+    204          *Output     :  无
+    205          *Return     :  无
+    206          *Others     :  
+    207          ******************************************************************/
+    208          void send_left_cmd(CMD_STATE_E mode)
+    209          { 
+    210            s16 msg[1];
+    211            
+    212            if (mode == CMD_RUN)
+    213            {	
+    214            	if (send_drive_left_cmd == 0)
+    215            	{
+    216          	  if((direction_key_up_flag == 0)&&(get_robot_current_state() !=ROBOT_STATE_REMOTE_DRIVE))
+    217          	  {
+    218          	  	set_save_state(get_robot_current_state());
+    219          	  }
+    220          	  direction_key_up_flag =0;
+    221                msg[0] = -1;//转动的角度，单位是度，-1表示一直转动
+    222                act_command_q(CMD_LEFT, CMD_RUN, (void *)&msg[0], 2);
+    223          	  send_drive_left_cmd = 1;	  
+    224          	  send_drive_forward_cmd = 0;
+    225          	  send_drive_backward_cmd = 0;
+    226          	  send_drive_right_cmd = 0;	  	  
+    227              }
+    228            }
+    229            else
+    230            {
+    231          	act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);	
+    232          	direction_key_up_flag =1;	
+    233            	send_drive_left_cmd = 0;
+    234            }
+    235          }
+    236          
+    237          /****************************************************************
+    238          *Function   :  send_right_cmd
+    239          *Description:  发送向右命令  
+    240          *Input      :  CMD_STATE_E mode
+    241          *Output     :  无
+    242          *Return     :  无
+    243          *Others     :  
+    244          ******************************************************************/
+    245          void send_right_cmd(CMD_STATE_E mode)
+    246          { 
+    247            s16 msg[1];
+    248            
+    249            if (mode == CMD_RUN)
+    250            {
+    251            	if (send_drive_right_cmd == 0)
+    252            	{	  
+    253          	  if((direction_key_up_flag == 0)&&(get_robot_current_state() !=ROBOT_STATE_REMOTE_DRIVE))
+    254          	  {
+    255          	  	set_save_state(get_robot_current_state());
+    256          	  }
+    257          	  direction_key_up_flag =0;
+    258                msg[0] = -1;//转动的角度，单位是度，-1表示一直转动
+    259                act_command_q(CMD_RIGHT, CMD_RUN, (void *)&msg[0], 2);
+    260          	  send_drive_right_cmd = 1;	 	  
+    261          	  send_drive_forward_cmd = 0;
+    262          	  send_drive_backward_cmd = 0;
+    263          	  send_drive_left_cmd = 0;	  
+    264              }
+    265            }
+    266            else
+    267            {
+    268          	act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0);	
+    269          	direction_key_up_flag =1;	
+    270            	send_drive_right_cmd = 0;
+    271            }
+    272          }
+    273          
+    274          
+    275          /****************************************************************
+    276          *Function   :  clean_out_key_flg
+    277          *Description:  相当于按键抬起，把按键标志清零
+    278          *Input      :  无 
+    279          *Output     :  无
+    280          *Return     :  无
+    281          *Others     :  by ljh
+    282          ******************************************************************/
+    283          void clean_out_key_flg(void)
+    284          {
+    285          	act_command_q(CMD_PAUSE, CMD_STOP, NULL, 0); //必须先发这个命令让机器停下来，不然极速切换到回座的时候不响应回座
+    286          	//direction_key_up_flag =1;
+    287          	send_drive_forward_cmd = 0;//下面四个清零的操作是为了避免第二次进行相同的方向键操作时不响应该方向键，第三次才响应
+    288          	send_drive_backward_cmd = 0;
+    289          	send_drive_left_cmd = 0;
+    290          	send_drive_right_cmd = 0;	
+    291          	sleep(10);
+    292          }
+    293          
+    294          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      24   act_command_q
+        24   -> __aeabi_memcpy
+        24   -> __aeabi_memcpy4
+        24   -> act_ctrl_cmd
+       8   clean_out_key_flg
+         8   -> act_command_q
+         0   -> sleep
+       0   get_current_time
+       0   get_schedule_info
+       0   get_tmp_schedule_info
+      16   make_schedule_time
+         0   -> __aeabi_memcpy
+      16   send_backward_cmd
+        16   -> act_command_q
+        16   -> get_robot_current_state
+        16   -> set_save_state
+      16   send_forward_cmd
+        16   -> act_command_q
+        16   -> get_robot_current_state
+        16   -> set_save_state
+      16   send_left_cmd
+        16   -> act_command_q
+        16   -> get_robot_current_state
+        16   -> set_save_state
+      16   send_right_cmd
+        16   -> act_command_q
+        16   -> get_robot_current_state
+        16   -> set_save_state
+       8   send_schedule_cmd
+         8   -> act_command_q
+      16   send_sleep_time_cmd
+        16   -- Indirect call
+        16   -> act_command_q
+       8   send_standby_cmd
+         8   -> act_command_q
+       8   send_time_cmd
+         8   -> act_command_q
+       0   set_current_time
+         0   -> __aeabi_memcpy
+       0   set_schedule_time
+         0   -> __aeabi_memcpy4
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable15
+       4  ??DataTable15_1
+       4  ??DataTable15_10
+       4  ??DataTable15_11
+       4  ??DataTable15_12
+       4  ??DataTable15_13
+       4  ??DataTable15_14
+       4  ??DataTable15_15
+       4  ??DataTable15_2
+       4  ??DataTable15_3
+       4  ??DataTable15_4
+       4  ??DataTable15_5
+       4  ??DataTable15_6
+       4  ??DataTable15_7
+       4  ??DataTable15_8
+       4  ??DataTable15_9
+      12  ?Subroutine0
+       6  ?Subroutine1
+      20  ?Subroutine2
+      10  ?Subroutine3
+       8  ?Subroutine4
+       8  ?Subroutine5
+      28  ?_0
+      54  act_command_q
+      28  clean_out_key_flg
+       4  get_current_time
+       4  get_schedule_info
+       4  get_tmp_schedule_info
+      48  make_schedule_time
+      64  send_backward_cmd
+       4  send_drive_forward_cmd
+          send_drive_backward_cmd
+          send_drive_left_cmd
+          send_drive_right_cmd
+      64  send_forward_cmd
+      68  send_left_cmd
+      68  send_right_cmd
+      10  send_schedule_cmd
+      40  send_sleep_time_cmd
+      10  send_standby_cmd
+       8  send_time_cmd
+       8  set_current_day
+      10  set_current_time
+      12  set_schedule_time
+     120  tmp_schedule_info
+          obj_schedule_info_msg_t
+      72  uart_send_buf
+
+ 
+ 204 bytes in section .bss
+ 652 bytes in section .text
+ 
+ 652 bytes of CODE memory
+ 204 bytes of DATA memory
+
+Errors: none
+Warnings: none

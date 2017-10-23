@@ -1,0 +1,435 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:10
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\monitor\robot_univrsal_wheel.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\monitor\robot_univrsal_wheel.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  
+#        F:\1708\SDK - unlock\project\Debug\List\robot_univrsal_wheel.lst
+#    Object file  =  
+#        F:\1708\SDK - unlock\project\Debug\Obj\robot_univrsal_wheel.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\monitor\robot_univrsal_wheel.c
+      1          #include "robot_univrsal_wheel.h"
+      2          #include "am_exti_cfg.h"
+      3          #include "syscall_api.h"
+      4          #include "am_device.h"
+      5          #include "sensor/sensor.h"
+      6          
+      7          
+      8          #define AM_IO_STASIS_IN GPIOB(12)
+      9          #define STASIS_ON_COUNT 3
+     10          
+     11          AM_Pose stasis_last_pos;
+     12          u32 stasis_count=0;
+     13          u32 stasis_test=0;
+     14          
+     15          static int statsis_id = -1;
+     16          static BOOLEAN  stasis_throd_bool=FALSE;
+     17          static uint8_t  begin_monitor = 0;
+     18          
+     19          
+     20          //提供给SDK底层使用的
+     21          int universal_wheel_count(void)
+     22          {
+     23            return stasis_count;
+     24          }
+     25          
+     26          //中断处理函数
+     27          static void robot_universal_wheel_monitor(u8 arg)
+     28          {
+     29            arg = arg;
+     30            robot_pos_get(&stasis_last_pos);
+     31            stasis_count++;
+     32            stasis_test++;
+     33            begin_monitor = (begin_monitor<STASIS_ON_COUNT*2)? (begin_monitor+1):STASIS_ON_COUNT*2;
+     34          }
+     35          
+     36          /****************************************************************
+     37          *Function   :  robot_stasis_test_clear
+     38          *Author     :  lyy    
+     39          *Date       :  2017.6.27
+     40          *Description:  测试万向轮时，使用。 清除万向轮转动的数据
+     41          *CallBy     :  测试模式下
+     42          *Input      :  参数
+     43          *              无
+     44          *Output     :  无
+     45          *Return     :  无
+     46          *Others     :  
+     47          *History    : //修改历史
+     48              <author>       <time>      <version>           <desc>
+     49              lyy            17.4.28       v1.0         build this function
+     50          ******************************************************************/
+     51          void robot_stasis_test_clear(void)
+     52          {
+     53            stasis_test = 0;
+     54          }
+     55          
+     56          /****************************************************************
+     57          *Function   :  robot_stasis_test_get
+     58          *Author     :  lyy    
+     59          *Date       :  2017.6.27
+     60          *Description:  获取万向轮转动的次数
+     61          *CallBy     :  测试模式下
+     62          *Input      :  参数
+     63          *              无
+     64          *Output     :  无
+     65          *Return     :  返回：万向轮转动的次数
+     66          *Others     :  
+     67          *History    : //修改历史
+     68              <author>       <time>      <version>           <desc>
+     69              lyy            17.4.28       v1.0         build this function
+     70          ******************************************************************/
+     71          u32 robot_stasis_test_get(void)
+     72          {
+     73            return stasis_test;
+     74          }
+     75          
+     76          void robot_universal_wheel_init(void)
+     77          {
+     78             stasis_count  = 0;
+     79             stasis_test   = 0;
+     80             begin_monitor = 0; 
+     81          }
+     82          
+     83          void set_stasis_high_throd()
+     84          {
+     85            stasis_throd_bool=TRUE;
+     86          }
+     87          
+     88          void set_stasis_normal()
+     89          {
+     90            stasis_throd_bool=TRUE;
+     91          }
+     92          
+     93          void turn_off_stasis()
+     94          {
+     95              set_slip_high_throd(2.2f);
+     96              stasis_throd_bool=TRUE;
+     97          
+     98          }
+     99          
+    100          void turn_on_stasis()
+    101          {
+    102            set_slip_normal();
+    103            stasis_throd_bool=FALSE;
+    104          }
+    105          /////////////////////////////////////////////////
+    106          /*
+    107          return
+    108          0: 表示没有万向轮bump
+    109          1：表示有万向轮bump
+    110          */
+    111          int universal_wheel_monitor(void *arg)
+    112          {
+    113              static float stasis_lenth=STASIS_TRIGGER_NORMAL_LENTH;
+    114              static u32 stasis_time_stp;
+    115              static u8  stasis_count_local=0;
+    116              static u32 stasis_count_ex;
+    117              static am_real last_stasis_dist_from;
+    118              static float stasis_cof=1.0f;
+    119              static uint8_t stasis_run_forward_check_normal_count=21;
+    120              static u32 forward_stasis;
+    121              u8  have_set_stasis_cof;
+    122              s16 c_lefts,c_rights;
+    123              s16 reported_velocity_left,reported_velocity_right;
+    124              int flag = 0;
+    125              
+    126              //arg = arg;//暂时没有使用，留将来扩展使用，用来给SDK底层和APP交互参数
+    127          
+    128              get_commanded_speeds(&c_lefts,&c_rights);
+    129              get_motor_speeds(&reported_velocity_left,&reported_velocity_right);
+    130              //printf("%d,%d-%d,%d\r\n",(int)(ticks_to_mm(reported_velocity_left) *1000),(int)(ticks_to_mm(reported_velocity_right) *1000),(int)(ticks_to_mm(c_lefts)*1000),(int)(ticks_to_mm(c_rights)*1000));
+    131              if((ticks_to_mm(reported_velocity_left)>30.0f) && (ticks_to_mm(reported_velocity_right)>30.0f))
+    132              {
+    133                AM_Pose robot_pos;
+    134                am_real dist;
+    135                robot_pos_get(&robot_pos);
+    136                dist = robot_xy_dist(&robot_pos.xy, &stasis_last_pos.xy)*1000;
+    137          
+    138                //make sure the stasis is working correctly,dat:20170418
+    139                if(stasis_count_ex != stasis_count)
+    140                {
+    141              	  stasis_count_ex=stasis_count;
+    142                    if(last_stasis_dist_from>STASIS_RUN_LENTH_IN_MM*5)
+    143                    {
+    144                      if(stasis_run_forward_check_normal_count<60)
+    145                      {
+    146                        stasis_run_forward_check_normal_count += 5;
+    147                      }
+    148                    }
+    149                    else
+    150                    {
+    151                      if(stasis_run_forward_check_normal_count>0)
+    152                      {
+    153                        stasis_run_forward_check_normal_count--;
+    154                      }
+    155                    }
+    156                    
+    157                    if(stasis_run_forward_check_normal_count>14)
+    158                    {
+    159                      printf("stasis over,%d\r\n",stasis_run_forward_check_normal_count);
+    160                      have_set_stasis_cof = 1;
+    161                      stasis_cof=6.0f;
+    162                    }
+    163                    else
+    164                    {
+    165                      have_set_stasis_cof = 0;
+    166                      stasis_cof=1.0f;
+    167                    }
+    168          
+    169                }
+    170          
+    171          
+    172                if(!have_set_stasis_cof)
+    173                {
+    174                  if( (robot_signal_distance(LT_FRONTLEFT) < 40) &&  (robot_signal_distance(LT_FRONTRIGHT) < 40) ) //这个参数根据实际调整
+    175                  {
+    176                    stasis_cof = 6.0f;
+    177                  }  
+    178                  else
+    179                  {
+    180                    stasis_cof = 1.0f;  
+    181                  }
+    182                }   
+    183                
+    184                last_stasis_dist_from = dist;
+    185                
+    186                if(begin_monitor>STASIS_ON_COUNT)
+    187                {
+    188                  if(((dist > stasis_lenth*stasis_cof) && (stasis_throd_bool==FALSE)) ||  \
+    189                      ((dist > STASIS_SET_HIGH_THROD*stasis_cof) && (stasis_throd_bool==TRUE)))
+    190                  {
+    191                    if(timer_elapsed(stasis_time_stp)<6000)
+    192                    {
+    193                      stasis_count_local++;
+    194                    }
+    195                    else
+    196                    {
+    197                      if(stasis_count_local>0)
+    198                      {
+    199                      	stasis_count_local--;
+    200                      }
+    201                    }
+    202                    
+    203                    if(stasis_count_local>3)
+    204                    {
+    205                      stasis_lenth=STASIS_ALWAYS_SET_THROD;
+    206                      stasis_count_local=3;
+    207                      printf("always stasis!!!!!");
+    208                    }
+    209                    else
+    210                    {
+    211                      stasis_lenth=STASIS_TRIGGER_NORMAL_LENTH;
+    212                    }
+    213                    
+    214                    printf("stasis %d %d (%d,%d)!\r\n",(int)(dist*100),(int)(stasis_lenth*100),c_lefts,c_rights);
+    215                    
+    216                    if((c_rights>0) && (c_lefts > 0) && !wall_follow_is_running())//if forward
+    217                    {
+    218                      if(!forward_stasis)
+    219                      {
+    220                        forward_stasis = timer_ms();
+    221                      }
+    222                      else
+    223                      {
+    224                        if( timer_elapsed(forward_stasis) < 4000 )//如果4000ms内还有，则一般是正前方撞到东西
+    225                        {
+    226                          flag = 1;
+    227                        }
+    228                        forward_stasis = 0;
+    229                      }            
+    230                    }
+    231          
+    232                    robot_pos_get(&stasis_last_pos);
+    233                    stasis_time_stp=timer_ms();
+    234                  }
+    235                }
+    236                else
+    237                {
+    238                  robot_pos_get(&stasis_last_pos);
+    239                }
+    240              }
+    241              else if((abs(reported_velocity_left)>30) || (abs(reported_velocity_right)>30))
+    242              {
+    243                if(begin_monitor>STASIS_ON_COUNT)
+    244                {
+    245                  AM_Pose robot_pos;
+    246                  am_real dist;
+    247                  robot_pos_get(&robot_pos);
+    248                  dist = robot_xy_dist(&robot_pos.xy, &stasis_last_pos.xy)*1000;
+    249                  if(((dist > STASIS_TRIGGER_HIGH_LENTH*stasis_cof) && (stasis_throd_bool==FALSE)) || \
+    250                       ((dist > STASIS_SET_HIGH_THROD*stasis_cof) && (stasis_throd_bool==TRUE)))
+    251                  {
+    252                    printf("stasis2 %d!\r\n",(int)(dist*100));
+    253          
+    254                    if((c_rights>0) && (c_lefts > 0) && !wall_follow_is_running())//if forward
+    255                    {
+    256                      if(!forward_stasis)
+    257                      {
+    258                        forward_stasis = timer_ms();
+    259                      }
+    260                      else
+    261                      {
+    262                        if( timer_elapsed(forward_stasis) < 4000 )//如果4000ms内还有，则一般是正前方撞到东西
+    263                        {
+    264                          flag = 1;
+    265                        }
+    266                        forward_stasis = 0;
+    267                      }            
+    268                    }
+    269          
+    270                    robot_pos_get(&stasis_last_pos);
+    271                    stasis_time_stp=timer_ms();
+    272                  }
+    273                }
+    274              }
+    275              else
+    276              {
+    277                begin_monitor = 0;
+    278                robot_pos_get(&stasis_last_pos);
+    279              }
+    280              return flag;
+    281          }
+    282          
+    283          
+    284          void  robot_universl_wheel_init(void)
+    285          {
+    286            exti_init_t exti_user_init;
+    287             
+    288            statsis_id = open(DEV_EXTI,AM_IO_STASIS_IN);
+    289            exti_user_init.IntEn       = ENABLE;
+    290            exti_user_init.Int_type    = EXTI_BOTH_EDGE;
+    291            exti_user_init.WakeupirqEn = DISABLE;
+    292            exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
+    293            request_irq(statsis_id,(long)robot_universal_wheel_monitor,0);
+    294            ioctl(statsis_id,EXTI_INIT,&exti_user_init);
+    295          }
+    296          
+    297          void  robot_universl_wheel_exit(void)
+    298          {
+    299            close(statsis_id);
+    300          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   robot_stasis_test_clear
+       0   robot_stasis_test_get
+       0   robot_universal_wheel_init
+       8   robot_universal_wheel_monitor
+         8   -- Indirect call
+       0   robot_universl_wheel_exit
+         0   -- Indirect call
+      16   robot_universl_wheel_init
+        16   -- Indirect call
+        16   -> request_irq
+       0   set_stasis_high_throd
+       0   set_stasis_normal
+       8   turn_off_stasis
+         8   -> set_slip_high_throd
+       8   turn_on_stasis
+         8   -> set_slip_normal
+       0   universal_wheel_count
+      64   universal_wheel_monitor
+        64   -- Indirect call
+        64   -> __aeabi_f2iz
+        64   -> __aeabi_fdiv
+        64   -> __aeabi_fmul
+        64   -> __aeabi_i2f
+        64   -> abs
+        64   -> get_commanded_speeds
+        64   -> get_motor_speeds
+        64   -> robot_signal_distance
+        64   -> robot_xy_dist
+        64   -> timer_elapsed
+        64   -> timer_ms
+        64   -> wall_follow_is_running
+        64 __aeabi_cfcmple
+        64 __aeabi_cfrcmple
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable14
+       4  ??DataTable14_1
+       4  ??DataTable14_10
+       4  ??DataTable14_11
+       4  ??DataTable14_12
+       4  ??DataTable14_13
+       4  ??DataTable14_14
+       4  ??DataTable14_2
+       4  ??DataTable14_3
+       4  ??DataTable14_4
+       4  ??DataTable14_5
+       4  ??DataTable14_6
+       4  ??DataTable14_7
+       4  ??DataTable14_8
+       4  ??DataTable14_9
+       8  ?Subroutine0
+      10  ?Subroutine1
+      10  ?Subroutine2
+       6  ?Subroutine3
+      20  ?_0
+      20  ?_1
+      24  ?_2
+      16  ?_3
+       8  robot_stasis_test_clear
+       6  robot_stasis_test_get
+      12  robot_universal_wheel_init
+      42  robot_universal_wheel_monitor
+      12  robot_universl_wheel_exit
+      66  robot_universl_wheel_init
+       2  set_stasis_high_throd
+       2  set_stasis_normal
+      48  stasis_throd_bool
+          begin_monitor
+          stasis_count_local
+          stasis_run_forward_check_normal_count
+          stasis_count
+          stasis_test
+          stasis_lenth
+          stasis_time_stp
+          stasis_count_ex
+          last_stasis_dist_from
+          stasis_cof
+          forward_stasis
+          stasis_last_pos
+       4  statsis_id
+      16  turn_off_stasis
+      14  turn_on_stasis
+       6  universal_wheel_count
+     620  universal_wheel_monitor
+
+ 
+  52 bytes in section .data
+ 980 bytes in section .text
+ 
+ 980 bytes of CODE memory
+  52 bytes of DATA memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,369 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:10
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\monitor\robot_battery.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\monitor\robot_battery.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\robot_battery.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\robot_battery.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\monitor\robot_battery.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          /*edit by lyy*/
+      6          #include <charge/charge.h>
+      7          #include "syscall_api.h"
+      8          #include "robot_batter.h"
+      9          #include "util/current.h"
+     10          
+     11          
+     12          static void _battery_update(u32 value);
+     13          static void _charge_update(void);
+     14          
+     15          static BatteryStatus _battery_status =
+     16          {
+     17              .voltage =  CHARGING_MAXVOL,        //BATTERY_VOLTAGE_FULL,
+     18              .capacity = CHARGING_MAXVOL,        //BATTERY_CAPACITY,   
+     19              .remaining_charge = CHARGING_MAXVOL,       //remaining charge
+     20              .temperature = 30,                         // battery temperature
+     21              .charger_voltage = 0,                       // charger voltage
+     22              .charging_current = 0,
+     23              .charging_state = 0,       // charging state
+     24              .last_status    = 0,
+     25          
+     26          };
+     27          
+     28          #define CHARGER_PULSE_TIME_MIN        2 //ms
+     29          #define CHARGER_PULSE_HOLD_TIME       4000 //ms
+     30          #define CHARGER_RELASE_TIME           5000 //ms
+     31          
+     32          typedef struct
+     33          {
+     34            struct
+     35            {
+     36              U16 holdCount;  
+     37              U8  first;
+     38            } pulse;
+     39            struct
+     40            {
+     41              U8 active;  
+     42              U8 relase;
+     43              U8 last_status;
+     44            } stable;  
+     45          } CHARGER_DETECT;
+     46          
+     47          CHARGER_DETECT chargerDetect;
+     48          
+     49          #define BATTERY_STATUS_CHECKJACKIN_INTERVAL     1
+     50          #define BATTERY_STATUS_UPDATE_INTERVAL          1000 
+     51          
+     52          /****************************************************************
+     53          *Function   :  robot_battery_init
+     54          *Author     :  lyy
+     55          *Date       :  2017.4.20
+     56          *Description:  初始化charge状态初始化
+     57          *CallBy     :  
+     58          *Input      :  参数
+     59          *              无
+     60          *Output     :  无
+     61          *Return     :  无
+     62          *Others     :  
+     63          *History    : //修改历史
+     64              <author>       <time>      <version>           <desc>
+     65              lyy            17.4.28       v1.0         build this function
+     66          ******************************************************************/
+     67          void robot_battery_init(void)
+     68          {
+     69              chargerDetect.stable.active   = 0;
+     70              chargerDetect.stable.last_status = CHARGE_NULL;
+     71              chargerDetect.pulse.first = 0;
+     72              chargerDetect.pulse.holdCount = 0;
+     73              timer_task_register(_charge_update,     BATTERY_STATUS_CHECKJACKIN_INTERVAL,    TRUE);
+     74          }
+     75          
+     76          /****************************************************************
+     77          *Function   :  _charge_update
+     78          *Author     :  lyy
+     79          *Date       :  2017.4.20
+     80          *Description:  检测是在dock上，还是在jack上
+     81          *CallBy     :  
+     82          *Input      :  参数
+     83          *              无
+     84          *Output     :  chargerDetect.stable.last_status
+     85          *Return     :  无
+     86          *Others     :  
+     87          *History    : //修改历史
+     88              <author>       <time>      <version>           <desc>
+     89              lyy            17.4.28       v1.0         build this function
+     90          ******************************************************************/
+     91          static void _charge_update(void)
+     92          {
+     93            static U32 carp_time = 0;
+     94            static U32 relase_time = 0;
+     95            U8  chargerLowActive  = charging_dock();
+     96            U8  chargerHighActive = charging_jack();
+     97          
+     98            if (chargerHighActive || chargerLowActive)
+     99            {
+    100              chargerDetect.stable.relase = 0;
+    101              if(!chargerDetect.pulse.first)
+    102              {
+    103                  carp_time = timer_ms();
+    104              }  
+    105              if(! chargerDetect.stable.active)
+    106              {
+    107                if(timer_elapsed(carp_time) > 10)//10ms
+    108                {
+    109                  chargerDetect.stable.active = 1;
+    110                }
+    111              } 
+    112              else if (!chargerDetect.stable.last_status)
+    113              {
+    114                if(chargerLowActive )
+    115                  chargerDetect.stable.last_status = DOCKING;
+    116                
+    117                if(chargerHighActive)
+    118                  chargerDetect.stable.last_status = JACKING;
+    119              }
+    120              else
+    121              {
+    122                ;
+    123              }
+    124              chargerDetect.pulse.first = 1;
+    125            }
+    126            else
+    127            {
+    128              chargerDetect.stable.active   = 0;
+    129              carp_time = timer_ms();
+    130              
+    131              if(chargerDetect.pulse.first)
+    132              {
+    133                chargerDetect.stable.relase = 1;
+    134                chargerDetect.pulse.first   = 0;
+    135                relase_time = timer_ms();
+    136              }
+    137              
+    138              if(chargerDetect.stable.relase)
+    139              {
+    140                if(chargerDetect.stable.last_status != CHARGE_NULL)
+    141                {
+    142                  if( timer_elapsed(relase_time) > CHARGER_RELASE_TIME )
+    143                  {
+    144                    chargerDetect.stable.last_status = CHARGE_NULL;
+    145                  }
+    146                }
+    147              }
+    148            }
+    149          }
+    150          
+    151          void robot_battery_monitor_routine(void)
+    152          {
+    153            _battery_status.voltage = battery_voltage_average();
+    154            _battery_status.charging_state = charging_detect();
+    155            _battery_status.last_status = chargerDetect.stable.last_status;
+    156            _battery_update(_battery_status.voltage);
+    157            robot_docking_kidnap_monitor(&_battery_status);
+    158            robot_battery_monitor();
+    159          }
+    160          
+    161          static u32 _battery_voltage = 3628;
+    162          static BOOLEAN _batt_filter_init = 50;;
+    163          static u8 _battery_low_continue = 0;
+    164          static BOOLEAN _battery_low_status;
+    165          
+    166          static void _battery_update(u32 value)
+    167          {
+    168              u32 voltage = value;
+    169              {
+    170                  if(!_batt_filter_init)
+    171                  {
+    172                      _battery_voltage = (((value * 3) + (_battery_voltage * 7))/10);
+    173                    
+    174                      if(_battery_voltage < BATTERY_LOW_SLOWVECTORY)
+    175                      {
+    176                        _battery_low_continue++;
+    177                        if(_battery_low_continue > 20)//2s
+    178                        {
+    179                          _battery_low_continue = 0;
+    180                          _battery_low_status = 1;
+    181                        }              
+    182                      }
+    183                      else
+    184                      {
+    185                        if(_battery_low_continue)
+    186                          _battery_low_continue--;
+    187                        if(!_battery_low_continue)
+    188                           _battery_low_status = 0;
+    189                      }
+    190                  }
+    191                  else
+    192                  {
+    193                      if(!--_batt_filter_init)
+    194                      {
+    195                          _battery_voltage = voltage;
+    196                      }
+    197                  }
+    198              }
+    199          }
+    200          
+    201          /****************************************************************
+    202          *Function   :  charging_detect
+    203          *Author     :  lyy    
+    204          *Date       :  2017.4.20
+    205          *Description:  判断是否接触上充电器或者充电座
+    206          *CallBy     :  任何地方，中断上下文除外
+    207          *Input      :  无
+    208          *Output     :  无
+    209          *Return     :  1： 接触上  0：非接触上
+    210          *Others     :  
+    211          *History    : //修改历史
+    212              <author>       <time>      <version>           <desc>
+    213              lyy            17.4.28       v1.0         build this function
+    214          ******************************************************************/
+    215          u8 charging_detect(void)
+    216          {
+    217             return ( charging_jack() || charging_dock() );
+    218          }
+    219          
+    220          
+    221          BOOLEAN battery_is_charger_present(void)
+    222          {
+    223            return charging_detect();
+    224          }
+    225          
+    226          BOOLEAN battery_is_dock_present(void)
+    227          {
+    228             return charging_detect();
+    229          }
+    230          
+    231          u8 is_charging_for_jack(void)
+    232          {
+    233            if(charging_detect())
+    234            {
+    235              return (chargerDetect.stable.last_status == JACKING);
+    236            }
+    237            return 0;
+    238          }
+    239          
+    240          /****************************************************************
+    241          *Function   :  battery_is_low
+    242          *Author     :  lyy    
+    243          *Date       :  2017.4.20
+    244          *Description:  判断是否低电减速
+    245          *CallBy     :  提供给sdk使用
+    246          *Input      :  无
+    247          *Output     :  无
+    248          *Return     :  _battery_low_status:  >0 减速   0：正常速度
+    249          *Others     :  
+    250          *History    : //修改历史
+    251              <author>       <time>      <version>           <desc>
+    252              lyy            17.4.28       v1.0         build this function
+    253          ******************************************************************/
+    254          u8 battery_is_low(void)
+    255          {
+    256             return _battery_low_status;
+    257          }
+    258          
+    259          /****************************************************************
+    260          *Function   :  battery_switch_check
+    261          *Author     :  lyy    
+    262          *Date       :  2017.4.20
+    263          *Description:  检测电源开关是否打开
+    264          *CallBy     :  无
+    265          *Input      :  无
+    266          *Output     :  无
+    267          *Return     :  1 ：打开   0：关闭
+    268          *Others     :  
+    269          *History    : //修改历史
+    270              <author>       <time>      <version>           <desc>
+    271              lyy            17.4.28       v1.0         build this function
+    272          ******************************************************************/
+    273          u8 battery_switch_check(void)
+    274          {
+    275            return (!(gpio_get_value( AM_IO_SWITCH_DET)));
+    276          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      16   _charge_update
+        16   -> charging_dock
+        16   -> charging_jack
+        16   -> timer_elapsed
+        16   -> timer_ms
+       0   battery_is_charger_present
+         0   -> charging_detect
+       0   battery_is_dock_present
+         0   -> charging_detect
+       0   battery_is_low
+       8   battery_switch_check
+         8   -- Indirect call
+       8   charging_detect
+         8   -> charging_dock
+         8   -> charging_jack
+       8   is_charging_for_jack
+         8   -> charging_detect
+       0   robot_battery_init
+         0   -> timer_task_register
+       8   robot_battery_monitor_routine
+         8   -> battery_voltage_average
+         8   -> charging_detect
+         0   -> robot_battery_monitor
+         8   -> robot_docking_kidnap_monitor
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable5
+       4  ??DataTable5_1
+      40  _battery_status
+          chargerDetect
+          _batt_filter_init
+          _battery_low_continue
+          _battery_low_status
+          carp_time
+          relase_time
+          _battery_voltage
+     136  _charge_update
+       2  battery_is_charger_present
+       2  battery_is_dock_present
+       6  battery_is_low
+      20  battery_switch_check
+      20  charging_detect
+      24  is_charging_for_jack
+      24  robot_battery_init
+     114  robot_battery_monitor_routine
+
+ 
+  40 bytes in section .data
+ 356 bytes in section .text
+ 
+ 356 bytes of CODE memory
+  40 bytes of DATA memory
+
+Errors: none
+Warnings: none

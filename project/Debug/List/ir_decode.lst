@@ -1,0 +1,312 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  19:00:16
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui-manager\ir_decode.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui-manager\ir_decode.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\ir_decode.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\ir_decode.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui-manager\ir_decode.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "ui-ir.h"
+      6          
+      7          #define REMOTE_RESYNC_TICKS 14
+      8          #define REMOTE_START_BIT_TICK 3
+      9          #define REMOTE_DATA_BIT_TICK 7
+     10          #define REMOTE_STOP_BIT_TICK 14
+     11          #define REMOTE_BIT_TIMEOUT_TICK 18
+     12          #define REMOTE_BYTE_STOP_TICKS 8
+     13          #define REMOTE_STOP_BIT_MIN_TICKS 2
+     14          
+     15          
+     16          REMOTE_DECODE remote_decode[REMOTE_DECODER_MAX];
+     17          
+     18          void remote_resync_init( REMOTE_DECODE *decode_p )
+     19          {
+     20            decode_p->state = REMOTE_RESYNC;
+     21            decode_p->timer = 0;
+     22          }
+     23          
+     24          void remote_byte_start_wait_init( REMOTE_DECODE *decode_p )
+     25          {
+     26            decode_p->state = REMOTE_BYTE_START_WAIT;
+     27          }
+     28          
+     29          void remote_start_bit_init( REMOTE_DECODE *decode_p )
+     30          {
+     31            decode_p->state = REMOTE_START_BIT;
+     32            decode_p->timer = 0;
+     33          }
+     34          
+     35          void remote_data_bit_init( REMOTE_DECODE *decode_p )
+     36          {
+     37            decode_p->state = REMOTE_DATA_BIT;
+     38            decode_p->count = 0;
+     39          }
+     40          
+     41          void remote_stop_bit_wait_init( REMOTE_DECODE *decode_p )
+     42          {
+     43            decode_p->state = REMOTE_STOP_BIT_WAIT;
+     44          }
+     45          
+     46          void remote_stop_bit_init( REMOTE_DECODE *decode_p )
+     47          {
+     48            decode_p->state = REMOTE_STOP_BIT;
+     49            decode_p->count = 0;
+     50          }
+     51          
+     52          void remote_start_bit_wait_init( REMOTE_DECODE *decode_p )
+     53          {
+     54            decode_p->state = REMOTE_START_BIT_WAIT;
+     55          }
+     56          
+     57          void remote_byte_stop_wait_init( REMOTE_DECODE *decode_p )
+     58          {
+     59            decode_p->state = REMOTE_BYTE_STOP_WAIT;
+     60            decode_p->timer = 0;
+     61          }
+     62          
+     63          /****************************************************************
+     64          *Function   :  remote_decode_init
+     65          *Description:  获取接收头接收到遥控器的数据 
+     66          *Input      :  u16 instance:接收头ID            
+     67          *Output     :  无
+     68          *Return     :  -1,出错 0正确
+     69          *Others     :  
+     70          ******************************************************************/
+     71          u16 remote_decode_init( u16 instance )
+     72          {
+     73           	
+     74            REMOTE_DECODE *decode_p;
+     75          
+     76            if (instance >= REMOTE_DECODER_MAX)
+     77            {
+     78              return(-1);
+     79            }
+     80            decode_p = &remote_decode[instance];
+     81          
+     82            remote_resync_init(decode_p);
+     83          
+     84            return(0);
+     85             
+     86          }
+     87          
+     88          /****************************************************************
+     89          *Function   :  remote_decode_ir
+     90          *Description:  获取接收头接收到遥控器的数据 
+     91          *Input      :  u16 instance:接收头ID   
+     92          *              u16 ir_state:接收头采集到的电平
+     93          *Output     :  无
+     94          *Return     :  -1:未解出正确的编码 0:解出正确的编码
+     95          *Others     :  此处红外的编码方式是"1"为高电平持续3ms,低电平持续1ms
+     96                                             "0"为高电平持续1ms,低电平持续3ms
+     97          ******************************************************************/
+     98          int16_t remote_decode_ir( u16 instance,
+     99                                     u16 ir_state )
+    100          {
+    101           
+    102            REMOTE_DECODE *decode_p;
+    103            int16_t     remoteStatus = -1;
+    104            
+    105          
+    106            if (instance >= REMOTE_DECODER_MAX)
+    107            {
+    108              return(-1);
+    109            }
+    110            decode_p = &remote_decode[instance];
+    111          
+    112          
+    113            decode_p->timer++;
+    114          
+    115            switch (decode_p->state)
+    116            {
+    117            case REMOTE_RESYNC:
+    118              if (ir_state)
+    119          	  { 
+    120          	    remote_resync_init(decode_p);
+    121          	  }
+    122          	  else if (decode_p->timer >= REMOTE_RESYNC_TICKS)
+    123          	  { 
+    124          	    remote_byte_start_wait_init(decode_p);
+    125          	  }
+    126              break;
+    127              
+    128            case REMOTE_BYTE_START_WAIT:
+    129              if (ir_state)
+    130          	  {
+    131          	    decode_p->bitsDecoded = 0;
+    132          	    remote_start_bit_init(decode_p);
+    133          	  }
+    134              break;
+    135                
+    136            case REMOTE_START_BIT:
+    137              if (decode_p->timer >= REMOTE_START_BIT_TICK)
+    138          	  {
+    139          		  remote_data_bit_init(decode_p);
+    140          	  }
+    141              break;
+    142              
+    143            case REMOTE_DATA_BIT:
+    144              if (ir_state)
+    145          	  {
+    146                decode_p->count++;
+    147          	  }
+    148              if (decode_p->timer >= REMOTE_DATA_BIT_TICK)
+    149          	  { 
+    150          		  decode_p->rxByte <<= 1;
+    151          		  switch (decode_p->count)
+    152          		  {
+    153          		  case 0:
+    154          		  case 1:
+    155          		    remote_stop_bit_wait_init(decode_p);
+    156          		    break;
+    157          		  case 2:
+    158          		    remote_resync_init(decode_p);
+    159          		    break;
+    160          		  default:
+    161          		    decode_p->rxByte++;
+    162          		    remote_stop_bit_wait_init(decode_p);
+    163          		    break;
+    164          		  }
+    165          	  }
+    166              break;
+    167            
+    168            case REMOTE_STOP_BIT_WAIT:
+    169              remote_stop_bit_init(decode_p);
+    170              break;
+    171          
+    172            case REMOTE_STOP_BIT:
+    173              if (ir_state == 0)
+    174          	  {
+    175                decode_p->count++;
+    176                if (decode_p->count >= REMOTE_STOP_BIT_MIN_TICKS)
+    177                { 
+    178          	      decode_p->bitsDecoded++;
+    179          	      if (decode_p->bitsDecoded >= 8)
+    180          	      {
+    181          	        remote_byte_stop_wait_init(decode_p);
+    182          	      }
+    183          	      else
+    184          	      { 
+    185          	        remote_start_bit_wait_init(decode_p);
+    186          	      }
+    187                }
+    188          	  }
+    189          	  else
+    190              {
+    191                decode_p->count = 0;
+    192                if (decode_p->timer >= REMOTE_STOP_BIT_TICK)
+    193          	    {
+    194          	      remote_resync_init(decode_p);
+    195          	    }
+    196              }
+    197              break;
+    198          
+    199            case REMOTE_START_BIT_WAIT:
+    200              if (ir_state)
+    201          	  { 
+    202          	    remote_start_bit_init(decode_p);
+    203          	  }
+    204          	  else if (decode_p->timer >= REMOTE_BIT_TIMEOUT_TICK)
+    205          	  { 
+    206          	    remote_resync_init(decode_p);
+    207          	  }
+    208          	  break;
+    209          
+    210            case REMOTE_BYTE_STOP_WAIT:
+    211              if (ir_state)
+    212              { 
+    213                remote_resync_init(decode_p);
+    214              }
+    215              else if (decode_p->timer >= REMOTE_BYTE_STOP_TICKS)
+    216              { 
+    217                remote_byte_start_wait_init(decode_p);
+    218                remoteStatus = 0;
+    219              }
+    220              break;
+    221          
+    222            default:
+    223              break;
+    224            }
+    225            
+    226            return(remoteStatus);
+    227             
+    228          }
+    229            
+    230          
+    231          
+    232          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   remote_byte_start_wait_init
+       0   remote_byte_stop_wait_init
+       0   remote_data_bit_init
+       8   remote_decode_init
+         8   -> remote_resync_init
+       8   remote_decode_ir
+         8   -> remote_byte_stop_wait_init
+         8   -> remote_data_bit_init
+         8   -> remote_resync_init
+         8   -> remote_start_bit_init
+         8   -> remote_stop_bit_init
+       0   remote_resync_init
+       0   remote_start_bit_init
+       0   remote_start_bit_wait_init
+       0   remote_stop_bit_init
+       0   remote_stop_bit_wait_init
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable1
+       8  ?Subroutine0
+       8  ?Subroutine1
+       6  remote_byte_start_wait_init
+       2  remote_byte_stop_wait_init
+       4  remote_data_bit_init
+      32  remote_decode
+      28  remote_decode_init
+     212  remote_decode_ir
+       8  remote_resync_init
+       4  remote_start_bit_init
+       6  remote_start_bit_wait_init
+       2  remote_stop_bit_init
+       6  remote_stop_bit_wait_init
+
+ 
+  32 bytes in section .bss
+ 298 bytes in section .text
+ 
+ 298 bytes of CODE memory
+  32 bytes of DATA memory
+
+Errors: none
+Warnings: none

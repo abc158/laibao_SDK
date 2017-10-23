@@ -1,0 +1,412 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:08
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui-manager\exception.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui-manager\exception.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\exception.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\exception.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui-manager\exception.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "syscall_api.h"
+      6          #include "am_date_base.h"
+      7          #include "am_robot_type.h"
+      8          #include "am_config_macro.h"
+      9          #include "act.h"
+     10          #include "lib.h"
+     11          #include "ui-commands.h"
+     12          #include "ui-song-player.h"
+     13          #include "motor/robot_brush.h"
+     14          
+     15          #define MAIN_BRUSH_CURRENT_HIGHT_TIMEOUT 600
+     16          #define SIDE_BRUSH_CURRENT_HIGHT_TIMEOUT 800
+     17          #define VAC_CURRENT_HIGHT_TIMEOUT        300 //3s
+     18          #define WHEEL_DROP_TIMEOUT               3000
+     19          #define BUMPER_BUMP_TIMEOUT              600  //6s
+     20          #define NOT_BUSTBIN_TIMEOUT             1000 //10s
+     21          #define STASIS_STALL_TIMEOUT            15000 //150s
+     22          #define CHECK_TIME                      4000 //40s
+     23          
+     24          #define PLAY_ERROR_INTERVAL 1000 //10s
+     25          
+     26          static uint16_t main_brush_current_over_count = 0;          /*主刷电流异常计数*/
+     27          static uint16_t side_brush_current_over_count = 0;          /*边刷电流异常计数*/
+     28          static uint16_t vac_current_over_count = 0;                 /*真空异常计数*/
+     29          static uint16_t vac_current_null_count = 0;                 /*真空异常计数*/
+     30          static uint16_t bumper_bump_count = 0;                      /*检测到碰撞发生的计数*/
+     31          static UI_ERROR_NUMBERS_E g_error_id = UI_ERROR_00_REVERSE; /*错误号*/
+     32          static sys_state_info sys_state_info_p;                     /*系统状态*/
+     33          static u16 play_err_cnt = 0;                                /*播放故障提示的时间间隔计数*/
+     34          static u16 play_err_num = 0;                                /*故障提示的次数*/
+     35          static u8 side_brush_stop = 0;                              /*边刷是否停住*/
+     36          static u32 sb_stop_start_time;                         /*边刷停止转动的开始时间*/
+     37          static u16 stop_act_cnt = 0;
+     38          extern u8 robot_is_maybe_not_bustbin(void);
+     39          
+     40          void set_ui_error_number(UI_ERROR_NUMBERS_E id)
+     41          {
+     42            g_error_id = id;
+     43          }
+     44          
+     45          UI_ERROR_NUMBERS_E get_ui_error_num(void)
+     46          {
+     47          	return g_error_id;
+     48          }
+     49          
+     50          void clear_ui_error_number(void)
+     51          {
+     52            g_error_id = UI_ERROR_00_REVERSE;
+     53          }
+     54          
+     55          u8 main_brush_current_is_stall(void)
+     56          {
+     57            return (get_adc_chan_val(ADC_CHAN_MAIN_BRUSH_CURRENT) > MAIN_BRUSH_TWINE_CURRENT);
+     58          }
+     59          
+     60          u8 side_brush_current_is_stall(void)
+     61          {
+     62          	if(sys_state_info_p.robot_state == ROBOT_STATE_DOCK)
+     63          	{
+     64          		return (get_adc_chan_val(ADC_CHAN_SIDE_BRUSH_CURRENT) > 500);
+     65          	}
+     66          	else
+     67          	{
+     68          		return (get_adc_chan_val(ADC_CHAN_SIDE_BRUSH_CURRENT) > SIDE_BRUSH_TWINE_CURRENT);
+     69          	}	  	   
+     70          }
+     71          
+     72          u8 vaccum_is_maybe_stall(void)
+     73          {
+     74            return (get_adc_chan_val(ADC_CHAN_VAC_CURENT) > VACUUM_STALL_CURRENT);
+     75          }
+     76          
+     77          /****************************************************************
+     78          *Function   :  check_cliff_alwayon
+     79          *Description:  判断是否一直检测到悬崖  
+     80          *Input      :  无
+     81          *Output     :  无
+     82          *Return     :  无
+     83          *Others     :  
+     84          ******************************************************************/
+     85          static void check_cliff_alwayon(void)
+     86          {
+     87            static u32 cliff_front_right  = 0;
+     88            static u32 cliff_front_left   = 0;
+     89            static u32 cliff_side_right   = 0;
+     90            static u32 cliff_side_left    = 0;
+     91            static u32 cliff_error        = 0;
+     92            int flag = 0;
+     93            
+     94            if(get_cliff_state() & CLIFF_FRONT_RIGHT)
+     95            {
+     96              cliff_front_right++;
+     97              
+     98              if(cliff_front_right > CHECK_TIME)
+     99              {
+    100                flag++;
+    101              }
+    102            }
+    103            else
+    104            {
+    105              cliff_front_right = 0;
+    106            }
+    107            
+    108            if(get_cliff_state() & CLIFF_FRONT_LEFT)
+    109            {
+    110              cliff_front_left++;
+    111              if(cliff_front_left > CHECK_TIME)
+    112              {
+    113                flag++;
+    114              }
+    115            }
+    116            else
+    117            {
+    118              cliff_front_left = 0;
+    119            }
+    120            
+    121            if(get_cliff_state() & CLIFF_SIDE_RIGHT)
+    122            {
+    123              cliff_side_right++;
+    124              if(cliff_side_right > CHECK_TIME)
+    125              {
+    126                flag++;
+    127              }
+    128            }
+    129            else
+    130            {
+    131              cliff_side_right=0;
+    132            }
+    133            
+    134            if(get_cliff_state() & CLIFF_SIDE_LEFT)
+    135            {
+    136              cliff_side_left++;
+    137              if(cliff_side_left > CHECK_TIME)
+    138              {
+    139                flag++;
+    140              }
+    141            }
+    142            else
+    143            {
+    144              cliff_side_left=0;
+    145            }
+    146            
+    147            if( (flag < 4) && (flag > 0) )
+    148            {
+    149              set_ui_error_number(UI_ERROR_12_CLIFF_ERROR);
+    150              cliff_error=1;
+    151            }
+    152            else if(cliff_error)
+    153            {
+    154              clear_ui_error_number();
+    155              cliff_error = 0;
+    156            }
+    157            else
+    158            {
+    159              cliff_error = 0;
+    160            }
+    161          }
+    162          
+    163          /****************************************************************
+    164          *Function   :  sys_exception_monitor
+    165          *Description:  机器故障的检测函数  
+    166          *Input      :  无
+    167          *Output     :  无
+    168          *Return     :  无
+    169          *Others     :  
+    170          ******************************************************************/
+    171          void sys_exception_monitor(void)
+    172          {
+    173            static u32 delay = 0;
+    174            static uint8_t  begin_to_check = 0;
+    175          
+    176            sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    177            
+    178            if(!IS_CLEANNING_MODE(sys_state_info_p.robot_state))
+    179            {
+    180              delay = 0;
+    181              begin_to_check = 0;
+    182              main_brush_current_over_count = 0;
+    183              side_brush_current_over_count = 0;
+    184              vac_current_null_count = 0;
+    185              vac_current_over_count = 0;
+    186              bumper_bump_count = 0;
+    187          
+    188              return;
+    189            }
+    190            else
+    191            {
+    192              delay++;
+    193              if(delay >= 300) // after 3s
+    194              {
+    195                delay = 0;
+    196                begin_to_check = 1;
+    197              }
+    198            }
+    199            
+    200            if(!begin_to_check)
+    201            {
+    202              return;
+    203            }
+    204            
+    205            check_cliff_alwayon();
+    206            
+    207            //主刷被缠住
+    208            if ( (main_brush_current_is_stall())) {
+    209              main_brush_current_over_count += 1;
+    210              if (main_brush_current_over_count > MAIN_BRUSH_CURRENT_HIGHT_TIMEOUT) {
+    211                set_ui_error_number(UI_ERROR_02_MAIN_BRUSH_ENTWINED);
+    212              }
+    213            } else {
+    214              main_brush_current_over_count = 0;
+    215            }
+    216            //边刷被缠住
+    217            if (side_brush_current_is_stall()) {
+    218              side_brush_current_over_count += 1;
+    219              //printf("side_brush_current_over_count=%d\r\n",side_brush_current_over_count);
+    220              if (side_brush_current_over_count > SIDE_BRUSH_CURRENT_HIGHT_TIMEOUT) {
+    221                   set_ui_error_number(UI_ERROR_07_SIDE_BRUSH_ENTWINED);
+    222              //  robot_sidebrush_vols_set(0);
+    223              //  sb_stop_start_time = timer_ms();
+    224               // side_brush_stop = 1;
+    225              }
+    226            }
+    227            else
+    228            {
+    229          //	if(side_brush_current_over_count >0)
+    230          //      side_brush_current_over_count--;
+    231          	side_brush_current_over_count=0;
+    232            }
+    233            /*else {
+    234              side_brush_current_over_count = 0;
+    235              if ( (side_brush_stop == 1) && ( timer_elapsed(sb_stop_start_time) > 5000) )
+    236              {
+    237                robot_sidebrush_vols_set(SIDE_BRUSH_MAX_VOLTAGE);
+    238                side_brush_stop = 0;
+    239              }
+    240              
+    241            }*/
+    242            //真空被堵住
+    243            if(vaccum_is_maybe_stall())
+    244            {
+    245              vac_current_over_count++;
+    246              if (vac_current_over_count > VAC_CURRENT_HIGHT_TIMEOUT) {
+    247                set_ui_error_number(UI_ERROR_15_VACCUM_MOTO_ENTWINED);
+    248              }
+    249            }else {
+    250              vac_current_over_count = 0;
+    251            }
+    252            //没装入垃圾盒
+    253            if(robot_is_maybe_not_bustbin())
+    254            {
+    255              vac_current_null_count++;
+    256              if (vac_current_null_count >= NOT_BUSTBIN_TIMEOUT) {
+    257                //set_ui_error_number(UI_ERROR_10_DUSTBIN_UN_INSERT);
+    258              }
+    259            }else {
+    260              vac_current_null_count = 0;
+    261            }
+    262            //碰撞档板故障
+    263            if(robot_bump_mask()!=BUMP_MASK_NONE)
+    264            {
+    265              bumper_bump_count++;
+    266              if (bumper_bump_count > BUMPER_BUMP_TIMEOUT) {
+    267                set_ui_error_number(UI_ERROR_09_BUMP_ERROR);
+    268              }
+    269            }else {
+    270              bumper_bump_count=0;
+    271            }  
+    272          }
+    273          
+    274          /****************************************************************
+    275          *Function   :  exception_handle
+    276          *Description:  机器故障的处理函数  
+    277          *Input      :  无
+    278          *Output     :  无
+    279          *Return     :  无
+    280          *Others     :  
+    281          ******************************************************************/
+    282          void exception_handle(void)
+    283          {
+    284            UI_ERROR_NUMBERS_E t_error;
+    285            u8 voice_id_error_base = VOICE_ID_ERROR_00_REVERSE;  
+    286            t_error = get_ui_error_num();
+    287            
+    288            if (t_error != UI_ERROR_00_REVERSE)
+    289            { 
+    290            	if (IS_CLEANNING_MODE(sys_state_info_p.robot_state))
+    291            	{
+    292            	  set_ui_state(UI_ERROR);
+    293                if(stop_act_cnt == 0)
+    294                {
+    295            	      act_command_q(CMD_CLEAN, CMD_STOP, NULL, 0);
+    296                    stop_act_cnt = 50;
+    297                }
+    298            	  play_err_cnt = PLAY_ERROR_INTERVAL - 5;  	  
+    299            	}  	
+    300              if(stop_act_cnt > 0)
+    301                stop_act_cnt--;
+    302            	play_err_cnt++;
+    303            	if (play_err_cnt >= PLAY_ERROR_INTERVAL)
+    304            	{	
+    305            		play_err_cnt = 0;
+    306                songplayer_play_id(voice_id_error_base+t_error, 0);
+    307                play_err_num++;
+    308              }
+    309            }
+    310            else
+    311            {
+    312               stop_act_cnt = 0;
+    313            }
+    314          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   clear_ui_error_number
+      16   exception_handle
+        16   -> act_command_q
+        16   -> set_ui_state
+        16   -> songplayer_play_id
+       0   get_ui_error_num
+       8   main_brush_current_is_stall
+         8   -> get_adc_chan_val
+       0   set_ui_error_number
+       8   side_brush_current_is_stall
+         8   -> get_adc_chan_val
+      16   sys_exception_monitor
+        16   -> get_cliff_state
+        16   -> main_brush_current_is_stall
+        16   -> robot_bump_mask
+        16   -> robot_is_maybe_not_bustbin
+        16   -> side_brush_current_is_stall
+        16   -> sys_info_get
+        16   -> vaccum_is_maybe_stall
+       8   vaccum_is_maybe_stall
+         8   -> get_adc_chan_val
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable5
+       4  ??DataTable5_1
+       8  clear_ui_error_number
+     102  exception_handle
+      60  g_error_id
+          begin_to_check
+          sys_state_info_p
+          main_brush_current_over_count
+          side_brush_current_over_count
+          vac_current_over_count
+          vac_current_null_count
+          bumper_bump_count
+          play_err_cnt
+          play_err_num
+          stop_act_cnt
+          cliff_front_right
+          cliff_front_left
+          cliff_side_right
+          cliff_side_left
+          cliff_error
+          delay
+       6  get_ui_error_num
+      22  main_brush_current_is_stall
+       6  set_ui_error_number
+      42  side_brush_current_is_stall
+     300  sys_exception_monitor
+      22  vaccum_is_maybe_stall
+
+ 
+  60 bytes in section .bss
+ 516 bytes in section .text
+ 
+ 516 bytes of CODE memory
+  60 bytes of DATA memory
+
+Errors: none
+Warnings: 2

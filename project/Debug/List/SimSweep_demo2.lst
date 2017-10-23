@@ -1,0 +1,622 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:11
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wifi\wifi_demo2\SimSweep_demo2.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wifi\wifi_demo2\SimSweep_demo2.c" -lcN
+#        "F:\1708\SDK - unlock\project\Debug\List\" --diag_error PE223 -o
+#        "F:\1708\SDK - unlock\project\Debug\Obj\" --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "D:\Program Files
+#        (x86)\IAR Systems\Embedded Workbench
+#        7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude "F:\1708\SDK -
+#        unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\SimSweep_demo2.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\SimSweep_demo2.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wifi\wifi_demo2\SimSweep_demo2.c
+      1          #include <ui-config.h>
+      2          #include "ui-commands.h"
+      3          #include "am_date_base.h"
+      4          #include "am_config_macro.h"
+      5          #include "time.h"
+      6          #include "lib.h"
+      7          #include "local_key_check.h"
+      8          #include "syscall_api.h"
+      9          #include "remote.h"
+     10          #include "act.h"
+     11          #include "display.h"
+     12          #include "am_key.h"
+     13          #include "sensor/sensor.h"
+     14          #include "ui-manager/exception.h"
+     15          #include "motor/robot_suction.h"
+     16          #include "ui-song-player.h"
+     17          #include "display.h"
+     18          
+     19          #include "simwifi_demo2.h"
+     20          #include "SimSweep_demo2.h"
+     21          
+     22          #if defined(USE_WIFI_DEMO_2)
+     23          static U16 uart_cmd = 0;
+     24          static tm tmp_day;
+     25          static U16 map_index=0;
+     26          
+     27          U8 send_map_flag = 0;
+     28          U8 receive_map_ok_flag = 0;
+     29          static U8 type_three_ok=0;
+     30          tm current_day_p; 
+     31          static real_map_points_t map_points_data;
+     32          
+     33          static sys_state_info sys_state_info_p;  
+     34          static schedule_time_info schedule_info;
+     35          extern U8 wificonnectok;
+     36          extern U8 send_config_cmd;
+     37          extern U8 recive_connect_cmd_ok;
+     38          extern U8 type_three_ok;
+     39          
+     40          
+     41          
+     42          extern U8 get_bat_level(void);
+     43          extern U8 get_remote_state(void);
+     44          
+     45          
+     46          extern tm *get_system_time_info(void);
+     47          extern schedule_time_info *get_system_schedule_info(void);
+     48          
+     49          
+     50          void send_robot_state_to_wifi(void);
+     51          void send_base_info(void)
+     52          {
+     53             
+     54          }
+     55          
+     56          void parser_wifi_state(U8 *data_buf)
+     57          {
+     58          
+     59              if(data_buf[0] == 0)
+     60              {
+     61                 // printf("wifi 1\r\n");
+     62                  if(get_reset_wifi_flag() == 1)
+     63                  {
+     64                      set_reset_wifi_flag(2);
+     65                  }
+     66                  wificonnectok = 0;
+     67                 // set_wifi_state(WIFI_CONNECTING);
+     68              }
+     69              else if((data_buf[0] == 0)&&(data_buf[1] == 1)&&(data_buf[2] == 1))
+     70              {
+     71                 // printf("wifi 3\r\n");
+     72                  if(get_reset_wifi_flag() == 2)
+     73                  {
+     74                      set_reset_wifi_flag(0);
+     75                  }
+     76                  set_wifi_state(WIFI_CONNECT_OK);
+     77                  wificonnectok = 1;
+     78              }
+     79              else
+     80              {
+     81                  wificonnectok = 0;
+     82              }
+     83              
+     84          }
+     85          
+     86          void set_schedule(U8 *pAppointBuf)  
+     87          {
+     88              uint8_t i,j,tmp;
+     89              schedule_time_info *schedule_info_p;
+     90              schedule_info_p = get_schedule_info();
+     91          
+     92              tmp = (pAppointBuf[0]&0x40)>>6;
+     93              schedule_info_p->SCH_ENABLE.BYTE = (pAppointBuf[0]<<1)|tmp;
+     94           
+     95              schedule_info_p->t[0].hour = pAppointBuf[13];
+     96              schedule_info_p->t[0].min  = pAppointBuf[14];
+     97              
+     98              j = 1;
+     99              for(i=1;i<7;i++)
+    100              {
+    101                  schedule_info_p->t[i].hour = pAppointBuf[j];
+    102                  schedule_info_p->t[i].min  = pAppointBuf[j+1];
+    103                  j += 2;
+    104              }
+    105          
+    106              send_schedule_cmd();
+    107            
+    108          }
+    109          
+    110          void set_time(U8 *data_buf)
+    111          {
+    112              sys_info_get(SYS_TIME_INFO,(long )&current_day_p);
+    113          
+    114              /*
+    115              tmp_day.w_year  = current_day_p.w_year;
+    116              tmp_day.w_month = current_day_p.w_month;
+    117              tmp_day.w_date  = current_day_p.w_date;
+    118              */
+    119              tmp_day.w_year  = 0;
+    120              tmp_day.w_month = 0;
+    121              tmp_day.w_date  = 0;
+    122              data_buf[3] = data_buf[3] + 1;
+    123              if(data_buf[3] == 7)
+    124                tmp_day.week = 0;
+    125              else
+    126                tmp_day.week = data_buf[3];
+    127             
+    128              tmp_day.hour    = data_buf[0];
+    129              tmp_day.min     = data_buf[1];
+    130              tmp_day.sec     = data_buf[2];
+    131              set_current_time(&tmp_day); 
+    132              send_time_cmd(); //写入主板的RTC,这里写入主控不更新时间，在disp写入
+    133          	/*主控要隔几秒才更新时间，这里做个临时变量，在disp里调用*/
+    134          }
+    135          
+    136          void parser_control_cmd(U8 *data_buf)
+    137          {
+    138              switch(data_buf[0])
+    139          	{
+    140          		case 0x10:
+    141          			if(0x00 == data_buf[1])
+    142          			{
+    143          				uart_cmd = UART_POWER_DOWN;
+    144          			}
+    145          			if(0x01 == data_buf[1])
+    146          			{
+    147          				uart_cmd = UART_POWER_ON;
+    148          			}
+    149          			break;
+    150          		case 0x20:
+    151          			break;
+    152          		case 0x21:
+    153          			if(0x00 == data_buf[1])
+    154          			{
+    155                         // printf("forward\r\n");
+    156          				uart_cmd = UART_FORWARD;
+    157          			}
+    158          			if(0x01 == data_buf[1])
+    159          			{
+    160          				uart_cmd = UART_LEFT;
+    161          			}
+    162          			if(0x02 == data_buf[1])
+    163          			{
+    164          				uart_cmd = UART_RIGHT;
+    165          			}
+    166          			if(0x03 == data_buf[1])
+    167          			{
+    168          				uart_cmd = UART_BACK;
+    169          			}
+    170          			break;
+    171          		case 0x22:
+    172          			if(0x00 == data_buf[1])
+    173          			{
+    174          				uart_cmd = UART_WALL_FOLLOW;
+    175          			}
+    176          			if(0x01 == data_buf[1])
+    177          			{
+    178          				uart_cmd = UART_GRID1;
+    179          			}
+    180          			if(0x02 == data_buf[1])
+    181          			{
+    182          				uart_cmd = UART_START;
+    183          			}
+    184          			if(0x03 == data_buf[1])
+    185          			{
+    186          				uart_cmd = UART_DOCK;
+    187          			}
+    188                      if(0x04 == data_buf[1])
+    189          			{
+    190          				uart_cmd = UART_SPOT;
+    191          			}
+    192          			if(0x05 == data_buf[1])
+    193          			{
+    194          				uart_cmd = UART_ENHANCE;
+    195          			}
+    196                      
+    197          			break;
+    198          		case 0x23:
+    199          			break;
+    200          		case 0x24:
+    201          			break;
+    202          		case 0x25:
+    203          			break;
+    204          		case 0x26:
+    205                      if(0x00 == data_buf[1])
+    206          			{
+    207          				uart_cmd = UART_STOP;
+    208          			}
+    209          			if(0x01 == data_buf[1])
+    210          			{
+    211          				uart_cmd = UART_START;
+    212          			}
+    213          			break;
+    214          		case 0x27:
+    215                     // send_robot_state_to_wifi();
+    216          			break;
+    217          		case 0x28:
+    218          			break;
+    219          		case 0x40:
+    220          			break;
+    221          		case 0x42:
+    222          			break;
+    223          		case 0x30:
+    224                      set_schedule(&data_buf[1]);
+    225          			break;
+    226          		case 0x31:
+    227                      set_time(&data_buf[1]);
+    228          			break;	
+    229          	}
+    230          }
+    231          
+    232          void send_robot_state_to_wifi(void)
+    233          {
+    234              U8 i,j;
+    235              UI_STATE_E s;
+    236              
+    237          
+    238              U8 msg[28]={0};
+    239              U8 tmp = get_remote_state();
+    240             
+    241             
+    242              sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    243               s = get_ui_state();
+    244              if(s != UI_ENTER_SLEEPING)
+    245              {
+    246                  msg[0]=1; 
+    247              }
+    248          
+    249              if((sys_state_info_p.robot_state == ROBOT_STATE_CLEANING_ROOM)
+    250                  ||(sys_state_info_p.robot_state == ROBOT_STATE_PAUSE)
+    251                  ||(sys_state_info_p.robot_state == ROBOT_STATE_REMOTE_DRIVE))
+    252              {
+    253                  msg[2]=tmp;
+    254              }
+    255              else
+    256              {
+    257                  msg[2]=REMOTE_IDLE;
+    258              }
+    259          
+    260            
+    261              if(sys_state_info_p.robot_state == ROBOT_STATE_WALLFOLLOW)
+    262              {
+    263                 msg[3] = 0; //延边状态
+    264              }
+    265              else if(sys_state_info_p.robot_state == ROBOT_STATE_CLEANING_ROOM)
+    266              {
+    267                  msg[3] = 0x2; 
+    268              }
+    269              else if(sys_state_info_p.robot_state == ROBOT_STATE_SPOTTING)
+    270              {
+    271                  msg[3] = 0x1;
+    272              }
+    273              else if(sys_state_info_p.robot_state == ROBOT_STATE_DOCK)
+    274              {
+    275                  msg[3] = 0x3;
+    276              }
+    277              else
+    278              {
+    279                  msg[3] = 0x4;
+    280              }
+    281          
+    282              //msg[10] = ((schedule_info_p->SCH_ENABLE.BYTE)&0x01)<<6;
+    283              sys_info_get(SYS_SCHEDULE_INFO, (long )&schedule_info);
+    284              tmp = ((schedule_info.SCH_ENABLE.BYTE)&0x01)<<6;
+    285              msg[10] =((schedule_info.SCH_ENABLE.BYTE)>>1)|tmp;  
+    286              j = 0;
+    287              for(i=1;i<7;i++)
+    288              {
+    289                 msg[j+11]=schedule_info.t[i].hour;
+    290                 msg[j+12]=schedule_info.t[i].min;
+    291                 j += 2;
+    292              
+    293              }
+    294              
+    295              msg[23]=schedule_info.t[0].hour;
+    296              msg[24]=schedule_info.t[0].min;
+    297              msg[25] = sys_state_info_p.pause_id;
+    298          
+    299              msg[26] = get_bat_level();
+    300          
+    301              msg[27] = songplayer_is_playing();
+    302              
+    303              send_pack(CMD_GET_ROBOT_STATE, msg, 28); 
+    304              
+    305          }
+    306          
+    307          void parser_map_info(U8 *data_buf)
+    308          {
+    309              if((data_buf[0] == 0x1)||(data_buf[0] == 0x2))
+    310              {
+    311                  //printf("receive map ok\r\n");
+    312                  send_map_flag = 0;
+    313                  receive_map_ok_flag = 1;
+    314              }
+    315          
+    316          }
+    317          
+    318          void send_map_data_to_wifi(void)
+    319          {
+    320          
+    321            U8 i,j;
+    322          
+    323            U8 msg[85]={0};
+    324            U16 tmp_length;
+    325           
+    326            
+    327            msg[0] = 0x1;  //type
+    328            msg[1] = 0x40; // 总点数2byte  
+    329            msg[2] = 0x00; //
+    330            msg[3] = 0x00; //
+    331            //msg[4] = 0x01; //当前包上传位置点数2byte
+    332            if(((map_points_data.count > 0)&&(type_three_ok == 1))
+    333                  ||(map_points_data.count>= 6))
+    334            {
+    335              type_three_ok = 0;
+    336          
+    337              if(map_points_data.count > 10)
+    338              {
+    339                  tmp_length = 10;
+    340              }
+    341              else
+    342              {
+    343                  tmp_length = map_points_data.count;
+    344              }
+    345              msg[4] = tmp_length;
+    346              j = 0;
+    347              for(i=0;i<tmp_length;i++)
+    348              {
+    349                  map_index = map_index + 1;
+    350                  msg[5+j] = (map_index >> 8); //索引2byte
+    351                  msg[6+j] = map_index&0x00ff;
+    352                  //AM_DEBUG_TEST("index:%d\r\n",map_index);
+    353                  msg[7+j] = 0x0;
+    354                  msg[8+j] = map_points_data.points[i].x;
+    355          
+    356                  msg[9+j]  = 0x0;
+    357                  msg[10+j] = map_points_data.points[i].y;
+    358                  msg[11+j] = map_points_data.points[i].type;
+    359                  msg[12+j]=0; 
+    360                  //printf("map_index=%d\r\n",map_index);
+    361                  /*
+    362                  if(map_points_data.points[i].type == 1)
+    363                  {
+    364                      printf("$@%d,%d!\r\n",map_points_data.points[i].x,map_points_data.points[i].y);
+    365                  }
+    366                  if(map_points_data.points[i].type == 2)
+    367                  {
+    368                      printf("$#%d,%d!\r\n",map_points_data.points[i].x,map_points_data.points[i].y);
+    369                  }
+    370                  if(map_points_data.points[i].type == 3)
+    371                  {
+    372                      printf("$&%d,%d!\r\n",map_points_data.points[i].x,map_points_data.points[i].y);
+    373                  }
+    374                 */
+    375                  j += 8;
+    376              }
+    377                map_points_data.count = 0;
+    378                send_map_flag = 1;
+    379                receive_map_ok_flag = 0;
+    380            
+    381                send_pack(CMD_MAP, msg, (j+5));   
+    382               // printf("map:x:%d,y:%d,type:%d\r\n",save_x,save_y,save_type);
+    383          
+    384            }
+    385            /*
+    386            else if(send_map_flag = 1)
+    387            {
+    388                msg[5] = (map_index >> 8); //索引2byte
+    389                msg[6] = map_index&0x00ff;
+    390               // tmp_x = current_point->x;
+    391               // tmp_y = current_point->y;
+    392                msg[7] = 0x0;
+    393                msg[8] = save_x;
+    394          
+    395                msg[9] = 0x0;
+    396                msg[10] = save_y;
+    397                msg[11] = save_type;
+    398            }*/
+    399            
+    400          
+    401          }
+    402          
+    403          /****************************************************************
+    404          *Function   :  ui_put_map_point_info
+    405          *Author     :  lyh    
+    406          *Date       :  2017.6.30
+    407          *Description:  保存实时地图路径数据
+    408          *CallBy     :  由底层调用，把实时的地图路径数据上传到应用层
+    409          *Input      :  参数
+    410          *              x: X 坐标
+    411                         y: Y 坐标
+    412                         type:    当前点的类型 范围是1-3 
+    413                                  1:走过的无障碍点
+    414                                  2:有障碍的点
+    415                                  3:当前点
+    416                         direction:机器角度
+    417          *             
+    418          *Output     :  无
+    419          *Return     :  无
+    420          *Others     :  
+    421          *History    : //修改历史
+    422              <author>       <time>      <version>           <desc>
+    423              lyh            17.6.30       v1.0         build this function
+    424          ******************************************************************/
+    425          void ui_put_map_point_info(uint16_t x, uint16_t y, uint8_t type, uint16_t direction)
+    426          {
+    427              uint8_t i;
+    428              real_map_points_t * real_map_points;
+    429              real_map_points = &map_points_data;
+    430              if(type == 3)
+    431              {
+    432                  type_three_ok = 1;
+    433              }
+    434              if (real_map_points->count >= MAP_POINT_BUFFER_SIZE) {
+    435                  for (i=0; i<MAP_POINT_BUFFER_SIZE-1; i++) {
+    436                      real_map_points->points[i].x = real_map_points->points[i+1].x;
+    437                      real_map_points->points[i].y = real_map_points->points[i+1].y;
+    438                      real_map_points->points[i].type = real_map_points->points[i+1].type;
+    439                  }
+    440                  real_map_points->count = MAP_POINT_BUFFER_SIZE;
+    441              } else {
+    442                  real_map_points->count++;
+    443              }
+    444              real_map_points->points[real_map_points->count-1].x = x;
+    445              real_map_points->points[real_map_points->count-1].y = y;
+    446              real_map_points->points[real_map_points->count-1].type = type;
+    447              if (type == MAP_POINT_TYPE_CURRENT) {
+    448                real_map_points->direction = direction;
+    449              }
+    450          }
+    451          
+    452          void send_config_network_cmd(void)
+    453          {
+    454             U8 msg[2]={0x01,0x01}; 
+    455             send_pack(CMD_CONFIG_NETWORK, msg, 2);
+    456           // send_pack(CMD_WIFI_STATE, msg, 0);
+    457             send_config_cmd = 1;
+    458             recive_connect_cmd_ok = 0;
+    459          }
+    460          
+    461          void send_wifi_song_mute(void)
+    462          {
+    463             U8 msg[2]={0x02,0x01}; 
+    464             send_pack(CMD_CONFIG_NETWORK, msg, 2);
+    465          }
+    466          void send_wifi_song_unmute(void)
+    467          {
+    468             U8 msg[2]={0x02,0x00}; 
+    469             send_pack(CMD_CONFIG_NETWORK, msg, 2);
+    470          }
+    471          void send_wifi_test_result(void)
+    472          {
+    473              U8 msg[1]={1};
+    474              send_pack(CMD_ENTER_TEST, msg, 1);    
+    475          }
+    476          
+    477          U16 get_uart_cmd(void)
+    478          {
+    479            static U16 tmp;
+    480            tmp = uart_cmd;
+    481            uart_cmd = 0x0;
+    482            return tmp;
+    483          }
+    484          
+    485          void clear_map_index(void)
+    486          {
+    487              map_index = 0;
+    488          }
+    489          
+    490          #endif
+    491          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   clear_map_index
+       0   get_uart_cmd
+       0   parser_control_cmd
+         0   -> set_schedule
+         0   -> set_time
+       0   parser_map_info
+       8   parser_wifi_state
+         8   -> get_reset_wifi_flag
+       0   send_base_info
+       8   send_config_network_cmd
+         8   -> send_pack
+     112   send_map_data_to_wifi
+       112   -> __aeabi_memclr4
+       112   -> send_pack
+      40   send_robot_state_to_wifi
+        40   -> __aeabi_memclr4
+        40   -> get_bat_level
+        40   -> get_remote_state
+        40   -> get_ui_state
+        40   -> send_pack
+        40   -> songplayer_is_playing
+        40   -> sys_info_get
+       8   send_wifi_song_mute
+         8   -> send_pack
+       8   send_wifi_song_unmute
+         8   -> send_pack
+       8   send_wifi_test_result
+         8   -> send_pack
+      16   set_schedule
+        16   -> get_schedule_info
+         0   -> send_schedule_cmd
+      16   set_time
+         0   -> send_time_cmd
+        16   -> set_current_time
+        16   -> sys_info_get
+      24   ui_put_map_point_info
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable15
+       4  ??DataTable15_1
+       4  ??DataTable15_2
+       4  ??DataTable15_3
+       4  ??DataTable15_4
+       4  ??DataTable15_5
+       4  ??DataTable15_6
+       4  ??DataTable15_7
+      10  ?Subroutine0
+      14  ?Subroutine1
+      28  ?_0
+      88  ?_1
+       2  ?_2
+       2  ?_3
+       2  ?_4
+       1  ?_5
+       8  clear_map_index
+      10  get_uart_cmd
+      84  map_points_data
+     178  parser_control_cmd
+      22  parser_map_info
+      30  parser_wifi_state
+       2  send_base_info
+      28  send_config_network_cmd
+     154  send_map_data_to_wifi
+       6  send_map_flag
+          receive_map_ok_flag
+          type_three_ok
+          map_index
+     204  send_robot_state_to_wifi
+       8  send_wifi_song_mute
+       6  send_wifi_song_unmute
+      20  send_wifi_test_result
+      64  set_schedule
+      68  set_time
+      76  sys_state_info_p
+          schedule_info
+       2  tmp
+      16  tmp_day
+          current_day_p
+       2  uart_cmd
+     122  ui_put_map_point_info
+
+ 
+ 186 bytes in section .bss
+ 116 bytes in section .rodata
+ 987 bytes in section .text
+ 
+ 987 bytes of CODE  memory
+ 116 bytes of CONST memory
+ 186 bytes of DATA  memory
+
+Errors: none
+Warnings: none

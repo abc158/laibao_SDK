@@ -1,0 +1,221 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:12
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\ui-manager\ui-config.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\ui-manager\ui-config.c" -lcN "F:\1708\SDK -
+#        unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\ui-config.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\ui-config.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\ui-manager\ui-config.c
+      1          //------------------------------------------------------------------------------
+      2          //  Copyright (C) 2014-2017, Amicro, Inc.
+      3          //  All rights reserved.
+      4          //------------------------------------------------------------------------------
+      5          #include "ui-config.h"
+      6          #include "am_config_macro.h"
+      7          #include "syscall_api.h"
+      8          
+      9          static const ui_local_config_t ui_local_config_default =
+     10          {
+     11            .cliff_threshold = {
+     12              .rear_left_on = CLIFF_REAR_LEFT_THRESHOLD_ON,
+     13              .rear_left_off = CLIFF_REAR_LEFT_THRESHOLD_OFF,
+     14              .rear_right_on = CLIFF_REAR_RIGHT_THRESHOLD_ON,
+     15              .rear_right_off = CLIFF_REAR_RIGHT_THRESHOLD_OFF,
+     16              .left_on = CLIFF_LEFT_THRESHOLD_ON,
+     17              .left_off = CLIFF_LEFT_THRESHOLD_OFF,
+     18              .right_on = CLIFF_RIGHT_THRESHOLD_ON,
+     19              .right_off = CLIFF_RIGHT_THRESHOLD_OFF,
+     20              .front_left_on = CLIFF_FRONT_LEFT_THRESHOLD_ON,
+     21              .front_left_off = CLIFF_FRONT_LEFT_THRESHOLD_OFF,
+     22              .front_right_on = CLIFF_FRONT_RIGHT_THRESHOLD_ON,
+     23              .front_right_off = CLIFF_FRONT_RIGHT_THRESHOLD_OFF,
+     24              .changed = 0,
+     25            },
+     26            .lighttouch_threshold = 
+     27            {
+     28              .center_left_on = LT_CENTERLEFT_THRESHOLD_ON,
+     29              .center_left_off = LT_CENTERLEFT_THRESHOLD_OFF,
+     30              .center_right_on = LT_CENTERRIGHT_THRESHOLD_ON,
+     31              .center_right_off = LT_CENTERRIGHT_THRESHOLD_OFF,
+     32              .left_on = LT_LEFT_THRESHOLD_ON,
+     33              .left_off = LT_LEFT_THRESHOLD_OFF,
+     34              .right_on = LT_RIGHT_THRESHOLD_ON,
+     35              .right_off = LT_RIGHT_THRESHOLD_OFF,
+     36              .front_left_on = LT_FRONT_LEFT_THRESHOLD_ON,
+     37              .front_left_off = LT_FRONT_LEFT_THRESHOLD_OFF,
+     38              .front_right_on = LT_FRONT_RIGHT_THRESHOLD_ON,
+     39              .front_right_off = LT_FRONT_RIGHT_THRESHOLD_OFF,
+     40              .changed = 0,
+     41            },
+     42            .remote_ir_codes =
+     43            {
+     44              .dock = IR_DOCK,
+     45              .spot = IR_SPOT,
+     46              .clean = IR_CLEAN,
+     47              .power = IR_POWER,
+     48              .left = IR_LEFT,
+     49              .right = IR_RIGHT,
+     50              .forward = IR_FORWARD,
+     51              .schedule = IR_SCHEDULE,
+     52              .clock = IR_CLOCK,
+     53              .driver_stop = IR_DRIVERSTOP,
+     54              .grid = IR_GRID,
+     55              .backward = IR_BACKWARD,
+     56              .wall_follow = IR_WALLFOLLOW,
+     57              .dirt = IR_DIRT,
+     58              .clean_drive = IR_CLEAN_DRIVE,
+     59              .random = IR_RANDOM,
+     60              .changed = 0,
+     61            },
+     62            .dock_ir_codes = 
+     63            {
+     64              .force_field = DOCK_FORCE_FIELD,
+     65              .buoy_red = DOCK_BUOY_RED,
+     66              .buoy_green = DOCK_BUOY_GREEN,
+     67              .buoy_both = DOCK_BUOY_BOTH, 
+     68              .changed = 0,
+     69            },  
+     70          };
+     71          
+     72          static const ui_config_t ui_config_default =  
+     73          {
+     74            .power_config =
+     75            {
+     76              .battery_charge_voltage_max_adc = BAT_VOLTAGE_CHARGE_MAX,
+     77              .main_brush_max_voltage_adc = MAIN_BRUSH_MAX_VOLTAGE,
+     78              .side_brush_max_voltage_adc = SIDE_BRUSH_MAX_VOLTAGE,
+     79              .vacuum_max_voltage_adc = VACUUM_NORMAL_VOLTAGE,
+     80              .changed = 0,
+     81            },
+     82            .hard_structure =
+     83            {
+     84              .wheel_dia = WHEEL_DIA,
+     85              .wheel_left_right_distance = WHEEL_LEFT_RIGHT_DISTANCE,
+     86              .wheel_code_ratio = WHEEL_CODE_RATIO,
+     87              .pad_width = PAD_WIDTH,
+     88              .crash_cond = CRASH_COND,
+     89              .p_value = P_VALUE,
+     90              .i_value = I_VALUE,
+     91              .d_value = D_VALUE,
+     92              .hardware_version = HARDWARE_VERSION,
+     93              .changed = 0,
+     94            },
+     95            .speed_config =
+     96            {
+     97              .clean_speed_max = CLEAN_SPEED_MAX,
+     98              .crash_speed = CLEAN_SPEED_MAX,
+     99              .dock_speed_nomal = CLEAN_SPEED_MAX,
+    100              .dock_speed_low = CLEAN_SPEED_MAX,
+    101              .wallfollow_speed = WALLFOLLOW_SPEED,
+    102              .changed = 0,
+    103            },	
+    104            .clean_motor_config = 
+    105            {
+    106              .clean_fun.bits.main_brush_clean = 1,
+    107              .clean_fun.bits.main_brush_dock = 0,
+    108              .clean_fun.bits.side_brush_clean = 1,     	     
+    109              .clean_fun.bits.side_brush_dock = 1,     	
+    110              .clean_fun.bits.vaccum_clean = 1,
+    111              .clean_fun.bits.vaccum_dock = 0,
+    112              .clean_fun.bits.water_box = 0,
+    113              .clean_fun.bits.resume    = 0,
+    114            },
+    115            
+    116            .wf_info=
+    117            {
+    118              .am_ir_wf_min_val      = 60,//沿边贴墙距离的参数配置
+    119              .changed = 0,
+    120            },
+    121            
+    122            .charge_info=
+    123            {
+    124              .native_charging_en = 1, //默认打开
+    125              .bat_type = BAT_TYPE,
+    126              .adapter_output_vol = ADAPTER_OUTPUT_VOL,
+    127              .adapter_output_current = ADAPTER_OUTPUT_CURRENT,
+    128              .changed = 0,
+    129            },  
+    130          
+    131            .play_info = 
+    132            {
+    133              .pa_gain  = PA_GAIN,
+    134            },
+    135            
+    136            .funtion_info =
+    137            {
+    138              .clean_fun.bits.motor_driver = 2,//8801
+    139              .clean_fun.bits.wheel_left_dir = 1,
+    140              .clean_fun.bits.wheel_right_dir= 1,
+    141              .clean_fun.bits.wheepdrop    = 1,//has wheep drop test or not?
+    142              .clean_fun.bits.stasis       = 1,//has stasis wheel
+    143              .clean_fun.bits.lt_type      = 0,//如果有远近两组lt的话填写 1
+    144              .clean_fun.bits.rear_cliff   = 0,//如果模组后面有cliff，填 1 
+    145              .clean_fun.bits.ltBumpNoBack = 1,//lt bump后，机器是否先后退再转弯。 一般如果轮子不在模具的中间，则不适宜打开。
+    146              .clean_fun.bits.gyro_dir     = 0,//陀螺仪方向
+    147              .clean_fun.bits.wall_follow_dir = 0, //0: left and right, 1:left, 2:right
+    148            }
+    149            
+    150          };
+    151          
+    152          void ui_config_init(void)
+    153          {
+    154            ;
+    155          }
+    156          
+    157          ui_config_t* get_ui_config(void)
+    158          {
+    159            return (ui_config_t*)&ui_config_default;
+    160          }
+    161          
+    162          ui_local_config_t* get_local_ui_config(void)
+    163          {
+    164            return (ui_local_config_t*)&ui_local_config_default;
+    165          }
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   get_local_ui_config
+       0   get_ui_config
+       0   ui_config_init
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       6  get_local_ui_config
+       6  get_ui_config
+     104  ui_config_default
+       2  ui_config_init
+      96  ui_local_config_default
+
+ 
+ 214 bytes in section .text
+ 
+ 214 bytes of CODE memory
+
+Errors: none
+Warnings: none

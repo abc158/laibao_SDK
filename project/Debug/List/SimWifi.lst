@@ -1,0 +1,1248 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V7.30.4.8167/W32 for ARM        20/Oct/2017  11:01:11
+# Copyright 1999-2014 IAR Systems AB.
+#
+#    Cpu mode     =  thumb
+#    Endian       =  little
+#    Source file  =  F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimWifi.c
+#    Command line =  
+#        "F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimWifi.c" -lcN "F:\1708\SDK
+#        - unlock\project\Debug\List\" --diag_error PE223 -o "F:\1708\SDK -
+#        unlock\project\Debug\Obj\" --debug --endian=little --cpu=Cortex-M3 -e
+#        --fpu=None --dlib_config "D:\Program Files (x86)\IAR Systems\Embedded
+#        Workbench 7.0\arm\INC\c\DLib_Config_Normal.h" --preinclude
+#        "F:\1708\SDK - unlock\project\..\lib\syscall_api.h" -I "F:\1708\SDK -
+#        unlock\project\..\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\src\includes\" -I "F:\1708\SDK -
+#        unlock\project\..\lib\" -I "F:\1708\SDK - unlock\project\..\src\" -I
+#        "F:\1708\SDK - unlock\project\..\src\local_process\" -I "F:\1708\SDK -
+#        unlock\project\..\src\cfg\" -I "F:\1708\SDK -
+#        unlock\project\..\src\dock\" -I "F:\1708\SDK -
+#        unlock\project\..\src\guardrail\" -I "F:\1708\SDK -
+#        unlock\project\..\src\wireless\" -Ohz
+#    List file    =  F:\1708\SDK - unlock\project\Debug\List\SimWifi.lst
+#    Object file  =  F:\1708\SDK - unlock\project\Debug\Obj\SimWifi.o
+#
+###############################################################################
+
+F:\1708\SDK - unlock\src\wifi\wifi_demo1\SimWifi.c
+      1          #include <ui-config.h>
+      2          #include "ui-commands.h"
+      3          #include "am_date_base.h"
+      4          #include "am_config_macro.h"
+      5          #include "time.h"
+      6          #include "lib.h"
+      7          #include "local_key_check.h"
+      8          #include "syscall_api.h"
+      9          #include "remote.h"
+     10          #include "act.h"
+     11          #include "display.h"
+     12          #include "am_key.h"
+     13          #include "sensor/sensor.h"
+     14          #include "ui-manager/exception.h"
+     15          #include "motor/robot_suction.h"
+     16          #include "ui-song-player.h"
+     17          #include "display.h"
+     18          #include "ui_uart_handle/mqueue.h"
+     19          #include "simwifi.h"
+     20          #include "simsweep.h"
+     21          #include "charge/charge.h"
+     22          #if defined(USE_WIFI_DEMO_1)
+     23          #define WIFI_UART 1
+     24          
+     25          
+     26          //extern data U8 Fg_System20msSig; //移植时，需引入
+     27          //extern bit wifi_enable_flag;
+     28          extern u16 sys_uart_trig_tx_evnet(u16 uart_index);
+     29          extern schedule_time_info  obj_schedule_info_msg_t;
+     30          static U32 wifi_delay_ts = 0;
+     31          uint16_t Value_HeaterPower=0;
+     32          /*使能wifi功能 0不使能，1使能*/
+     33          //uint8_t  enable_wifi = 1;
+     34          /*复位wifi模块标志，0不复位，1复位，2中间状态*/
+     35          uint8_t  reset_wifi_flag = 0;
+     36          uint8_t  wifi_enable_flag = 0;
+     37          uint8_t  wifi_send_sleep_flag =0;
+     38          uint8_t UartRxBuf[UART_RX_BUF_SIZE];//UART接收缓冲器
+     39          uint8_t P_RxBufWrite=0;//UART接收缓冲器,写指针
+     40          uint8_t fg_RXFrame=ZERO_FRAME;//UART接收帧,状态
+     41          uint8_t UartTxBuf[UART_TX_BUF_SIZE];//UART发送缓冲器
+     42          //uint16_t error_count = 0;
+     43          
+     44          static sys_state_info sys_state_info_p; 
+     45          static sys_current_info sys_current_info_p;   /*系统电流*/
+     46          void Usart1_SendByte(uint8_t Value);
+     47          /****************************************************
+     48          **函数体名：Delay_nms
+     49          **功能描述：毫秒级延时
+     50          **输入参数：u32 m
+     51          **输出参数：无   
+     52          *****************************************************/
+     53          
+     54          #if 0
+     55          void Delay_N_mS(uint32_t m)
+     56          {
+     57            uint16_t i,j;
+     58          
+     59            for(i=0;i<m;i++)
+     60            {
+     61              for(j=0;j<1200;j++);
+     62            }
+     63          }
+     64          #endif
+     65          
+     66          void ResetUartRxBuf(void)
+     67          {
+     68          #ifdef gzsdebug 
+     69             uint8_t i;
+     70              for(i=0;i<UART_RX_BUF_SIZE;i++)
+     71             {
+     72               UartRxBuf[i]=0;
+     73             }
+     74          #endif   
+     75             fg_RXFrame=ZERO_FRAME;//reset fg_RXFrame信号
+     76             P_RxBufWrite=0;//reset P_RxBufWrite
+     77           }
+     78          #ifdef gzsdebug 
+     79          void ResetUartTxBuf(void)
+     80          {
+     81             uint8_t i;
+     82              for(i=0;i<UART_TX_BUF_SIZE;i++)
+     83             {
+     84               UartTxBuf[i]=0;
+     85             }
+     86           }
+     87          #endif 
+     88          
+     89          //********************
+     90          #ifdef gzsdebug
+     91          uint8_t DataTest=0;
+     92          #endif 
+     93          //****************
+     94          
+     95          void StructureTestNullPack(void)
+     96          {
+     97            uint16_t P_AddSum=0;
+     98            uint8_t i;
+     99            UartTxBuf[0]=0X55;
+    100            UartTxBuf[1]=0XAA;
+    101            UartTxBuf[2]=4;
+    102            UartTxBuf[3]=NullTestFunCode; //功能码0X00// 
+    103            UartTxBuf[2]+=2;  //包长
+    104            //P_AddSum=(uint16_t *)(UartTxBuf+4);
+    105            //*P_AddSum=0;
+    106            for(i=0;i<4;i++)
+    107            {
+    108              P_AddSum+=UartTxBuf[i];
+    109            }  
+    110           // printf("P_AddSum=%x\r\n",P_AddSum);
+    111            UartTxBuf[4]=(P_AddSum>>8);
+    112            UartTxBuf[5]=(P_AddSum&0x00ff);
+    113          
+    114          //********************
+    115          #if 0
+    116            //test++;
+    117            uint8_t len=64;
+    118            UartTxBuf[2]=len;
+    119            P_AddSum=(uint16_t *)(UartTxBuf+len-2);
+    120            *P_AddSum=0; 
+    121            
+    122             for(i=0;i<4;i++)
+    123             {
+    124               *P_AddSum+=UartTxBuf[i];
+    125             }
+    126             
+    127            for(i=4;i<len-2;i++)
+    128            {
+    129               UartTxBuf[i]=i+DataTest;
+    130               *P_AddSum+=UartTxBuf[i];
+    131             }   
+    132          #endif 
+    133             
+    134          //********************************
+    135           
+    136          }
+    137          
+    138          void StructureWifiCmdRegPack(uint8_t cmd)
+    139          {
+    140            uint16_t P_AddSum=0;
+    141            uint8_t i;
+    142            UartTxBuf[0]=0X55;
+    143            UartTxBuf[1]=0XAA;
+    144            UartTxBuf[2]=7;
+    145            UartTxBuf[3]=WriteMemFunCode; //功能码0X02
+    146            UartTxBuf[4]=0XF0; //RamAdr 0XF0
+    147            UartTxBuf[5]=8;    //8 Bit len
+    148            UartTxBuf[6]=cmd; //CMD Reg
+    149            UartTxBuf[2]+=2; //包长    
+    150            //P_AddSum=(uint16_t *)(UartTxBuf+7);
+    151            //*P_AddSum=0;
+    152            for(i=0;i<7;i++)
+    153            {
+    154              P_AddSum+=UartTxBuf[i];
+    155            }  
+    156            UartTxBuf[7] = (P_AddSum>>8);
+    157            UartTxBuf[8] = (P_AddSum&0x00ff);
+    158          }
+    159          
+    160          #define iData0Adr 0X00    //0 数据项 APP按键信号
+    161          //#define iData0BitLen 32    
+    162          //***********1V3_Begin
+    163          #define iData0BitLen    48    
+    164          //***********1V3_End
+    165          
+    166          #define iData1Adr       0X08    //1 数据项 预约参数
+    167          #define iData1BitLen    64    
+    168          #define iData2Adr       0X10    //2 数据项 预约参数
+    169          #define iData2BitLen    64   
+    170          #define iData3Adr       0X18    //3 数据项 经销商Oem代码
+    171          #define iData3BitLen    24
+    172          #define iData4Adr       0X20    //4 数据项 帧编号，历史地图帧
+    173          #define iData4BitLen    48
+    174          #define iData5Adr       0X43    //5 数据项 [信号标记Bit1,Bit0]=[0X19,0X18];[信号标记Bit2]=[0X1A]
+    175          #define iData5BitLen    8    
+    176          #define iData6Adr       0XF1    //6 数据项 0xF1 wificard status reg
+    177          #define iData6BitLen    8    
+    178          #define iData7Adr       0XF8    //7 数据项 0xF8 RTC
+    179          #define iData7BitLen    64   
+    180          
+    181          //***************1V3_Begin
+    182          #define iData8Adr       0X1A    //8 数据项 0x1A 音量
+    183          #define iData8BitLen    8   
+    184          //***************1V3_End
+    185          
+    186          //**********************以上,可插入新的数具项
+    187            
+    188          
+    189          
+    190          #define iData0Index 5                        //在应答报文对应的，数组下标位置
+    191          #define iData1Index (iData0Index+iData0BitLen/8)
+    192          #define iData2Index (iData1Index+iData1BitLen/8)
+    193          #define iData3Index (iData2Index+iData2BitLen/8)
+    194          #define iData4Index (iData3Index+iData3BitLen/8)
+    195          #define iData5Index (iData4Index+iData4BitLen/8)
+    196          #define iData6Index (iData5Index+iData5BitLen/8)
+    197          #define iData7Index (iData6Index+iData6BitLen/8)
+    198          //***************1V3_Begin
+    199          #define iData8Index (iData7Index+iData7BitLen/8)
+    200          //***************1V3_End
+    201          
+    202          //**********************以上,可插入新的数具项  
+    203          
+    204          
+    205          void StructureReadAPPKeySigPack(void)  //读用户VAR,一次读完
+    206          {
+    207            uint16_t P_AddSum=0;
+    208            uint8_t  index=0,i;
+    209            UartTxBuf[index++]=0X55;
+    210            UartTxBuf[index++]=0XAA;
+    211            UartTxBuf[index++]=0;                 //pack len init=0;
+    212            UartTxBuf[index++]=EnReadMemFunCode; //功能码0X05  
+    213            UartTxBuf[index++]=iData0Adr;   
+    214            UartTxBuf[index++]=iData0BitLen;  
+    215            UartTxBuf[index++]=iData1Adr;  
+    216            UartTxBuf[index++]=iData1BitLen;    
+    217            UartTxBuf[index++]=iData2Adr; 
+    218            UartTxBuf[index++]=iData2BitLen;  
+    219            UartTxBuf[index++]=iData3Adr; 
+    220            UartTxBuf[index++]=iData3BitLen;    
+    221            UartTxBuf[index++]=iData4Adr; 
+    222            UartTxBuf[index++]=iData4BitLen;  
+    223            UartTxBuf[index++]=iData5Adr; 
+    224            UartTxBuf[index++]=iData5BitLen;  
+    225            UartTxBuf[index++]=iData6Adr; 
+    226            UartTxBuf[index++]=iData6BitLen; 
+    227             UartTxBuf[index++]=iData7Adr; 
+    228            UartTxBuf[index++]=iData7BitLen;
+    229          //***************1V3_Begin  
+    230            UartTxBuf[index++]=iData8Adr; 
+    231            UartTxBuf[index++]=iData8BitLen; 
+    232          //***************1V3_End
+    233            
+    234            //**********************以上,可插入新的数具项 
+    235           
+    236            UartTxBuf[2]=index+2;//pack len  
+    237           // P_AddSum=(uint16_t *)(UartTxBuf+index);
+    238           // *P_AddSum=0;
+    239            for(i=0;i<index;i++)//计算累加和
+    240            {
+    241               P_AddSum+=UartTxBuf[i];
+    242            }
+    243            UartTxBuf[index]=(P_AddSum>>8);
+    244            UartTxBuf[index+1]=(P_AddSum&0xff);
+    245            
+    246          }
+    247          
+    248          #define oData0Adr 0X50    //0 状态数据项 扫地机状态信号
+    249          #define oData0BitLen 32   
+    250          #define oData1Adr 0X58    //1 状态数据项 扫地机当前预约参数
+    251          #define oData1BitLen 64   
+    252          #define oData2Adr 0X60    //2 状态数据项 扫地机当前预约参数
+    253          #define oData2BitLen 64   
+    254          #define oData3Adr 0X68    //3 状态数据项 扫地机产品代码,电池电量，音乐音量
+    255          #define oData3BitLen 32
+    256          //*************1V2_Begin
+    257          #define oData4Adr 0X54    //4 状态数据项 UV存在否，单乐存在否，数据块相关
+    258          #define oData4BitLen 8
+    259          #define oData5Adr 0X55    //5 状态数据项 扫地机地图编号
+    260          #define oData5BitLen 8
+    261          //**************1V2_End
+    262          #define oData10Adr 0X70    //6 状态数据项 推送位置1
+    263          #define oData10BitLen 64   
+    264          #define oData11Adr 0X78    //7 状态数据项 推送位置2
+    265          #define oData11BitLen 64   
+    266          #define oData12Adr 0X80    //8 状态数据项 推送位置3
+    267          #define oData12BitLen 64   
+    268          #define oData13Adr 0X88    //9 状态数据项 推送位置4
+    269          #define oData13BitLen 64
+    270          
+    271          #define oData20Adr 0X90    //10 状态数据项 获取位置1
+    272          #define oData20BitLen 64   
+    273          #define oData21Adr 0X98    //11 状态数据项 获取位置2
+    274          #define oData21BitLen 64   
+    275          #define oData22Adr 0XA0    //12 状态数据项 获取位置3
+    276          #define oData22BitLen 64   
+    277          #define oData23Adr 0XA8    //13 状态数据项 获取位置4
+    278          #define oData23BitLen 64
+    279          
+    280          #define oData30Adr 0XB0    //14状态数据项 历史地图1
+    281          #define oData30BitLen 64   
+    282          #define oData31Adr 0XB8    //15 状态数据项 历史地图2
+    283          #define oData31BitLen 64   
+    284          #define oData32Adr 0XC0    //16 状态数据项 历史地图3
+    285          #define oData32BitLen 64   
+    286          #define oData33Adr 0XC8    //17 状态数据项 历史地图4
+    287          #define oData33BitLen 64
+    288          
+    289          
+    290          uint8_t DataModeFlag=1;
+    291          void StructureAPPDisplaySigPack(void)
+    292          {
+    293            uint16_t P_AddSum=0;
+    294            uint8_t i,index=0;
+    295            UartTxBuf[index++]=0X55;
+    296            UartTxBuf[index++]=0XAA;
+    297            UartTxBuf[index++]=0;//init 0;  
+    298            
+    299            /*#define oData0Mode             0 //缺省loop模式
+    300          #define oData1Mode                1 //数据片1,输出
+    301          #define oData2Mode                2 //数据片2,输出
+    302          #define oData3Mode                3 //数据片3,输出*/ 
+    303            
+    304            switch(DataModeFlag)
+    305            {
+    306              case oData0Mode://设备状态数据片
+    307                  UartTxBuf[index++]=EnWriteMemFunCode;         //功能码0X06,事件应答模式
+    308                  UartTxBuf[index++]=oData0Adr;                 //处理out Data0
+    309                  UartTxBuf[index++]=oData0BitLen;    
+    310                  Get_oData0_0X50_0X53(UartTxBuf+index,oData0BitLen/8);//get oData0
+    311                  index+=(oData0BitLen/8);
+    312                  
+    313                  UartTxBuf[index++]=oData1Adr;                 //处理out Data1
+    314                  UartTxBuf[index++]=oData1BitLen;    
+    315                  Get_oData1_0X58_0X5F(UartTxBuf+index,oData1BitLen/8);//get oData1
+    316                  index+=(oData1BitLen/8);  
+    317                 
+    318                  UartTxBuf[index++]=oData2Adr;                 //处理out Data2
+    319                  UartTxBuf[index++]=oData2BitLen;    
+    320                  Get_oData2_0X60_0X67(UartTxBuf+index,oData2BitLen/8);//get oData2
+    321                  index+=(oData2BitLen/8); 
+    322                  
+    323                  UartTxBuf[index++]=oData3Adr;                 //处理out Data3
+    324                  UartTxBuf[index++]=oData3BitLen;    
+    325                  Get_oData3_0X68_0X6B(UartTxBuf+index,oData3BitLen/8);//get oData3
+    326                  index+=(oData3BitLen/8);  
+    327                 
+    328                  //******1V2_Begin
+    329                  UartTxBuf[index++]=oData4Adr;                 //处理out Data4
+    330                  UartTxBuf[index++]=oData4BitLen;    
+    331                  Get_oData4_0X54_0X54(UartTxBuf+index,oData4BitLen/8);//get oData4
+    332                  index+=(oData4BitLen/8); 
+    333                 //*****1V2_End
+    334                  
+    335                  UartTxBuf[index++]=oData5Adr;                 //处理out Data5
+    336                  UartTxBuf[index++]=oData5BitLen;    
+    337                  Get_oData5_0X55_0X55(UartTxBuf+index,oData5BitLen/8);//get oData5
+    338                  index+=(oData5BitLen/8);        
+    339                  break;
+    340          //***********************************  
+    341              case oData1Mode:   //推送位置数据片
+    342                  UartTxBuf[index++]=WriteMemFunCode;         //功能码0X02
+    343                  UartTxBuf[index++]=oData10Adr;                 //处理out Data6
+    344                  UartTxBuf[index++]=oData10BitLen;    
+    345                  Get_oData6_0X70_0X77(UartTxBuf+index,oData10BitLen/8);//get oData6
+    346                  index+=(oData10BitLen/8);
+    347                  
+    348                  UartTxBuf[index++]=oData11Adr;                 //处理out Data7
+    349                  UartTxBuf[index++]=oData11BitLen;    
+    350                  Get_oData7_0X78_0X7F(UartTxBuf+index,oData11BitLen/8);//get oData7
+    351                  index+=(oData11BitLen/8);  
+    352                 
+    353                  UartTxBuf[index++]=oData12Adr;                 //处理out Data8
+    354                  UartTxBuf[index++]=oData12BitLen;    
+    355                  Get_oData8_0X80_0X87(UartTxBuf+index,oData12BitLen/8);//get oData8
+    356                  index+=(oData12BitLen/8); 
+    357                  
+    358                  UartTxBuf[index++]=oData13Adr;                 //处理out Data9
+    359                  UartTxBuf[index++]=oData13BitLen;    
+    360                  Get_oData9_0X88_0X8F(UartTxBuf+index,oData13BitLen/8);//get oData9
+    361                  index+=(oData13BitLen/8);  
+    362                  break;
+    363          //***********************************  
+    364              case oData2Mode:  //获取位置数据片   
+    365                  UartTxBuf[index++]=WriteMemFunCode;         //功能码0X02
+    366                  UartTxBuf[index++]=oData20Adr;                 //处理out Data10
+    367                  UartTxBuf[index++]=oData20BitLen;    
+    368                  Get_oData10_0X90_0X97(UartTxBuf+index,oData20BitLen/8);//get oData10
+    369                  index+=(oData20BitLen/8);
+    370                  
+    371                  UartTxBuf[index++]=oData21Adr;                 //处理out Data11
+    372                  UartTxBuf[index++]=oData21BitLen;    
+    373                  Get_oData11_0X98_0X9F(UartTxBuf+index,oData21BitLen/8);//get oData11
+    374                  index+=(oData21BitLen/8);  
+    375                 
+    376                  UartTxBuf[index++]=oData22Adr;                 //处理out Data12
+    377                  UartTxBuf[index++]=oData22BitLen;    
+    378                  Get_oData12_0XA0_0XA7(UartTxBuf+index,oData22BitLen/8);//get oData12
+    379                  index+=(oData22BitLen/8); 
+    380                  
+    381                  UartTxBuf[index++]=oData23Adr;                 //处理out Data13
+    382                  UartTxBuf[index++]=oData23BitLen;    
+    383                  Get_oData13_0XA8_0XAF(UartTxBuf+index,oData23BitLen/8);//get oData13
+    384                  index+=(oData23BitLen/8);  
+    385                  break;
+    386          //***********************************  
+    387              case oData3Mode:  //历史地图数据片    
+    388                  UartTxBuf[index++]=WriteMemFunCode;         //功能码0X02 
+    389                  UartTxBuf[index++]=oData30Adr;                 //处理out Data14
+    390                  UartTxBuf[index++]=oData30BitLen;    
+    391                  Get_oData14_0XB0_0XB7(UartTxBuf+index,oData30BitLen/8);//get oData14
+    392                  index+=(oData30BitLen/8);
+    393                  
+    394                  UartTxBuf[index++]=oData31Adr;                 //处理out Data15
+    395                  UartTxBuf[index++]=oData31BitLen;    
+    396                  Get_oData15_0XB8_0XBF(UartTxBuf+index,oData31BitLen/8);//get oData15
+    397                  index+=(oData31BitLen/8);  
+    398                 
+    399                  UartTxBuf[index++]=oData32Adr;                 //处理out Data16
+    400                  UartTxBuf[index++]=oData32BitLen;    
+    401                  Get_oData16_0XC0_0XC7(UartTxBuf+index,oData32BitLen/8);//get oData16
+    402                  index+=(oData32BitLen/8); 
+    403                  
+    404                  UartTxBuf[index++]=oData33Adr;                 //处理out Data17
+    405                  UartTxBuf[index++]=oData33BitLen;    
+    406                  Get_oData17_0XC8_0XCF(UartTxBuf+index,oData33BitLen/8);//get oData17
+    407                  index+=(oData33BitLen/8); 
+    408                 // test_print = 1;
+    409                  
+    410                  break;  
+    411          //***********************************  
+    412              default:         
+    413                  break;        
+    414            }      
+    415            UartTxBuf[2]=index+2;   //pack len 
+    416           // P_AddSum=(uint16_t *)(UartTxBuf+index);
+    417           // *P_AddSum=0;
+    418            for(i=0;i<index;i++)
+    419             {
+    420               P_AddSum+=UartTxBuf[i];
+    421             } 
+    422            UartTxBuf[index]=(P_AddSum>>8);
+    423            UartTxBuf[index+1]=(P_AddSum&0xff);
+    424            /*
+    425            if(test_print == 1)
+    426            {
+    427              printf("send his data:\r\n");
+    428               for(i=0;i<(index+2);i++)
+    429             {
+    430                printf("%x ",UartTxBuf[i]);
+    431             } 
+    432               test_print = 0;
+    433            }*/
+    434            
+    435          }
+    436          
+    437          
+    438          void SetPushFullDataFlag(uint8_t oDataMode )//Push FULL DATA FLAG
+    439          {                                              //输出数据分组
+    440                                                          //oDataMode==0，仅公共loop 输出
+    441                                                          //oDataMode==1,数据片1,输出
+    442                                                          //oDataMode==2,数据片2,输出
+    443                                                          //oDataMode==3,数据片3,输出
+    444            DataModeFlag=oDataMode; //指定数据片，输出模式
+    445          }
+    446          
+    447          
+    448          void StructureE2ROM_ParaPack(void)
+    449          {
+    450            uint16_t P_AddSum=0;
+    451            uint8_t i;
+    452            UartTxBuf[0]=0X55;
+    453            UartTxBuf[1]=0XAA;
+    454            UartTxBuf[2]=0;                  //暂不=值
+    455            UartTxBuf[3]=WriteMemEEROMFunCode; //功能码0X03
+    456            
+    457            UartTxBuf[4]=0XF4; //RamAdr 0XF4
+    458            UartTxBuf[5]=16;    //16 Bit len
+    459           // *(uint16_t *)(UartTxBuf+6)=APP_COM_NUM; //组件号
+    460            UartTxBuf[6]=(APP_COM_NUM>>8);    //16 Bit len
+    461            UartTxBuf[7]=(APP_COM_NUM&0x00ff);    //16 Bit len
+    462            UartTxBuf[8]=0XF6; //RamAdr 0XF6
+    463            UartTxBuf[9]=16;    //16 Bit len
+    464            P_AddSum = Get_OEM_CODE();
+    465            UartTxBuf[10]=(P_AddSum>>8);
+    466            UartTxBuf[11]=(P_AddSum&0xff);
+    467            //*(uint16_t *)(UartTxBuf+10)=Get_OEM_CODE();//OemCode=组件内码  
+    468            UartTxBuf[2]=12;  
+    469            UartTxBuf[2]+=2;
+    470            //P_AddSum=(uint16_t *)(UartTxBuf+12);
+    471            P_AddSum=0;
+    472            for(i=0;i<12;i++)
+    473             {
+    474               P_AddSum+=UartTxBuf[i];
+    475             }
+    476            UartTxBuf[12]=(P_AddSum>>8);
+    477            UartTxBuf[13]=(P_AddSum&0xff);
+    478           
+    479          }
+    480          
+    481          
+    482          //extern void init_wifi_uart(void);
+    483          void UART_Config_PinResetWifiCard(void)
+    484          {
+    485            volatile uint32_t time = 2000000;
+    486            init_wifi_module(); 
+    487            while(time--);
+    488            powerup_wifi_module(); 
+    489            InsertExtCmd(ParaSaveToWifiE2ROM);//初始化，组件号，首个命令
+    490            wifi_delay_ts = timer_ms();
+    491          }
+    492          
+    493          /*****************************************************
+    494          **函数体名：Usart2_SendByte
+    495          **功能描述：串口2发送1字节
+    496          **输入参数：Value 
+    497          **输出参数：无 
+    498          *****************************************************/
+    499          void Usart1_SendByte(uint8_t Value)
+    500          {
+    501            // senduart2(Value);
+    502          }
+    503          
+    504          /*****************************************************
+    505          **函数体名：Usart1_SendHexString
+    506          **功能描述：串口2发送二进制数据流
+    507          **输入参数：u8 *pData,u32 Long(数组大小)
+    508          **输出参数：无 
+    509          *****************************************************/
+    510          extern void set_wifi_uart_tx_fifo_empty_irq(void);
+    511          void Usart1_SendHexString(uint8_t *pHexBuf,uint32_t Long)
+    512          {
+    513            uint32_t i;
+    514           // printf("send: ");
+    515            for(i=0;i<Long;i++)
+    516            {
+    517             // printf("%x ",pHexBuf[i]);
+    518              uart_txrx_q_put(WIFI_TX_INDEX,pHexBuf[i]);
+    519            }
+    520           // printf("\r\n");
+    521            set_wifi_uart_tx_fifo_empty_irq();
+    522            //sys_uart_trig_tx_evnet(WIFI_UART);
+    523          }
+    524          
+    525          void  SendTestNullPack(void)
+    526          {
+    527            StructureTestNullPack();          //构造测试空包
+    528            Usart1_SendHexString(UartTxBuf,UartTxBuf[2]);
+    529          }
+    530          void SendCmdRegPack(uint8_t cmd)
+    531          {
+    532             StructureWifiCmdRegPack(cmd);
+    533             Usart1_SendHexString(UartTxBuf,UartTxBuf[2]);
+    534          }
+    535          
+    536          void SendAPPDisplaySigPack(void )
+    537          {
+    538             StructureAPPDisplaySigPack();
+    539             Usart1_SendHexString(UartTxBuf,UartTxBuf[2]);
+    540          } 
+    541          void SendReadAPPKeySigPack(void )
+    542          {
+    543             StructureReadAPPKeySigPack();//构造读报文
+    544             Usart1_SendHexString(UartTxBuf,UartTxBuf[2]);
+    545          }
+    546          void SendParaSaveToWifiE2ROMPack(void )
+    547          {
+    548              StructureE2ROM_ParaPack();
+    549              Usart1_SendHexString(UartTxBuf,UartTxBuf[2]);      
+    550          } 
+    551          
+    552          /*****************************************************
+    553          **函数体名：IRQ_Usart2RxData_Process
+    554          **功能描述：中断串口2接收数据处理
+    555          **输入参数：无
+    556          **输出参数：无 
+    557          *****************************************************/
+    558          uint8_t FrameLen=0; 
+    559          uint16_t FrameAddSum=0;
+    560          void IRQ_Usart1RxData_Process(uint8_t value)
+    561          {
+    562            uint8_t Dat;
+    563            uint16_t check_sum=0;
+    564            //UART1_GetITStatus( UART1_IT_OR);
+    565            Dat=value; //readme Uart  
+    566              //printf("DAT=%x\r\n",Dat);
+    567            if((fg_RXFrame==FRAME_ERROR)||(fg_RXFrame==FRAME_OK)) //stop RecFrame 直到main处理了这个帧信号 
+    568                   return;   
+    569            switch(P_RxBufWrite)
+    570            {
+    571            case 0:
+    572                if(Dat==0XAA) //frame head syn
+    573                {
+    574                  UartRxBuf[P_RxBufWrite]=Dat;
+    575                  FrameAddSum=0XAA;
+    576                  P_RxBufWrite++;  
+    577                }
+    578                break;
+    579            case 1:  
+    580                if(Dat==0X55)//frame head syn
+    581                {
+    582                  UartRxBuf[P_RxBufWrite]=Dat;
+    583                  FrameAddSum+=Dat;       
+    584                  P_RxBufWrite++;
+    585                 // check_count = 0;
+    586                }
+    587                else
+    588                {
+    589                  P_RxBufWrite=0;//reset P_RxBufWrite
+    590                }
+    591                break;
+    592            case 2:                   //frame len
+    593                if(Dat<4)//FrameLen<4
+    594                {
+    595                     P_RxBufWrite=0;           //reset P_RxBufWrite       
+    596                }
+    597                else
+    598                {  
+    599                    FrameLen=Dat;
+    600                    UartRxBuf[P_RxBufWrite]=Dat;
+    601                    FrameAddSum+=Dat;       
+    602                    P_RxBufWrite++;
+    603                }
+    604                break;    
+    605            default:    
+    606                UartRxBuf[P_RxBufWrite]=Dat;   //uart 接收中 
+    607                if(P_RxBufWrite<FrameLen-2)  //累加和，计算
+    608                   FrameAddSum+=Dat;
+    609                P_RxBufWrite++;
+    610                if(FrameLen==P_RxBufWrite)//
+    611                {   
+    612                    check_sum = (UartRxBuf[FrameLen-2]<<8)|(UartRxBuf[FrameLen-1]);
+    613                    if(check_sum ==FrameAddSum ) 
+    614                      fg_RXFrame=FRAME_OK;//UART接收帧,发出Frame_OK信号
+    615                    else
+    616                      fg_RXFrame=FRAME_ERROR;//UART接收帧,累加和错       
+    617                }
+    618                else if (P_RxBufWrite>FrameLen)
+    619                {  
+    620                    fg_RXFrame=FRAME_ERROR;//UART接收帧,发出FrameError信号  
+    621                    P_RxBufWrite=0;           //reset P_RxBufWrite
+    622                }        
+    623                break; 
+    624            }      
+    625            if(P_RxBufWrite>(UART_RX_BUF_SIZE-1))//超出接收缓冲器大小,需调整UARTRXBUFSIZE大小
+    626            {
+    627              P_RxBufWrite=0;                     //reset P_RxBufWrite
+    628            }  
+    629          }
+    630          
+    631          
+    632          /*****************************************************
+    633          **函数体名：ReadData_From_UartRxBuf
+    634          **功能描述：从接收缓冲区读取数据,且处理
+    635          **输入参数：CmdAckFun_8,ack功能码
+    636          **输出参数：反回ACK状态
+    637          *****************************************************/
+    638          uint8_t ReadData_From_UartRxBuf(uint8_t CmdAckFun_8)
+    639          {
+    640           
+    641            if(fg_RXFrame==ZERO_FRAME) //wait 
+    642                  return UART_CMD_ACK_WAIT;
+    643            
+    644            if((CmdAckFun_8!=UartRxBuf[3])|(fg_RXFrame==FRAME_ERROR)|(UartRxBuf[4]!=UartCmdFinOK))//判断是否是当前要ACK,ACK是否错误码
+    645            {
+    646                  fg_RXFrame=ZERO_FRAME;//reset fg_RXFrame信号
+    647                  P_RxBufWrite=0;//reset P_RxBufWrite
+    648                  return UART_CMD_ACK_ERR;
+    649            } 
+    650              
+    651             return UART_CMD_ACK_OK;
+    652          }
+    653          
+    654          
+    655          
+    656          
+    657          uint8_t AppInstalledFlag=1;//=0,设备处于出厂状态，1=表示已安装APP，可工作,默认
+    658          void ProcessAPPKeySig (void)
+    659          {
+    660          //  uint8_t tmp;
+    661            uint8_t APPinstalledEvent=0;//APP 安装成功事件指示  
+    662          #ifdef gzsdebugOut  
+    663            uint8_t ii=0,AdrHex[2];
+    664            //*************1V3_Begin
+    665            for(ii=0;ii<iData0BitLen/8;ii++)     
+    666             //************1V3_End
+    667            {
+    668              AdrHex[0]=ii;  
+    669              if(UartRxBuf[iData0Index+ii]) 
+    670              {
+    671                AdrHex[1]=UartRxBuf[iData0Index+ii];
+    672                Value_HeaterPower=*(uint16_t*)AdrHex;
+    673                break;
+    674              } 
+    675            }
+    676          #endif
+    677          
+    678              
+    679           //5组位信号,处理  iData0Index 
+    680            if(UartRxBuf[iData0Index+0])          Action_0X00(UartRxBuf[iData0Index+0]);      //1Byte
+    681            if(UartRxBuf[iData0Index+1])          Action_0X01(UartRxBuf[iData0Index+1]);      //1Byte
+    682            //if(UartRxBuf[iData0Index+4]&0X20)     Action_0X1B_0X1E(UartRxBuf+iData3Index+4);  //4Byte
+    683            if(UartRxBuf[iData0Index+2])          Action_0X02(UartRxBuf[iData0Index+2]);      //1Byte  
+    684            if(UartRxBuf[iData0Index+3]&0XFB)     Action_0X03(UartRxBuf[iData0Index+3]&0XFB); //1Byte   
+    685           // 预约特别处理  iData1Index,iData2Index
+    686            if(UartRxBuf[iData0Index+3]&0X04)     Action_0X08_0X17(UartRxBuf+iData1Index,16); //16Byte 
+    687            
+    688            if(UartRxBuf[iData0Index+4])          Action_0X04(UartRxBuf[iData0Index+4]);      //1Byte 
+    689            if(UartRxBuf[iData0Index+5])          Action_0X05(UartRxBuf[iData0Index+5]);      //1Byte
+    690            
+    691            if(UartRxBuf[iData0Index+4]&0X20)     Action_0X20_0X21(UartRxBuf+iData4Index,2);  //2Byte
+    692            if(UartRxBuf[iData0Index+5]&0X20)     Action_0X20_0X25(UartRxBuf+iData4Index,6);  //6Byte
+    693            
+    694            
+    695           //经销商代码  iData3Index ,iData5Index,2字节
+    696            if(UartRxBuf[iData5Index+0]&0X03)     //0X43=iData5
+    697            {
+    698              Action_0X18_0X19(*(uint16_t*)(UartRxBuf+iData3Index)); //2Byte 
+    699              InsertExtCmd(ParaSaveToWifiE2ROM);//插入外部命令ParaSaveToWifiE2ROM
+    700            }   
+    701           //************1V3_Begin 
+    702            //音量设定
+    703            if(UartRxBuf[iData5Index+0]&0X04)    //0X43 =iData5
+    704            {
+    705              Action_0X1A(UartRxBuf[iData8Index]); //1Byte 
+    706             }   
+    707           //************1V3_End    
+    708           
+    709            //wificard status  iData6Index 
+    710            if((UartRxBuf[iData6Index+0]&0X03)==0X00) 
+    711              {
+    712                if(AppInstalledFlag==0)         
+    713                  APPinstalledEvent=1;
+    714                AppInstalledFlag=1;      
+    715              } 
+    716            else 
+    717               AppInstalledFlag=0;
+    718               Action_0XF1(UartRxBuf[iData6Index]);//1Byte
+    719           //RTC  iData7Index  
+    720            Action_0XF8_0XFF(UartRxBuf+iData7Index,8,APPinstalledEvent);  //8Byte  
+    721          }
+    722          
+    723          
+    724          U16 voltage_adc[] = 
+    725          {
+    726              /*0% 5%   10%  15%  20%*/
+    727              2739,2822,2859,2887,2909,
+    728              /*25% 30%  35%  40%  45%*/
+    729              2928,2944,2959,2975,2993,
+    730              /*50% 55%  60%  65%  70%*/
+    731              3013,3038,3069,3104,3145,
+    732              /*75% 80%  85%  90%   95%*/
+    733              3189,3233,3260,3320,3347,
+    734              /*100%*/
+    735              3390
+    736          };
+    737          
+    738          U16 charge_voltage_adc[] = 
+    739          {
+    740              /*0% 5%   10%  15%  20%*/
+    741              2739,2822,3009,3050,3100,
+    742              /*25% 30%  35%  40%  45%*/
+    743              3200,3300,3350,3395,3440,
+    744              /*50% 55%  60%  65%  70%*/
+    745              3470,3485,3500,3510,3528,
+    746              /*75% 80%  85%  90%   95%*/
+    747              3540,3558,3575,3590,3600,
+    748              /*100%*/
+    749              3628
+    750          };
+    751          static U8  now_electricity = 0;
+    752          static U8  last_electricity = 0;
+    753          
+    754          void calc_electricity(U16  voltage)
+    755          {
+    756              U8 i;
+    757              last_electricity = now_electricity;
+    758              //sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    759              for(i=0;i<21;i++)
+    760              {
+    761                  if(sys_state_info_p.robot_state != ROBOT_STATE_CHARGING)
+    762                  {
+    763                      if(voltage_adc[i] > voltage)
+    764                      {
+    765                         break;
+    766                      }
+    767                  }
+    768                  else
+    769                  {
+    770                      if(charge_voltage_adc[i] > voltage)
+    771                      {
+    772                          break;
+    773                      }
+    774                  }
+    775              }
+    776              if(i == 0)
+    777              {
+    778                  now_electricity = 0;
+    779              }
+    780              else if(i == 21)
+    781              {
+    782                  now_electricity = 100;
+    783              }
+    784              else
+    785              {
+    786                  now_electricity = 5*(i-1);
+    787              }
+    788          
+    789              if(((now_electricity < last_electricity) && (sys_state_info_p.robot_state == ROBOT_STATE_CHARGING))
+    790                  || ((now_electricity > last_electricity) && (sys_state_info_p.robot_state != ROBOT_STATE_CHARGING)))
+    791              {
+    792                  if(last_electricity > 0)
+    793                  {
+    794                      now_electricity = last_electricity;
+    795                  }
+    796              }
+    797          
+    798              if(sys_state_info_p.charging_state == CHARGING_COMPLETE)
+    799              {
+    800                  now_electricity = 100;
+    801              }
+    802          
+    803              
+    804          }
+    805          U8 get_bat_level(void)
+    806          {
+    807              return now_electricity;
+    808          }
+    809          
+    810          /*****************************************************
+    811          **函数体名：WifiData_Period_Process
+    812          **功能描述：Wifi模块数据处理
+    813          **输入参数：无
+    814          **输出参数：无 
+    815          *****************************************************/
+    816          
+    817          uint8_t ExtCmdInserted=DefaultIdle; //触发WifiCard 状态机工作,命令                                    
+    818          
+    819          uint8_t WorkingStatus=TestConnectivity;  //状态机
+    820          uint8_t NextWorkingStatus=DefaultIdle;   //目标态
+    821          
+    822          uint8_t WaitingRxPackCounter=0;     //1000mS=20mS*50
+    823          uint8_t RxPackTimeOutErrorCounter=0;    //状态机超时错计数
+    824          uint8_t OldSystem20msSig=0;          //20ms 系统时基旧值
+    825          uint8_t flag=1;//debug
+    826          uint8_t MapDatFlag=OFF;
+    827          uint8_t MapFunFlag=OFF;
+    828          U8      MapDatCount=0;
+    829          extern uint8_t  Sim_oData4[1];
+    830          
+    831          U16 convert_to_adc( s16 voltage) 
+    832          {
+    833              U32 mv = voltage<<12;
+    834              mv = mv/18975;//0.18 ---> 18032; 0.174 --> 18975       
+    835              return (U16)mv;
+    836          }
+    837          
+    838          void WifiData_Period_Process(void)
+    839          {
+    840            
+    841            uint8_t UartCmdAck;
+    842            static U16  voltage_average = 0;
+    843            U16   tmp_voltage = 0;
+    844            static U16   tmp_cnt = 0;
+    845            static U8   first_check_voltage_flag = 0;
+    846            sys_info_get(SYS_STATE_INFO, (long )&sys_state_info_p);
+    847            sys_info_get(SYS_CURRENT_INFO,(long)&sys_current_info_p);
+    848          
+    849            tmp_voltage = convert_to_adc(sys_current_info_p.battery_voltage);
+    850          
+    851            voltage_average += tmp_voltage; 
+    852          
+    853           
+    854              if(voltage_average >= 5000)
+    855              {
+    856          	    voltage_average = (voltage_average>>1);
+    857              }
+    858          
+    859              tmp_cnt += 1;
+    860              if((tmp_cnt >= 2000)||((first_check_voltage_flag == 0)&&(tmp_cnt == 20)))
+    861              {
+    862                  calc_electricity(voltage_average);
+    863                  tmp_cnt = 0;
+    864                  first_check_voltage_flag = 1;
+    865              }
+    866          
+    867              if(wifi_send_sleep_flag == 1)
+    868              {
+    869                 // return;
+    870              }
+    871           // if(OldSystem20msSig != Fg_System20msSig) //计数--
+    872           // {
+    873                //OldSystem20msSig=Fg_System20msSig;
+    874                if(WaitingRxPackCounter) WaitingRxPackCounter--;
+    875            //}
+    876          /*
+    877          #ifndef FULL_FAST_RUN
+    878            else            //20ms 执行一次，信号读写
+    879                  return ;        
+    880          #endif
+    881          */
+    882            if(timer_elapsed(wifi_delay_ts) > 130)
+    883            {
+    884              if(MapDatCount > 0)
+    885              {
+    886                //  printf("MapDatCount--\r\n");
+    887                MapDatCount--;
+    888              }
+    889              
+    890              wifi_delay_ts = timer_ms();
+    891            }
+    892            
+    893            switch(WorkingStatus)
+    894             {
+    895               
+    896          //*****************WaitRX 中间状态    
+    897                 case WaitRX:
+    898                    switch(NextWorkingStatus)
+    899                    {
+    900                        case TestConnectivityAck:
+    901                              UartCmdAck=ReadData_From_UartRxBuf(NullTestAckCode);  break;                   
+    902                        case ReadFromAPPKeySigAck:      
+    903                              UartCmdAck=ReadData_From_UartRxBuf(EnReadMemAckCode);  break;                 
+    904                        case WriteToAPPDispalyAck: 
+    905                              if(DataModeFlag==oData0Mode)
+    906                              {UartCmdAck=ReadData_From_UartRxBuf(EnWriteMemAckCode);}
+    907                              else
+    908                              {UartCmdAck=ReadData_From_UartRxBuf(WriteMemAckCode);}
+    909                              break;                 
+    910                        case RestoreFactorySetAck: 
+    911                              UartCmdAck=ReadData_From_UartRxBuf(WriteMemAckCode);  break;                 
+    912                        case ParaSaveToWifiE2ROMAck:                          
+    913                              UartCmdAck=ReadData_From_UartRxBuf(WriteMemEEROMAckCode);  break; 
+    914                        default: 
+    915                              WorkingStatus=DefaultIdle;
+    916                              NextWorkingStatus=DefaultIdle;   
+    917                              break;   
+    918                    }      
+    919                    
+    920                    if (UartCmdAck==UART_CMD_ACK_OK)  //fin ok 
+    921                    { 
+    922                      RxPackTimeOutErrorCounter=0;
+    923                      WaitingRxPackCounter=0;
+    924                      WorkingStatus=NextWorkingStatus;//jump下个状态
+    925                      NextWorkingStatus=DefaultIdle;//恢复等待状
+    926                      flag=1;//debug
+    927                    }
+    928                    else if((UartCmdAck==UART_CMD_ACK_WAIT)&&(WaitingRxPackCounter!=0))
+    929                    {  
+    930                         if((WaitingRxPackCounter<WAITING_TIMEOUT_COUNTER__MAXVAL-10)&&(flag==1))//debug
+    931                         {
+    932                                flag=0;
+    933                                WaitingRxPackCounter=WaitingRxPackCounter;}
+    934                    }
+    935                    else         
+    936                   {  
+    937                            RxPackTimeOutErrorCounter++;    //计出错次数                                              
+    938                            WorkingStatus=TestConnectivity;//连通性测试
+    939                            WaitingRxPackCounter=0;   
+    940                            ResetUartRxBuf();//reset rxbuf
+    941                            if(RxPackTimeOutErrorCounter==200)//Wificard 死机自动复位 10*0.8S=8S
+    942                            {
+    943                               RxPackTimeOutErrorCounter=0;
+    944                               WorkingStatus=PinResetWifiCard;
+    945                               //UART_Config_PinResetWifiCard();//NeedTest 
+    946                            }   
+    947                    }  
+    948                    break; 
+    949          //************ PinReset WifiCard         
+    950                    
+    951                case PinResetWifiCard: 
+    952                    //UART_Config_PinResetWifiCard();  //cold 启动，[保护性重新启动],NeedTest
+    953                    WorkingStatus=TestConnectivity; //测试连通性
+    954                    ResetUartRxBuf();//reset rxbuf    
+    955                    break;        
+    956          
+    957          //*******Test Connectivity         
+    958               case TestConnectivity:
+    959                    SendTestNullPack();
+    960                    WorkingStatus=WaitRX;//wait 完成,中间状
+    961                    NextWorkingStatus=TestConnectivityAck;//正确完成，迁移状态，处理应答报文
+    962                    WaitingRxPackCounter=WAITING_TIMEOUT_COUNTER__MAXVAL;//超时计时复位
+    963                    break;
+    964               case TestConnectivityAck:  //连通性测试，ACK
+    965                    WorkingStatus=DefaultIdle;
+    966                    ResetUartRxBuf();//reset rxbuf         
+    967                    break; 
+    968                    
+    969          //************Para Save To WifiE2ROM
+    970               case ParaSaveToWifiE2ROM:
+    971                    SendParaSaveToWifiE2ROMPack();
+    972                    WorkingStatus          =WaitRX;//wait 完成,中间状 
+    973                    NextWorkingStatus      =ParaSaveToWifiE2ROMAck;//目标状
+    974                    WaitingRxPackCounter=WAITING_TIMEOUT_COUNTER__MAXVAL;//超时计时复位
+    975                    break;    
+    976               case ParaSaveToWifiE2ROMAck: //组件号写,及OEM代码     
+    977                    WorkingStatus=DefaultIdle;
+    978                    ResetUartRxBuf();//reset rxbuf         
+    979                    break;               
+    980          //*************Default Idle          
+    981               case DefaultIdle:
+    982                    if(ExtCmdInserted==DefaultIdle)//无外部命令
+    983                    {
+    984          
+    985                       WorkingStatus=ReadFromAPPKeySig;
+    986                    }
+    987                    else  //启动一个外部cmd ask and ack
+    988                    {  
+    989                       WorkingStatus=ExtCmdInserted;
+    990                       ExtCmdInserted=DefaultIdle;//reset 外部命令
+    991                    }            
+    992                    break;        
+    993          
+    994           //****** Read  APP KeySig      
+    995               case ReadFromAPPKeySig:       
+    996          #ifdef  gzsdebug      
+    997                    ResetUartTxBuf();
+    998          #endif        
+    999                    SendReadAPPKeySigPack();
+   1000          					
+   1001                    WorkingStatus=WaitRX;//wait 完成,中间状          
+   1002                    NextWorkingStatus=ReadFromAPPKeySigAck;//目标状
+   1003                    WaitingRxPackCounter=WAITING_TIMEOUT_COUNTER__MAXVAL;//超时计时复位
+   1004                    break;
+   1005               case ReadFromAPPKeySigAck:
+   1006           //******************************* 1V2_Begin    
+   1007                    WorkingStatus=WriteToAPPDisplay;   //缺省流向WriteToAPPDisplay
+   1008                    
+   1009                    ProcessAPPKeySig();                //内部可能更改为WorkingStatus
+   1010                    
+   1011                    
+   1012                    
+   1013                    if(MapFunFlag!=ONCE)//判断地图数据片是获取（MapFunFlag=ONCE)还是推送(MapFunFlag=ON)
+   1014                    {
+   1015                      if(Sim_oData4[0]&0x14)MapFunFlag=ON;
+   1016                      else MapFunFlag=OFF;
+   1017                    }
+   1018                    
+   1019                    if(MapFunFlag==ON) //如果地图数据片操作为推送，则地图数据片每300ms推送一次，
+   1020                                       //推送一次后转为推送机器状态
+   1021                    {
+   1022                      if(MapDatCount==0){MapDatFlag=ON;MapDatCount=MapDatDelay;}
+   1023                      else MapDatFlag=OFF;
+   1024                    }
+   1025                    else if(MapFunFlag==ONCE)//如果地图数据片操作为获取，则地图数据片只输出一次。
+   1026                    {
+   1027                      MapFunFlag=OFF;
+   1028                      MapDatFlag=ON;
+   1029                    }
+   1030                    else MapDatFlag=OFF;            
+   1031                              
+   1032                    if(MapDatFlag==ON)SetPushFullDataFlag(oData1Mode);
+   1033                    else SetPushFullDataFlag(oData0Mode);   
+   1034                    
+   1035                    
+   1036                    
+   1037                    
+   1038                    ResetUartRxBuf();//reset rxbuf  
+   1039                    break;
+   1040           //*******Write APP Display Sig         
+   1041               case WriteToAPPDisplay: 
+   1042                 
+   1043                    SendAPPDisplaySigPack();
+   1044                    WorkingStatus=WaitRX;//wait 完成,中间状   
+   1045                    NextWorkingStatus=WriteToAPPDispalyAck;//目标状
+   1046                    WaitingRxPackCounter=WAITING_TIMEOUT_COUNTER__MAXVAL;//超时计时复位
+   1047                    break;  
+   1048               case WriteToAPPDispalyAck:    //var 写完成         
+   1049                     //写回APP分两种情况输出，地图操作时地图相关数据片及机器状态循环输出，无地图操作时只输出机器状态数据片。
+   1050                    //地图数据片输出分片循环输出，先输出oData1Mode，之后oData2Mode，之后oData3Mode，之后oData0Mode（oData0Mode必须最后一个输出）。 
+   1051                    //地图数据片输出一个轮回后，下一操作为DefaultIdle;
+   1052                    
+   1053                    
+   1054                    if(MapDatFlag==ON)
+   1055                    {
+   1056                      if(DataModeFlag==oData1Mode)                       
+   1057                      {  
+   1058                        SetPushFullDataFlag(oData2Mode);
+   1059                        WorkingStatus=WriteToAPPDisplay;           //每个数据片循环的数据块未发送完，则下一操作为写回APP 
+   1060                        ResetUartRxBuf();//reset rxbuf
+   1061                      }
+   1062                      else if(DataModeFlag==oData2Mode)                                           
+   1063                      {              
+   1064                        SetPushFullDataFlag(oData3Mode);
+   1065                        WorkingStatus=WriteToAPPDisplay;           //每个数据片循环的数据块未发送完，则下一操作为写回APP 
+   1066                        ResetUartRxBuf();//reset rxbuf
+   1067                      }  
+   1068                      else if(DataModeFlag==oData3Mode)                                           
+   1069                      {
+   1070                        SetPushFullDataFlag(oData0Mode);
+   1071                        WorkingStatus=WriteToAPPDisplay;           //每个数据片循环的数据块未发送完，则下一操作为写回APP 
+   1072                        ResetUartRxBuf();//reset rxbuf            
+   1073                      }  
+   1074                      else if(DataModeFlag==oData0Mode)                                           
+   1075                      {  
+   1076                        SetPushFullDataFlag(oData1Mode);
+   1077                        WorkingStatus=DefaultIdle;              
+   1078                        ResetUartRxBuf();//reset rxbuf             
+   1079                      }  
+   1080                      else
+   1081                      {
+   1082                        SetPushFullDataFlag(oData1Mode);
+   1083                        WorkingStatus=DefaultIdle;              
+   1084                        ResetUartRxBuf();//reset rxbuf            
+   1085                      }  
+   1086                    }
+   1087                    else
+   1088                    {
+   1089                        SetPushFullDataFlag(oData0Mode);
+   1090                        WorkingStatus=DefaultIdle;               //每个数据片循环的数据块未发送完，则下一操作为写回APP 
+   1091                        ResetUartRxBuf();//reset rxbuf 
+   1092                    }
+   1093                    
+   1094                    
+   1095                    break;    
+   1096          //*********Restore FactorySet WifiCard
+   1097                    
+   1098               case RestoreFactorySet:
+   1099                    SendCmdRegPack( 0X80);//reset wificard gzsdebug          
+   1100                    /*<BIT7>：                                     0X80
+   1101          =1，恢复wifi_card出厂设置
+   1102          =0，恢复wifi_card出厂设置成功,WIFI—CARD自动复位
+   1103          <BIT0>：reboot_wifi_sys                                  0X01
+   1104          =1，hot重起wifi网卡
+   1105          =0，hot reboot 完成,WIFI—CARD自动复位
+   1106                    */
+   1107                    WorkingStatus        =WaitRX;//wait 完成,中间状 
+   1108                    NextWorkingStatus    =RestoreFactorySetAck;//目标状
+   1109                    WaitingRxPackCounter=WAITING_TIMEOUT_COUNTER__MAXVAL;  //超时计时复位              
+   1110                    break; 
+   1111               case RestoreFactorySetAck://命令寄存器写 
+   1112                    WorkingStatus=DefaultIdle;
+   1113                    ResetUartRxBuf();//reset rxbuf         
+   1114                    break;  
+   1115          //*********************        
+   1116               default:
+   1117                    WorkingStatus=DefaultIdle; 
+   1118                    break;        
+   1119             } 
+   1120          
+   1121            
+   1122          }
+   1123          
+   1124          uint8_t InsertExtCmd(uint8_t ExtCmd)
+   1125          {
+   1126             uint8_t status=SUCCESS_OK;
+   1127          	
+   1128            if(ExtCmdInserted==DefaultIdle) //可接受外部命令
+   1129            {
+   1130               ExtCmdInserted=ExtCmd;       //reset 外部命令
+   1131               printf("reset wifi cmd!!\r\n");
+   1132            }
+   1133            else  
+   1134               status=NO_SUCCESS;
+   1135            return  status;
+   1136          }
+   1137          
+   1138          
+   1139          
+   1140          
+   1141           
+   1142          void set_wifi_enable(uint8_t value)
+   1143          {
+   1144          	
+   1145          	if(value)
+   1146          	{
+   1147          		wifi_enable_flag=1;
+   1148                  gpio_set_value(AM_IO_WIFI_POWER,1);
+   1149          	}
+   1150          	else
+   1151          	{
+   1152          		wifi_enable_flag=0;
+   1153                  gpio_set_value(AM_IO_WIFI_POWER,0);
+   1154          	}
+   1155          	
+   1156          	
+   1157          }
+   1158          /*
+   1159          void init_wifi_uart(void)
+   1160          {
+   1161              set_wifi_enable(1);
+   1162              wifi_delay_ts = allwork_timer_ms();
+   1163              while(allwork_timer_elapsed(wifi_delay_ts) < 3);
+   1164              UART_Config_PinResetWifiCard();
+   1165              wifi_delay_ts = allwork_timer_ms();
+   1166          }*/
+   1167          extern int gpio_direction_output(unsigned gpio, int value);
+   1168          void init_wifi_module(void)
+   1169          {
+   1170              gpio_request_one(AM_IO_WIFI_POWER,GPIO_F_DIR_OUT|GPIO_F_INIT_LOW);
+   1171              gpio_request_one(AM_IO_RESET_WIFI,GPIO_F_DIR_OUT|GPIO_F_INIT_LOW);
+   1172              gpio_set_value(AM_IO_WIFI_POWER,1);
+   1173              gpio_set_value(AM_IO_RESET_WIFI,0);
+   1174          }
+   1175          
+   1176          void powerup_wifi_module(void)
+   1177          {
+   1178              gpio_set_value(AM_IO_WIFI_POWER,1);
+   1179              gpio_set_value(AM_IO_RESET_WIFI,1);
+   1180            //  gpio_set_value(GPIOD(12), 1);
+   1181           //   gpio_set_value(GPIOD(13), 1);
+   1182             // gpio_set_value(GPIOD(9), 1);
+   1183              
+   1184          }
+   1185          
+   1186          uint8_t get_wifi_enable_state(void)
+   1187          {
+   1188              return wifi_enable_flag;
+   1189          }
+   1190          
+   1191          void set_reset_wifi_flag(uint8_t value)
+   1192          {
+   1193              reset_wifi_flag = value;
+   1194          }
+   1195          
+   1196          uint8_t get_reset_wifi_flag(void)
+   1197          {
+   1198              return reset_wifi_flag;
+   1199          }
+   1200          
+   1201          void exit_wifi(void)
+   1202          {
+   1203             // uartwifi_init();
+   1204             
+   1205              set_wifi_enable(0);
+   1206              
+   1207          }
+   1208          
+   1209          #endif
+   1210          
+
+
+ 
+
+ 
+
+
+Errors: none
+Warnings: none
