@@ -42,49 +42,39 @@ typedef enum{
   AM_IR_REC_BACK_RIGHT,
 }IR_REC_POSITION;
 typedef enum{  
-  AM_SEND_REC_BACK_LEFT,
-  AM_SEND_REC_LEFT,
-  AM_SEND_REC_MIDDLE,
-  AM_SEND_REC_RIGHT,
-  AM_SEND_REC_BACK_RIGHT,
+  AM_SEND_BACK_LEFT,
+  AM_SEND_LEFT,
+  AM_SEND_MIDDLE,
+  AM_SEND_RIGHT,
+  AM_SEND_BACK_RIGHT,
 }IR_SEND_POSITION;
-typedef enum
-{
-  IR_TX_WEAK=1,
-  IR_TX_STRONG,
-} IR_SEND_STRENGTH;
+
 
 BOOLEAN right_ir_strong(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_RIGHT]>>12)&0x0f)==chan)&&\
-      (((dock_signals[AM_SEND_REC_RIGHT]|0xF000)&RIGHT_STRONG)==RIGHT_STRONG));
+     return(((dock_signals[chan]&RIGHT_STRONG)==RIGHT_STRONG));
 }
 BOOLEAN right_ir_weak(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_RIGHT]>>12)&0x0f)==chan)&&\
-      (((dock_signals[AM_SEND_REC_RIGHT]|0xF000)&RIGHT_WEAK)==RIGHT_WEAK));
+    return(((dock_signals[chan]&RIGHT_WEAK)==RIGHT_WEAK));
 }
 BOOLEAN left_ir_strong(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_LEFT]>>12)&0x0f)==chan)&&\
-      (((dock_signals[AM_SEND_REC_LEFT]|0xF000)&LEFT_STRONG)==LEFT_STRONG));
+     return(((dock_signals[chan]&LEFT_STRONG)==LEFT_STRONG));
 }
 BOOLEAN left_ir_weak(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_LEFT]>>12)&0x0f)==chan)&&\
-      (((dock_signals[AM_SEND_REC_LEFT]|0xF000)&LEFT_WEAK)==LEFT_WEAK));
+   return(((dock_signals[chan]&LEFT_WEAK)==LEFT_WEAK));
 }
 
 BOOLEAN mid_ir_strong(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_MIDDLE]>>12)&0x0f)==chan)&&\
-      (((dock_signals[AM_SEND_REC_MIDDLE]|0xF000)&MIDDLE_STRONG)==MIDDLE_STRONG));
+     return(((dock_signals[chan]&MIDDLE_STRONG)==MIDDLE_STRONG));
 }
 
 BOOLEAN mid_ir_weak(IR_REC_POSITION chan)
 {
-     return((((dock_signals[AM_SEND_REC_MIDDLE]>>12)&0x07)==chan)&&\
-      (((dock_signals[AM_SEND_REC_MIDDLE]|0xF000)&MIDDLE_WEAK)==MIDDLE_WEAK));
+     return(((dock_signals[chan]&MIDDLE_WEAK)==MIDDLE_WEAK));
 }
 
 
@@ -114,6 +104,111 @@ BOOLEAN mid_ir_weak_right(void)
         return (mid_ir_weak(AM_IR_REC_RIGHT));
 }
 
+BOOLEAN left_ir_weak_right(void)
+{
+        return (left_ir_weak(AM_IR_REC_RIGHT));
+}
+BOOLEAN left_ir_weak_left(void)
+{
+        return (left_ir_weak(AM_IR_REC_LEFT));
+}
+BOOLEAN left_ir_weak_mid(void)
+{
+        return (left_ir_weak(AM_IR_REC_MIDDLE));
+}
+BOOLEAN left_ir_weak_backleft(void)
+{
+        return (left_ir_weak(AM_IR_REC_BACK_LEFT));
+}          
+
+BOOLEAN left_ir_strong_right(void)
+{
+        return (left_ir_strong(AM_IR_REC_RIGHT));
+}
+BOOLEAN left_ir_strong_left(void)
+{
+        return (left_ir_strong(AM_IR_REC_LEFT));
+}
+BOOLEAN left_ir_strong_mid(void)
+{
+        return (left_ir_strong(AM_IR_REC_MIDDLE));
+}
+BOOLEAN left_ir_strong_backleft(void)
+{
+        return (left_ir_strong(AM_IR_REC_BACK_LEFT));
+}   
+Debouncer_Data recently_left_ir_strong_backleft = {
+	.predicate = &left_ir_strong_backleft,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_strong_left = {
+	.predicate = &left_ir_strong_left,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_strong_mid = {
+	.predicate = &left_ir_strong_mid,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_strong_right = {
+	.predicate = &left_ir_strong_right,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_weak_backleft = {
+	.predicate = &left_ir_weak_backleft,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_weak_left = {
+	.predicate = &left_ir_weak_left,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_weak_mid = {
+	.predicate = &left_ir_weak_mid,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_left_ir_weak_right = {
+	.predicate = &left_ir_weak_right,
+	.trigger_on = 1,
+	.trigger_off = 20,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
 Debouncer_Data recently_mid_ir_strong_mid = {
 	.predicate = &mid_ir_strong_mid,
 	.trigger_on = 1,
@@ -730,8 +825,8 @@ U8 robot_get_dock_signals(U8 index)
 #else
 	dock_signals[index] = remote_ir_get((IR_REMOT_POSITION_E)index);
 #endif
-       if(dock_signals[index])
-       printf("REC %x  \r\n",dock_signals[index]);
+//       if(dock_signals[index])
+//       printf("%d REC %x  \r\n",index,dock_signals[index]);
 
 
 	if (dock_signals[index] != 0)

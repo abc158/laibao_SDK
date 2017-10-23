@@ -9,6 +9,17 @@ extern Debouncer_Data recently_mid_ir_strong_left  ;
 extern Debouncer_Data recently_mid_ir_weak_left    ;
 extern Debouncer_Data recently_mid_ir_strong_right ;
 extern Debouncer_Data recently_mid_ir_weak_right   ;
+extern Debouncer_Data recently_left_ir_weak_right   ;
+extern Debouncer_Data recently_left_ir_weak_mid     ;
+extern Debouncer_Data recently_left_ir_weak_left    ;
+extern Debouncer_Data recently_left_ir_weak_backleft;
+extern Debouncer_Data recently_left_ir_strong_backleft;
+extern Debouncer_Data recently_left_ir_strong_left    ;
+extern Debouncer_Data recently_left_ir_strong_mid     ;
+extern Debouncer_Data recently_left_ir_strong_right   ;
+
+
+
 #if 0
 extern BOOLEAN force_field(IR_local_Index chan);
 extern BOOLEAN buoy_left(IR_local_Index chan);

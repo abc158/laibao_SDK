@@ -30,32 +30,32 @@ void set_38k_on(void)   //38K信号打开
 *Input      :  IR_SEND_POSITION instance:发射头ID ；u16 ir_code 发射码值  
 IR_SEND_STRENGTH strength:发射强度
 *Output     :  无
-*Return     :  0,未发射完成 1发射完成
+*Return     :  false 未发射完成  true 发射完成
 *Others     :  
 ******************************************************************/
 bool ir_send_code(IR_SEND_POSITION instance,u16 ir_code,IR_SEND_STRENGTH strength)  
 {
   IR_CODE *code_p;
-  code_p=&ir_decode[instance][strength];
-  code_p->timer++;
-  if(code_p->timer<=(data_length*(long_level+short_level)-1))
-  code_p->count++;
   u16 ir_code_state;
-  ir_code_state =ir_code;
-  
+  code_p=&ir_decode[instance][strength];
+  code_p->timer++;  //发送信号周期计数
+  if(code_p->timer<=(data_length*(long_level+short_level)-1))  //在一个信号内用count计数
+  code_p->count++; //高低电平的计数
+  ir_code_state =ir_code;  //发送编码
+  //先取出高位并且根据电路取反
   if(!(ir_code_state&(1<<(data_length-1-code_p->data_bit)))&&(code_p->timer<=(data_length*(long_level+short_level)-1)))
   {
-    if(code_p->count<=short_level)
+    if(code_p->count<=short_level)   //短电平
     {
 
       gpio_set_value(ir_send_gpio[instance][strength],1);
     }
-    else if(code_p->count>short_level&&code_p->count<=(long_level+short_level))
+    else if(code_p->count>short_level&&code_p->count<=(long_level+short_level)) //长电平
     {
       gpio_set_value(ir_send_gpio[instance][strength],0);
       if(code_p->count>=(long_level+short_level)) 
       {
-          code_p->data_bit++;
+          code_p->data_bit++;   //记录已经发送的位数
           code_p->count=0;
       }
     } 
@@ -76,19 +76,19 @@ bool ir_send_code(IR_SEND_POSITION instance,u16 ir_code,IR_SEND_STRENGTH strengt
       }
     }
   }
-  if(code_p->timer>(data_length*(long_level+short_level)-1))  
+  if(code_p->timer>(data_length*(long_level+short_level)-1))  //信号周期以外管脚拉低
   {
     gpio_set_value(ir_send_gpio[instance][strength],0);
     
   }
   
-  if(code_p->timer>=(sinal_interval+data_length*(long_level+short_level)-1)) 
+  if(code_p->timer>=(sinal_interval+data_length*(long_level+short_level)-1)) //信号时间+信号延时=信号周期
   {
     code_p->timer=0;
     code_p->count=0;
     code_p->data_bit=0;
   }
-  if(code_p->data_bit>=data_length) 
+  if(code_p->data_bit>=data_length)  //发送完成
   {
     code_p->data_bit=0;
     return true;

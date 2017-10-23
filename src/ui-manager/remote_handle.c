@@ -239,14 +239,11 @@ void ir_rx_decode(void)
   {
     REC_IR_DATA[index]=REC_IR_BUFF[index*2+1];
     REC_IR_DATA[index]=(REC_IR_DATA[index]<<8)|REC_IR_BUFF[index*2];
-   // printf("%d REC %x  %x  \r\n",((REC_IR_BUFF[index*2+1]>>4)&0x0f),((REC_IR_BUFF[index*2+1])&0x0f),((REC_IR_BUFF[index])));
-  //  printf("data  %x \r\n",REC_IR_DATA[index]);
+    if(REC_IR_DATA[index])
+    printf("%d  REC  %x \r\n",index,REC_IR_DATA[index]);
     ir_val[index]=REC_IR_DATA[index];
     ir_val_test[index] = ir_val[index];
-    if(REC_IR_BUFF[index])
-    { 
-       //printf("REC %d  IR %d  STA  %d\r\n",((REC_IR_BUFF[index]>>5)&0x07),((REC_IR_BUFF[index]>>2)&0x07),((REC_IR_BUFF[index])&0x03));
-    }
+
     //    while (ir_rx_q_empty(index) != 1)
 //    { 
 //      value = ir_rx_q_get(index);	

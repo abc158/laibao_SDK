@@ -2385,7 +2385,7 @@ DOCK_FN_DECL(docking_right)
 
 	if (already_mid == FALSE)
 	{
-		if (recently_mid_ir_strong_left.current_state)
+		if (recently_mid_ir_weak_left.current_state)
 		{
 			left_vel = DOCKING_NEAR_SLOW_SPEED;
 			right_vel = DOCKING_NEAR_SLOWEST_SPEED;
@@ -2408,7 +2408,11 @@ DOCK_FN_DECL(docking_right)
 
 BOOLEAN docking_right_run_when(void)
 {
-	if(recently_mid_ir_strong_left.current_state||recently_mid_ir_strong_left.current_state)
+//        if((recently_mid_ir_weak_mid.current_state&&\
+//          recently_mid_ir_weak_left.current_state&&(!recently_mid_ir_weak_right.current_state)))
+//          return TRUE;
+	 if((recently_mid_ir_strong_mid.current_state&&\
+          recently_mid_ir_strong_left.current_state&&(!recently_mid_ir_strong_right.current_state)))
           return TRUE;
 	else
 		return FALSE;
@@ -2479,8 +2483,12 @@ DOCK_FN_DECL(docking_left)
 
 BOOLEAN docking_left_run_when(void)
 {
-    if(recently_mid_ir_strong_right.current_state||recently_mid_ir_weak_right.current_state)
-        return TRUE;
+//    if(recently_mid_ir_weak_mid.current_state&&\
+//      (!recently_mid_ir_weak_left.current_state)&&recently_mid_ir_weak_right.current_state)
+//      return TRUE;
+      if(recently_mid_ir_strong_mid.current_state&&\
+      (!recently_mid_ir_strong_left.current_state)&&recently_mid_ir_strong_right.current_state)
+      return TRUE;
 	else
 		return FALSE;
 }
@@ -2534,7 +2542,8 @@ DOCK_FN_DECL(docking_go_forward)
 
 BOOLEAN docking_go_forward_run_when(void)
 {
-	if (recently_mid_ir_strong_mid.current_state||recently_mid_ir_weak_mid.current_state)
+	if (recently_mid_ir_strong_mid.current_state&&recently_mid_ir_strong_right.current_state&&\
+          recently_mid_ir_strong_left.current_state&&(!recently_left_ir_strong_backleft.current_state))
 		return TRUE;
 	else
 		return FALSE;
@@ -2700,14 +2709,18 @@ void set_findmiddle_abort(void)
 DOCK_FN_DECL(fine_middle)
 {
       S8 result = 0;
-      printf("1111111111111111\r\n");
+      AM_GO_TO_PLACE(90,DOCKING_TRUN_SLOWEST_SPEED,\
+      DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+      
+      
       set_findmiddle_abort();
 	return;
 }
 
 BOOLEAN find_middle_start_when(void)
 {
-          if(recently_mid_ir_strong_mid.current_state)      
+          if((!recently_left_ir_strong_backleft.current_state)&&recently_left_ir_strong_right.current_state&&\
+            recently_left_ir_strong_mid.current_state&&recently_left_ir_strong_left.current_state)      
           {
             return  TRUE;
           }
@@ -2770,23 +2783,23 @@ DOCK_FN_DECL(docking_line)
 		(last_dock_behavior() == DOCKING_BOUNCE)) &&
 		(slow_speed == FALSE))
 		{
-//			slow_speed = TRUE;
-//			DRIVE_GO(20,FORWARD_NEAR_SLOW_SPEED,TRUE,0,result);
+			slow_speed = TRUE;
+			DRIVE_GO(20,FORWARD_NEAR_SLOW_SPEED,TRUE,0,result);
 		}
 		else
 		{
-//			DRIVE_GO(5000,FORWARDSPEED, \
-//		        TRUE,\
-//		       (CARE_CLIFF|CARE_BUMP),\
-//                         result);
-//			//angle = get_random();
-//                       srand(timer_ms());
-//                       angle = rand()%180;
+			DRIVE_GO(5000,FORWARDSPEED, \
+		        TRUE,\
+		       (CARE_CLIFF|CARE_BUMP),\
+                         result);
+			//angle = get_random();
+                       srand(timer_ms());
+                       angle = rand()%180;
 //
-			AM_GO_TO_PLACE(20,DOCKING_TRUN_SLOWEST_SPEED,\
-		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
-                        AM_GO_TO_PLACE(-20,DOCKING_TRUN_SLOWEST_SPEED,\
-		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+//			AM_GO_TO_PLACE(20,DOCKING_TRUN_SLOWEST_SPEED,\
+//		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+//                        AM_GO_TO_PLACE(-20,DOCKING_TRUN_SLOWEST_SPEED,\
+//		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
 		}
 	}
 	while (1);
@@ -2846,19 +2859,28 @@ void dock_get_random_count(void)
 dock_config_t* dock_new_init(void)
 {
   
-        //fine_middle_register();
+        fine_middle_register();
         docking_line_register();
         dock_right_register();
 	dock_left_register();
 	docking_go_forward_register();
 	dock_correct_register();
+        
+        
         register_debouncer(&recently_mid_ir_strong_mid);
         register_debouncer(&recently_mid_ir_weak_mid    );
         register_debouncer(&recently_mid_ir_strong_left );
         register_debouncer(&recently_mid_ir_weak_left   );
         register_debouncer(&recently_mid_ir_strong_right);
         register_debouncer(&recently_mid_ir_weak_right  );
-
+        register_debouncer(&recently_left_ir_weak_right   );
+        register_debouncer(&recently_left_ir_weak_mid     );
+        register_debouncer(&recently_left_ir_weak_left    );
+        register_debouncer(&recently_left_ir_weak_backleft);
+        register_debouncer(&recently_left_ir_strong_backleft);
+        register_debouncer(&recently_left_ir_strong_left    );
+        register_debouncer(&recently_left_ir_strong_mid     );
+        register_debouncer(&recently_left_ir_strong_right   );
  #if 0
 	dock_success_register();
 	docking_bounce_register();
@@ -2943,8 +2965,10 @@ dock_config_t* dock_new_init(void)
 
 void dock_new_start(void)
 {
-	set_lighttouch_enable(0);
-	turn_on_touch_bump();
+//	set_lighttouch_enable(0);
+//	turn_on_touch_bump();
+        set_lighttouch_enable(1);
+        turn_off_touch_bump();
 
 
 	docking_parameter_init();

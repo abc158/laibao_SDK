@@ -63,12 +63,12 @@ typedef struct
 #define IR_TX_BACK_LEFT_STRONG    GPIOC(2)
 #define IR_TX_BACK_RIGHT_WEAK     GPIOC(3)
 #define IR_TX_BACK_RIGHT_STRONG   GPIOC(11)
-#define IR_TX_LEFT_WEAK           GPIOF(2)
-#define IR_TX_LEFT_STRONG         GPIOF(3)
+#define IR_TX_LEFT_WEAK           GPIOF(3)
+#define IR_TX_LEFT_STRONG         GPIOF(2)
 #define IR_TX_RIGHT_WEAK          GPIOE(15)
 #define IR_TX_RIGHT_STRONG        GPIOE(6)
-#define IR_TX_MIDDLE_WEAK         GPIOF(0)
-#define IR_TX_MIDDLE_STRONG       GPIOF(1)
+#define IR_TX_MIDDLE_WEAK         GPIOF(1)
+#define IR_TX_MIDDLE_STRONG       GPIOF(0)
 
 /*下面中不使用的IO 口配置为0xff，lyy*/
 #define ROBOT_IODEF(m)                                             \
@@ -82,7 +82,7 @@ typedef struct
 	m( AM_IO_AUDIO_PWR_EN    ,      GPIOD(1) )   \
  	m( AM_IO_MOTOR_WHEEL_SLEEP ,    GPIOE(0) )   \
 	m( AM_IO_MOTOR_WHEEL_FAULT,     GPIOE(4) )   \
-	m( AM_IO_MOTOR_WHEEL_RESET ,    GPIOE(6) )  \
+	m( AM_IO_MOTOR_WHEEL_RESET ,    0xff )  \
 	m( AM_IO_CHARGER_ENABLE,        GPIOF(8) )  \
 	m( AM_IO_BATTERY_I_CALIBRATE,   GPIOF(9) )  \
 	m( AM_IO_WATCHDOG_CLEAR  ,      GPIOF(10))  \
