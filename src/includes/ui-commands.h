@@ -134,6 +134,9 @@ typedef enum
     CMD_TEST_WIRELESS          = 0x38,
     CMD_TEST_MOVE_REVERSE      = 0x39,
     CMD_TEST_ALL_CHARGE_MODE   = 0x40,
+    	CMD_TEST_ALL_TOUCH_FAR      = 0x41,		
+	CMD_TEST_ALL_TOUCH_NEAR     = 0x42,
+	CMD_TEST_ALL_CLIFF          = 0x43,
 //    CMD_DISABLE_SENSOR = 0xf0000024,
     CMD_NULL           = 0xf000008F	
 }TEST_CMD_E;

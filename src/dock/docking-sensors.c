@@ -8,7 +8,7 @@
 #include "sensor/sensor.h"
 #include "dock-avoid.h"
 #include "virtual-wall.h"
-
+#include "dock_ir_signal.h"
 U16 dock_signals[IR_MAX_RECV];//need to get from core board
 uint32_t dock_signal_get_time;
 
@@ -24,32 +24,6 @@ static U8 debug_mask = 0;
 #else
 #define dprintf(msg...) {}
 #endif
-#define BACK_LEFT_STRONG         0XF001
-#define BACK_LEFT_WEAK           0XF002
-#define BACK_RIGHT_STRONG        0XF004
-#define BACK_RIGHT_WEAK          0XF008
-#define LEFT_STRONG              0XF010
-#define LEFT_WEAK                0XF020
-#define RIGHT_STRONG             0XF040
-#define RIGHT_WEAK               0XF080
-#define MIDDLE_STRONG            0XF100
-#define MIDDLE_WEAK              0XF200
-typedef enum{  
-  AM_IR_REC_BACK_LEFT,
-  AM_IR_REC_LEFT,
-  AM_IR_REC_MIDDLE,
-  AM_IR_REC_RIGHT,
-  AM_IR_REC_BACK_RIGHT,
-}IR_REC_POSITION;
-typedef enum{  
-  AM_SEND_BACK_LEFT,
-  AM_SEND_LEFT,
-  AM_SEND_MIDDLE,
-  AM_SEND_RIGHT,
-  AM_SEND_BACK_RIGHT,
-}IR_SEND_POSITION;
-
-
 BOOLEAN right_ir_strong(IR_REC_POSITION chan)
 {
      return(((dock_signals[chan]&RIGHT_STRONG)==RIGHT_STRONG));
@@ -140,7 +114,7 @@ BOOLEAN left_ir_strong_backleft(void)
 Debouncer_Data recently_left_ir_strong_backleft = {
 	.predicate = &left_ir_strong_backleft,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -149,7 +123,7 @@ Debouncer_Data recently_left_ir_strong_backleft = {
 Debouncer_Data recently_left_ir_strong_left = {
 	.predicate = &left_ir_strong_left,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -158,7 +132,7 @@ Debouncer_Data recently_left_ir_strong_left = {
 Debouncer_Data recently_left_ir_strong_mid = {
 	.predicate = &left_ir_strong_mid,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -167,7 +141,7 @@ Debouncer_Data recently_left_ir_strong_mid = {
 Debouncer_Data recently_left_ir_strong_right = {
 	.predicate = &left_ir_strong_right,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -176,7 +150,7 @@ Debouncer_Data recently_left_ir_strong_right = {
 Debouncer_Data recently_left_ir_weak_backleft = {
 	.predicate = &left_ir_weak_backleft,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -185,7 +159,7 @@ Debouncer_Data recently_left_ir_weak_backleft = {
 Debouncer_Data recently_left_ir_weak_left = {
 	.predicate = &left_ir_weak_left,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -194,7 +168,7 @@ Debouncer_Data recently_left_ir_weak_left = {
 Debouncer_Data recently_left_ir_weak_mid = {
 	.predicate = &left_ir_weak_mid,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -203,7 +177,7 @@ Debouncer_Data recently_left_ir_weak_mid = {
 Debouncer_Data recently_left_ir_weak_right = {
 	.predicate = &left_ir_weak_right,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -212,7 +186,7 @@ Debouncer_Data recently_left_ir_weak_right = {
 Debouncer_Data recently_mid_ir_strong_mid = {
 	.predicate = &mid_ir_strong_mid,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -221,7 +195,7 @@ Debouncer_Data recently_mid_ir_strong_mid = {
 Debouncer_Data recently_mid_ir_weak_mid = {
 	.predicate = &mid_ir_weak_mid,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -231,7 +205,7 @@ Debouncer_Data recently_mid_ir_weak_mid = {
 Debouncer_Data recently_mid_ir_strong_left = {
 	.predicate = &mid_ir_strong_left,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -240,7 +214,7 @@ Debouncer_Data recently_mid_ir_strong_left = {
 Debouncer_Data recently_mid_ir_weak_left = {
 	.predicate = &mid_ir_weak_left,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -249,7 +223,7 @@ Debouncer_Data recently_mid_ir_weak_left = {
 Debouncer_Data recently_mid_ir_strong_right = {
 	.predicate = &mid_ir_strong_right,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -258,7 +232,7 @@ Debouncer_Data recently_mid_ir_strong_right = {
 Debouncer_Data recently_mid_ir_weak_right = {
 	.predicate = &mid_ir_weak_right,
 	.trigger_on = 1,
-	.trigger_off = 20,
+	.trigger_off = 40,
 	.on_count = 0,
 	.off_count = 0,
 	.current_state = FALSE,
@@ -820,6 +794,7 @@ Debouncer_Data recently_bump = {
 
 U8 robot_get_dock_signals(U8 index)
 {
+  U8 signal=0;
 #ifdef IR_WIRELESS
 	dock_signals[index] = get_wireless_rx_code();
 #else
@@ -834,9 +809,17 @@ U8 robot_get_dock_signals(U8 index)
 		dprintf(DEBUG_DOCK_SIGNAL, "IR%d : %x \r\n", index, dock_signals[index]);
                 
                 dock_signal_get_time=timer_ms();
-		dock_avoid_get_signals(index, dock_signals[index]);
+                if((dock_signals[index]==MIDDLE_WEAK))   //避座处理
+                  signal=DOCK_CLOSE_BEACON;
+                if((dock_signals[index]==LEFT_STRONG))   //地图信息记录
+                  signal=LEFT_BEACON_BYTE;
+                if((dock_signals[index]==RIGHT_STRONG))
+                  signal=RIGHT_BEACON_BYTE;
+		//dock_avoid_get_signals(index, dock_signals[index]);
+                dock_avoid_get_signals(index, signal);
 		virtual_wall_get_signals(index, dock_signals[index]);
 	}
 
-	return dock_signals[index];
+	//return dock_signals[index];
+        return signal;
 }

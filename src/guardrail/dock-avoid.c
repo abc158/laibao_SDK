@@ -54,7 +54,7 @@ BOOLEAN dock_avoid_active(BOOLEAN min)
 {
 	if (min == TRUE)
 	{
-    	return DOCK_AVOID_SIGNAL_ACTIVE(get_avoid_signal_time());
+        return DOCK_AVOID_SIGNAL_ACTIVE(get_avoid_signal_time());
 	}
 	else
 	{

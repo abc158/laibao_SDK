@@ -543,7 +543,7 @@ void quit_charging(void)
 ******************************************************************/
 U16 charging_jack(void)
 {
-  //return (gpio_get_value(IO_CHARGER_HIGH)==0); 
+  return (gpio_get_value(IO_CHARGER_HIGH)==0); 
   return 0;
 }
 

@@ -26,14 +26,22 @@
 const char temp_list[]={148,117,92,71,54,42,32,25,20,15,12,10,8,6,5,4,3};
 
 /*测试项,如果测试顺序调整,改变这个数组的的测试命令顺序即可*/
-TEST_CMD_E test_item_table[UI_TEST_ITEM_MAX]={CMD_TEST_BUMP_DROP, CMD_TEST_CLIFF_LIGHTTOUCH,
-	                                            CMD_TEST_ALL_IR, CMD_BAT,
-	                                            CMD_TEST_ALL_CHARGE_MODE, CMD_DOCK_CURRENT,
-	                                            CMD_WHEEL_L_FORWARD, CMD_WHEEL_R_FORWARD,
-	                                            CMD_WHEEL_L_REV_SPD, CMD_WHEEL_R_REV_SPD,
-	                                            CMD_MAIN_FORWARD, CMD_MAIN_REV,
-	                                            CMD_SIDE_FORWARD, CMD_SIDE_REV,
-	                                            CMD_VACCUM};
+TEST_CMD_E test_item_table[UI_TEST_ITEM_MAX]={
+	CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_ALL_TOUCH_NEAR,
+	CMD_TEST_ALL_CLIFF, 
+	CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_ALL_TOUCH_NEAR,
+	CMD_TEST_ALL_CLIFF, 	
+        CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_ALL_TOUCH_NEAR,
+	CMD_TEST_ALL_CLIFF, 	
+        CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_ALL_TOUCH_NEAR,
+	CMD_TEST_ALL_CLIFF, 	
+        CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_ALL_TOUCH_NEAR,
+	CMD_TEST_ALL_CLIFF};
 
 static volatile int self_test_result;   /*测试结果*/
 static BumpState bump_state;            /*碰撞状态*/
@@ -51,8 +59,16 @@ extern TEST_CMD_E ui_test_cmd;
 extern void ir_test_all_result(void);
 extern U8 get_ir_test(IR_REMOT_POSITION_E index);
 extern u8 vaccum_is_maybe_stall(void);
+extern void print_touch(void);
+extern void print_cliff(void);
+extern u8 robot_is_cliff_test(u8 index);
+extern u8 robot_is_lighttouch_test(u8 index);
+u8 touch_near_flag =0;
+extern u8 cliff_led_flag;
 static uint16_t vac_current_over_count = 0;                 /*真空异常计数*/
 u8 pc_test_flag =0; 
+extern void ir_send_on_off(U8 state);
+extern u8 lt_flag;
 static u8 robot_is_near_hazard(u8 index)
 {
   return robot_is_cliff(index);
@@ -101,7 +117,7 @@ BumpState robot_bump_mask(void)
     if  (gpio_get_value(AM_IO_BUMP_RIGHT)==0) {
         mask |= BUMP_FRONT_RIGHT;
     }
-   return mask;
+    return mask;
 }
 
 /****************************************************************
@@ -428,7 +444,7 @@ void handle_test_cmd(U32 cmd)
     	  if (other_motor_test == 0)
     	  {
 			robot_sidebrush_vols_set(1);
-          robot_side_brush_adjust_set(SIDE_BRUSH_MAX_VOLTAGE);
+          robot_side_brush_adjust_set(-SIDE_BRUSH_MAX_VOLTAGE);
           other_motor_test = 1;
         }
         self_test_result = 0; 
@@ -563,40 +579,37 @@ void handle_test_cmd(U32 cmd)
          ir_test_all_result();
     }
     break;
- extern   void SET_IR_STATE(U8 state);
     case CMD_TEST_BUMP_DROP:
     {
-      SET_IR_STATE(1);
-//        self_test_result = 0;
-//        bump_state = get_bump_state();
-//        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_LEFT)?1:0)<<4);
-//        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_RIGHT)?1:0)<<3);
-//        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_CENTER)?1:0)<<2);
-//
-//        drop_mask = robot_wheel_drop_mask();
-//        self_test_result = self_test_result|(((drop_mask & WHEEL_DROP_STATE_LEFT)?1:0)<<1);
-//        self_test_result = self_test_result|(((drop_mask & WHEEL_DROP_STATE_RIGHT)?1:0)<<0);
-//        printf("TEST_BUMP_DROP=%x\r\n",self_test_result);
+        self_test_result = 0;
+        bump_state = get_bump_state();
+        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_LEFT)?1:0)<<4);
+        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_RIGHT)?1:0)<<3);
+        self_test_result = self_test_result|(((bump_state & BUMP_FRONT_CENTER)?1:0)<<2);
+
+        drop_mask = robot_wheel_drop_mask();
+        self_test_result = self_test_result|(((drop_mask & WHEEL_DROP_STATE_LEFT)?1:0)<<1);
+        self_test_result = self_test_result|(((drop_mask & WHEEL_DROP_STATE_RIGHT)?1:0)<<0);
+        printf("TEST_BUMP_DROP=%x\r\n",self_test_result);
 
     }
     break;
     case CMD_TEST_CLIFF_LIGHTTOUCH:
     {
-      SET_IR_STATE(2);
-//        self_test_result = 0;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_REAR_LEFT)<<11;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_LEFT)<<10;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_FRONTLEFT)<<9;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_FRONTRIGHT)<<8;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_RIGHT)<<7;
-//        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_REAR_RIGHT)<<6;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_LEFT)<<5;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_CENTERLEFT)<<4;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_FRONTLEFT)<<3;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_FRONTRIGHT)<<2;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_CENTERRIGHT)<<1;
-//        self_test_result = self_test_result|robot_is_near_wall(LT_RIGHT)<<0;
-//        printf("TEST_CLIFF_LIGHTTOUCH=%x\r\n",self_test_result);
+        self_test_result = 0;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_REAR_LEFT)<<11;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_LEFT)<<10;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_FRONTLEFT)<<9;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_FRONTRIGHT)<<8;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_RIGHT)<<7;
+        self_test_result = self_test_result|robot_is_near_hazard(CLIFF_REAR_RIGHT)<<6;
+        self_test_result = self_test_result|robot_is_near_wall(LT_LEFT)<<5;
+        self_test_result = self_test_result|robot_is_near_wall(LT_CENTERLEFT)<<4;
+        self_test_result = self_test_result|robot_is_near_wall(LT_FRONTLEFT)<<3;
+        self_test_result = self_test_result|robot_is_near_wall(LT_FRONTRIGHT)<<2;
+        self_test_result = self_test_result|robot_is_near_wall(LT_CENTERRIGHT)<<1;
+        self_test_result = self_test_result|robot_is_near_wall(LT_RIGHT)<<0;
+        printf("TEST_CLIFF_LIGHTTOUCH=%x\r\n",self_test_result);	
     }
     break;
     case CMD_TEST_CLIFF_DROP_STASIS:
@@ -716,6 +729,102 @@ void handle_test_cmd(U32 cmd)
 
     }
     break;
+	
+	case CMD_TEST_ALL_TOUCH_FAR://墙检强灯
+          ir_send_on_off(3);
+	touch_near_flag =0;
+	set_cliff_enable(1);//关
+	set_lighttouch_enable(0);//开
+	print_touch();
+//	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
+//	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT))
+	if(lt_flag)
+	{
+//	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
+//			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
+//	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));
+      gpio_set_value(AM_I0_DOCK_LED,1);//蓝灯
+      gpio_set_value(AM_I0_CLEAN_LED,0);
+      gpio_set_value(AM_I0_SPOT_LED,0);		
+	}	
+	else
+	{
+	  gpio_set_value(AM_I0_CLEAN_LED,1);//绿灯	  
+      gpio_set_value(AM_I0_DOCK_LED,0);
+      gpio_set_value(AM_I0_SPOT_LED,0);		
+	}
+	  
+	  
+	 break; 
+	case CMD_TEST_ALL_TOUCH_NEAR://墙检弱灯
+          ir_send_on_off(3);
+	 touch_near_flag =1;
+	set_cliff_enable(1);//关
+	set_lighttouch_enable(0);//开
+	print_touch();
+//	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
+//	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT)||\
+//		robot_is_lighttouch(LT_CENTERLEFT_L))
+	if(lt_flag)
+	{
+//	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
+//			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
+//	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));	  
+      gpio_set_value(AM_I0_DOCK_LED,1);//蓝灯
+      gpio_set_value(AM_I0_CLEAN_LED,0);
+      gpio_set_value(AM_I0_SPOT_LED,0);		
+	}	
+	else
+	{
+	  gpio_set_value(AM_I0_CLEAN_LED,1);//绿灯	  
+      gpio_set_value(AM_I0_DOCK_LED,0);
+      gpio_set_value(AM_I0_SPOT_LED,0);		
+	}  
+	 break; 
+    case CMD_TEST_ALL_CLIFF://地检
+      ir_send_on_off(3);
+	  touch_near_flag =1;
+	set_cliff_enable(0);//开
+	set_lighttouch_enable(1);//关
+	print_cliff();
+	
+// 	if(!robot_is_cliff_test(CLIFF_LEFT)&&!robot_is_cliff_test(CLIFF_FRONTLEFT)&&!robot_is_cliff_test(CLIFF_FRONTRIGHT)&&!robot_is_cliff_test(CLIFF_RIGHT))	
+//	{
+//      gpio_set_value(AM_I0_DOCK_LED,1);
+//      gpio_set_value(AM_I0_CLEAN_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,1);		  
+//	  break;
+//	}
+    if(!robot_is_cliff_test(CLIFF_LEFT)||!robot_is_cliff_test(CLIFF_FRONTLEFT)||!robot_is_cliff_test(CLIFF_FRONTRIGHT)||!robot_is_cliff_test(CLIFF_RIGHT))	
+	{
+//	  printf("cliff: cl=%d fl=%d fr=%d cr=%d \r\n",\
+//		robot_is_cliff_test(CLIFF_LEFT),robot_is_cliff_test(CLIFF_FRONTLEFT),robot_is_cliff_test(CLIFF_FRONTRIGHT),robot_is_cliff_test(CLIFF_RIGHT)); 	
+      gpio_set_value(AM_I0_CLEAN_LED,0);
+	  if(cliff_led_flag ==1)//cliff都大于2500
+	  {
+	  	gpio_set_value(AM_I0_SPOT_LED,1);//红灯
+		gpio_set_value(AM_I0_DOCK_LED,1);//蓝灯
+	  }	  
+	  else if(cliff_led_flag ==2)//一个cliff>2500
+	  {
+	  	gpio_set_value(AM_I0_SPOT_LED,1);//红灯
+		gpio_set_value(AM_I0_DOCK_LED,0);//蓝灯
+	  }
+	  else if(cliff_led_flag ==0)
+	  {
+		gpio_set_value(AM_I0_SPOT_LED,0);//红灯
+      	gpio_set_value(AM_I0_DOCK_LED,1);//蓝灯	  	  
+	  }
+      		
+	}	
+	else
+	{
+	  gpio_set_value(AM_I0_CLEAN_LED,1);//绿灯	  
+      gpio_set_value(AM_I0_DOCK_LED,0);
+      gpio_set_value(AM_I0_SPOT_LED,0);		
+	}
+	 break;	
+	 
     default:
       self_test_result = 0; break;
     }
@@ -872,7 +981,7 @@ int get_test_result(void)
     {
       get_motor_speeds(&left_m,&right_m);
       get_commanded_speeds(&left_s,&right_s);
-      printf("left_m:%d,right_m:%d",left_m,right_m);
+      printf("left_m:%d,right_m:%d  ",left_m,right_m);
       printf("left_s:%d,right_s:%d\r\n",left_s,right_s);      
       printf("CMD_WHEEL_R_REV_SPD:%d\r\n",abs(right_m - right_s));
       self_test_result = abs(right_m - right_s)*100/abs(right_s) > 5 ? 0:1;
@@ -882,7 +991,7 @@ int get_test_result(void)
     {
       get_motor_speeds(&left_m,&right_m);
       get_commanded_speeds(&left_s,&right_s);
-      printf("left_m:%d,right_m:%d",left_m,right_m);
+      printf("left_m:%d,right_m:%d  ",left_m,right_m);
       printf("left_s:%d,right_s:%d\r\n",left_s,right_s);
       printf("CMD_WHEEL_L_REV_SPD:%d\r\n",abs(left_m - left_s));
       self_test_result = abs(left_m - left_s)*100/abs(left_s) > 5 ? 0:1;      

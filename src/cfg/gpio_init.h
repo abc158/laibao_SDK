@@ -74,7 +74,7 @@ typedef struct
 	m( GPIO_DIR_IN  ,   4 ,  9 ,   1 ,GPIO_PR_UP  )/*reset to ui */\
 	m( GPIO_DIR_OUT ,   4 ,  10 ,  1 ,GPIO_PR_UP       )/*light pwm */\
 	m( GPIO_DIR_IN  ,   4 ,  11 ,  1 ,GPIO_PR_UP       )/*vac pwm */ \
-	m( GPIO_DIR_IN ,    4 ,  12 ,  1 ,GPIO_PR_DISABLE  )/*int to ui */\
+	m( GPIO_DIR_OUT ,    4 ,  12 ,  1 ,GPIO_PR_UP  )/*int to ui */\
 	m( GPIO_DIR_OUT ,   4 ,  13 ,  1 ,GPIO_PR_DOWN     )/*int to main */\
 	m( GPIO_DIR_IN  ,   4 ,  14 ,  1 ,GPIO_PR_DISABLE  )/*bump left */\
 	m( GPIO_DIR_OUT  ,   4 ,  15 ,  1 ,GPIO_PR_DISABLE  )/*bump right */\

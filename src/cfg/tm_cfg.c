@@ -92,6 +92,9 @@ void sys_tm_cfg(void)
   UserOutInit.OutInit.Channel  =(GPTM_CH_Enum)0;
   //tm_gptm_output_pwm_cfg(gtm0_id, &UserOutInit);
   ioctl(gtm0_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
+    UserOutInit.OutInit.Channel  =(GPTM_CH_Enum)3;
+  //tm_gptm_output_pwm_cfg(gtm0_id, &UserOutInit);
+  ioctl(gtm0_id,TM_GPTM_OUT_MODE_INIT, &UserOutInit);
   
   ///////////////////////////////////////////////////////////////////////////////
   gtm3_id = open(DEV_GPTM,GP_TM2_ID);

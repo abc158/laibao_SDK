@@ -259,7 +259,7 @@ int touch_bump_run(void)
     }
 
   }
-return 0;
-  //return lt_bump;
+
+  return lt_bump;
 }
 

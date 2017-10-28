@@ -21,7 +21,6 @@
 #include "simsweep.h"
 
 #if defined(USE_WIFI_DEMO_1)
-
 #define Big_Endian
 //****************************************
 uint8_t Status_WifiDevice;

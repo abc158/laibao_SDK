@@ -26,13 +26,22 @@
 #define IS_BEACONS_BYTE(b)  ( (( b & (DOCK_CLOSE_BEACON&0xF0) ) == (DOCK_CLOSE_BEACON&0xF0))\
 							&& ( b & 0x0F) )
 
+//typedef enum
+//{
+//  IR_LOCAL_MID_LEFT,
+//  IR_LOCAL_MID_RIGHT,
+//  IR_LOCAL_LEFT,
+//  IR_LOCAL_RIGHT,
+//  IR_LOCAL_BACK_LEFT,
+//  IR_LOCAL_BACK_RIGHT,
+//  IR_LOCAL_MAX
+//}IR_local_Index;
 typedef enum
 {
-  IR_LOCAL_MID_LEFT,
-  IR_LOCAL_MID_RIGHT,
-  IR_LOCAL_LEFT,
-  IR_LOCAL_RIGHT,
   IR_LOCAL_BACK_LEFT,
+  IR_LOCAL_LEFT,
+  IR_LOCAL_MID,
+  IR_LOCAL_RIGHT,
   IR_LOCAL_BACK_RIGHT,
   IR_LOCAL_MAX
 }IR_local_Index;

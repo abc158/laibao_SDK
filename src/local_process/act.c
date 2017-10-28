@@ -477,6 +477,7 @@ void handle_act_waiting(U32 key_val)
       #endif
        act_command_q(CMD_DOCK, CMD_RUN, NULL, 0);   
        songplayer_play_id(SONG_ID_DOCKING_START, 0);
+
 //      act_command_q(CMD_CLEAN, CMD_RUN, NULL, 0);
 //      if(gpio_get_value(AM_I0_WATER_TANK_DETECT))
 //      {

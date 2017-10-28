@@ -11,11 +11,24 @@
 #include "am_tm_api.h"
 #include "docking-new.h"
 #include "dock_ir_signal.h"
+#define SIGNAL_INTERVAL_SEND        //强弱信号分开发 强弱信号之间间隔时间SIGNAL_INTERVAL_SEND*0.25ms  强/弱信号间隔时间SIGNAL_INTERVAL_SEND*0.25ms+data_length*4ms
 #define data_length         16            //信号位数
 #define long_level          12           //长电平时间long_level*0.25ms
 #define short_level         4           //短电平时间short_level*0.25ms
+#ifdef  SIGNAL_INTERVAL_SEND
+#define sinal_interval      140        //信号间隔 sinal_interval*0.25ms
+#else
 #define sinal_interval      200        //信号间隔 sinal_interval*0.25ms
+#endif
 
+IR_CODE ir_decode[5][2];
+int ir_send_gpio[5][2]={
+      IR_TX_BACK_LEFT_STRONG,IR_TX_BACK_LEFT_WEAK,
+      IR_TX_LEFT_STRONG,IR_TX_LEFT_WEAK,
+      IR_TX_MIDDLE_STRONG,IR_TX_MIDDLE_WEAK,
+      IR_TX_RIGHT_STRONG,IR_TX_RIGHT_WEAK,
+      IR_TX_BACK_RIGHT_STRONG,IR_TX_BACK_RIGHT_WEAK,
+};
 void set_38k_off(void)  //38K信号关闭
 {
   sys_set_pwm_out_duty(IR_SEND_PWM_CHANNEL,0);
@@ -87,18 +100,14 @@ bool ir_send_code(IR_SEND_POSITION instance,u16 ir_code,IR_SEND_STRENGTH strengt
     code_p->timer=0;
     code_p->count=0;
     code_p->data_bit=0;
-  }
-  if(code_p->data_bit>=data_length)  //发送完成
-  {
-    code_p->data_bit=0;
     return true;
   }
   else 
     return false;
 }
-U16 send_count=0;
-U8 IR_WEAK=0;
-U8 IR_STRONG=0;
+
+U8 IR_WEAK=1;
+U8 IR_STRONG=1;
 void SET_IR_STATE(U8 state)
 {
     if(state==1)
@@ -111,27 +120,78 @@ void SET_IR_STATE(U8 state)
       IR_WEAK=0;
       IR_STRONG=1;
     }
+    else if(state==3)
+    {
+      IR_WEAK=1;
+      IR_STRONG=1;
+    }
+}
+U8 IR_SEND_MODE=0;
+void ir_send_on_off(U8 state)
+{
+    IR_SEND_MODE=state;
+}
+void ir_send_both(void)
+{
+    U8 signal_finsh=0;
+    if(IR_STRONG==1)
+    {
+        signal_finsh=ir_send_code(AM_SEND_BACK_LEFT,BACK_LEFT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_BACK_RIGHT,BACK_RIGHT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_LEFT,LEFT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_RIGHT,RIGHT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_MIDDLE,MIDDLE_STRONG,IR_TX_STRONG);
+#ifdef  SIGNAL_INTERVAL_SEND
+        if(signal_finsh)
+        {
+          SET_IR_STATE(1);
+        }
+#endif
+    }
+  
+    else  if(IR_WEAK==1)
+    {
+        signal_finsh=ir_send_code(AM_SEND_BACK_LEFT,BACK_LEFT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_BACK_RIGHT,BACK_RIGHT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_LEFT,LEFT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_RIGHT,RIGHT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_MIDDLE,MIDDLE_WEAK,IR_TX_WEAK);
+#ifdef  SIGNAL_INTERVAL_SEND
+        if(signal_finsh)
+        {
+          SET_IR_STATE(2);
+        }
+#endif
+    }
+    (void)signal_finsh; 
+}
+void ir_send_weak_only(void)
+{
+        ir_send_code(AM_SEND_BACK_LEFT,BACK_LEFT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_BACK_RIGHT,BACK_RIGHT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_LEFT,LEFT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_RIGHT,RIGHT_WEAK,IR_TX_WEAK);
+        ir_send_code(AM_SEND_MIDDLE,MIDDLE_WEAK,IR_TX_WEAK);
+}
+void ir_send_strong_only(void)
+{
+        ir_send_code(AM_SEND_BACK_LEFT,BACK_LEFT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_BACK_RIGHT,BACK_RIGHT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_LEFT,LEFT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_RIGHT,RIGHT_STRONG,IR_TX_STRONG);
+        ir_send_code(AM_SEND_MIDDLE,MIDDLE_STRONG,IR_TX_STRONG);
 }
 void ir_tx_send_4khz(void)
 {
-
-    {
-          ir_send_code(IR_TX_BACK_LEFT,BACK_LEFT_WEAK,IR_TX_WEAK);
-          ir_send_code(IR_TX_BACK_RIGHT,BACK_RIGHT_WEAK,IR_TX_WEAK);
-          ir_send_code(IR_TX_LEFT,LEFT_WEAK,IR_TX_WEAK);
-          ir_send_code(IR_TX_RIGHT,RIGHT_WEAK,IR_TX_WEAK);
-          ir_send_code(IR_TX_MIDDLE,MIDDLE_WEAK,IR_TX_WEAK);
+    if(IR_SEND_MODE==0)
+    ir_send_both();
     
-    }
-
-    {
-        ir_send_code(IR_TX_BACK_LEFT,BACK_LEFT_STRONG,IR_TX_STRONG);
-        ir_send_code(IR_TX_BACK_RIGHT,BACK_RIGHT_STRONG,IR_TX_STRONG);
-        ir_send_code(IR_TX_LEFT,LEFT_STRONG,IR_TX_STRONG);
-        ir_send_code(IR_TX_RIGHT,RIGHT_STRONG,IR_TX_STRONG);
-        ir_send_code(IR_TX_MIDDLE,MIDDLE_STRONG,IR_TX_STRONG);
+    if(IR_SEND_MODE==1)
+    ir_send_weak_only();
     
-    }
+    if(IR_SEND_MODE==2)
+    ir_send_strong_only();
     
-
+    if(IR_SEND_MODE==3)
+      ;
 }

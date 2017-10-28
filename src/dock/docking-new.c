@@ -40,7 +40,7 @@ static U8 debug_mask = 0;
 #define FORWARDSPEED                  (290)
 #define BACKSPEED                     (240)
 
-#define VERIFY_HOLD_CNT               (2)
+#define VERIFY_HOLD_CNT               (1)
 
 #define CARE_BUMP                     (1)
 #define CARE_CLIFF                    (2)
@@ -2362,6 +2362,232 @@ void fine_middle_register(void)
 
 
 
+/*********************************** DOCK SUCCESS **********************************/
+/**
+ * dock success - 判断上是否上座成功
+ * 触发条件: 当接触片接触上时触发
+ * 退出条件: 上座成功或失败
+ */
+static BOOLEAN docking_success_abort = FALSE;
+void set_docking_success_abort(void)
+{
+	docking_success_abort = TRUE;
+
+	return;
+}
+
+BOOLEAN docking_success_abort_when(void)
+{
+	if(docking_success_abort != FALSE)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+void docking_success_abort_code(void)
+{
+
+	docking_success_abort = FALSE;
+	robot_sidebrush_vols_set(1); 
+	return;
+}
+
+DOCK_FN_DECL(docking_success)
+{
+	S8 result = 0;
+	S16 vl_meas, vr_meas;
+
+	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_success\r\n");
+        
+
+	robot_sidebrush_vols_set(0);
+        do
+        {
+                set_motor_vels(0, 0, ACCELERATION_MAX);
+                get_motor_speeds(&vl_meas, &vr_meas);
+        }
+        while ((vl_meas > 0) || (vr_meas > 0));
+	docking_state.state_cnt++;
+
+	if (!charging_detect())
+	{
+		dprintf(DEBUG_DOCK_BEHAVIOR, "docking_verify_charger fail \r\n");
+		docking_state.state_cnt = 0;
+		DRIVE_GO(-200,FORWARDSPEED,(!charging_detect()),0,result);
+                if(charging_detect())
+                    docking_state.dock_finished = TRUE;
+                else
+		    set_docking_success_abort();
+		return ;
+	}
+	else if (docking_state.state_cnt > VERIFY_HOLD_CNT)
+	{
+		set_motor_vels(0, 0, ACCELERATION_MAX);
+
+		// we are really charging!
+		dprintf(DEBUG_DOCK_BEHAVIOR, "docking_verify_charger ok \r\n");
+
+		docking_state.dock_finished = TRUE;
+		return ;
+	}
+
+	return ;
+}
+
+BOOLEAN docking_success_start_when(void)
+{
+	if (charging_detect() && (current_dock_behavior() != DOCKING_SUCCESS))
+	{
+		return TRUE;
+	}
+	else
+		return FALSE;
+}
+
+void dock_success_register(void)
+{
+	Dock_Data dock_funtion;
+
+	dock_funtion.priorty = DOCKING_SUCCESS;
+	dock_funtion.start_when = &docking_success_start_when;
+	dock_funtion.run_when = NULL;
+	dock_funtion.abort_when = &docking_success_abort_when;
+	dock_funtion.abort_code = &docking_success_abort_code;
+	dock_funtion.last_start_state = FALSE;
+	dock_funtion.current_function = docking_success;
+
+	register_dock_function(&dock_funtion);
+
+	return;
+}
+/********************************* DOCK SUCCESS END *******************************/
+
+
+/********************************* DOCK LINE BOUNCE *******************************/
+/**
+ * dock bounce - 没有正对着充电座时的碰撞处理
+ * NOTE:此行为与dock line行为配合，实现随机功能
+ * 触发条件: 没有正对着充电座时，发生bump或cliff
+ * 退出条件: 无
+ */
+static BOOLEAN docking_line_bounce_abort = FALSE;
+static S16 docking_line_bounce_angle = 0;
+void set_docking_line_bounce_abort(void)
+{
+	docking_line_bounce_abort = TRUE;
+	return;
+}
+
+BOOLEAN docking_line_bounce_abort_when(void)
+{
+
+	if(docking_line_bounce_abort != FALSE)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+void docking_line_bounce_abort_code(void)
+{
+	docking_line_bounce_abort = FALSE;
+	return;
+}
+
+DOCK_FN_DECL(docking_line_bounce)
+{
+	S8 result = 0;
+
+	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_line_bounce\r\n");
+
+	while((get_cliff_state() != 0) || (get_bump_state() != 0)){};
+
+	AM_GO_TO_PLACE(docking_line_bounce_angle,DOCKING_TRUN_SLOWEST_SPEED,\
+		DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+
+	set_docking_line_bounce_abort();
+
+	return ;
+}
+
+BOOLEAN docking_line_bounce_start_when(void)
+{
+	BumpState bumped_state = get_bump_state();
+	CliffState cliffed_state = get_cliff_state();
+	U16 angle = 0;
+
+	if (current_dock_behavior() == DOCKING_LINE_BOUNCE)
+		return FALSE;
+
+	if (((bumped_state !=0) || (cliffed_state != 0)) )
+	{
+		//angle = get_random();
+                 srand(timer_ms());
+                 angle = rand()%180;
+
+		if (bumped_state & BUMP_FRONT_LEFT)
+		{
+			docking_line_bounce_angle = -angle;
+		}
+		else if(bumped_state & BUMP_FRONT_RIGHT)
+		{
+			docking_line_bounce_angle = angle;
+		}
+		else if(bumped_state & BUMP_FRONT_CENTER)
+		{
+			if (docking_line_bounce_angle > 0)
+			{
+				docking_line_bounce_angle = angle;
+			}
+			else
+			{
+				docking_line_bounce_angle = -angle;
+			}
+		}
+		else if ((cliffed_state & CLIFF_FRONT_LEFT) || (cliffed_state & CLIFF_FRONT_RIGHT))
+		{
+			if (docking_line_bounce_angle > 0)
+			{
+				docking_line_bounce_angle = angle;
+			}
+			else
+			{
+				docking_line_bounce_angle = -angle;
+			}
+		}
+		else if (cliffed_state & CLIFF_SIDE_LEFT)
+		{
+			docking_line_bounce_angle = -angle;
+		}
+		else if (cliffed_state & CLIFF_SIDE_RIGHT)
+		{
+			docking_line_bounce_angle = angle;
+		}
+
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+}
+
+void docking_line_bounce_register(void)
+{
+	Dock_Data dock_funtion;
+
+	dock_funtion.priorty = DOCKING_LINE_BOUNCE;
+	dock_funtion.start_when = &docking_line_bounce_start_when;
+	dock_funtion.run_when = NULL;
+	dock_funtion.abort_when = &docking_line_bounce_abort_when;
+	dock_funtion.abort_code = &docking_line_bounce_abort_code;
+	dock_funtion.last_start_state = FALSE;
+	dock_funtion.current_function = docking_line_bounce;
+
+	register_dock_function(&dock_funtion);
+
+	return;
+}
+/******************************* DOCK LINE BOUNCE END *****************************/
 
 /************************************ DOCK RIGHT **********************************/
 /**
@@ -2408,11 +2634,9 @@ DOCK_FN_DECL(docking_right)
 
 BOOLEAN docking_right_run_when(void)
 {
-//        if((recently_mid_ir_weak_mid.current_state&&\
-//          recently_mid_ir_weak_left.current_state&&(!recently_mid_ir_weak_right.current_state)))
-//          return TRUE;
-	 if((recently_mid_ir_strong_mid.current_state&&\
-          recently_mid_ir_strong_left.current_state&&(!recently_mid_ir_strong_right.current_state)))
+        if(recently_mid_ir_weak_left.current_state)
+          return TRUE;
+	 else if(recently_mid_ir_strong_left.current_state)
           return TRUE;
 	else
 		return FALSE;
@@ -2483,11 +2707,9 @@ DOCK_FN_DECL(docking_left)
 
 BOOLEAN docking_left_run_when(void)
 {
-//    if(recently_mid_ir_weak_mid.current_state&&\
-//      (!recently_mid_ir_weak_left.current_state)&&recently_mid_ir_weak_right.current_state)
-//      return TRUE;
-      if(recently_mid_ir_strong_mid.current_state&&\
-      (!recently_mid_ir_strong_left.current_state)&&recently_mid_ir_strong_right.current_state)
+    if(recently_mid_ir_weak_right.current_state)
+      return TRUE;
+     else if(recently_mid_ir_strong_right.current_state)
       return TRUE;
 	else
 		return FALSE;
@@ -2542,8 +2764,17 @@ DOCK_FN_DECL(docking_go_forward)
 
 BOOLEAN docking_go_forward_run_when(void)
 {
-	if (recently_mid_ir_strong_mid.current_state&&recently_mid_ir_strong_right.current_state&&\
-          recently_mid_ir_strong_left.current_state&&(!recently_left_ir_strong_backleft.current_state))
+  	if (recently_mid_ir_weak_mid.current_state&&(!recently_mid_ir_weak_right.current_state)&&\
+          (!recently_mid_ir_weak_left.current_state))
+		return TRUE;
+	else if (recently_mid_ir_strong_mid.current_state&&(!recently_mid_ir_strong_right.current_state)&&\
+          (!recently_mid_ir_strong_left.current_state))
+		return TRUE;
+        else if (recently_mid_ir_strong_mid.current_state&&(recently_mid_ir_strong_right.current_state)&&\
+          (recently_mid_ir_strong_left.current_state))
+		return TRUE;
+       else if (recently_mid_ir_weak_mid.current_state&&(recently_mid_ir_weak_right.current_state)&&\
+          (recently_mid_ir_weak_left.current_state))
 		return TRUE;
 	else
 		return FALSE;
@@ -2578,6 +2809,7 @@ void docking_go_forward_register(void)
 static AM_LeftRight docking_correct_direction = AM_RIGHT;
 static S64 correct_target_heading = 0;
 static BOOLEAN docking_correct_abort = FALSE;
+extern U8 decode_near;
 void set_docking_correct_abort(void)
 {
 	docking_correct_abort = TRUE;
@@ -2596,11 +2828,13 @@ void docking_correct_abort_code(void)
 BOOLEAN docking_correct_abort_when(void)
 {
 
-//	if (recently_docking_left.current_state || \
-//		recently_docking_right.current_state || \
-//		docking_correct_abort)
-//		return TRUE;
-//	else
+	if (recently_mid_ir_weak_left.current_state || \
+		recently_mid_ir_strong_left.current_state || \
+                recently_mid_ir_weak_right.current_state || \
+                recently_mid_ir_strong_right.current_state || \
+		docking_correct_abort)
+		return TRUE;
+	else
 		return FALSE;
 }
 
@@ -2621,12 +2855,12 @@ DOCK_FN_DECL(docking_correct)
 	{
 		if (docking_correct_direction == AM_LEFT)
 		{
-//			if (recently_mid_ir_weak_mid|| recently_mid_ir_weak_left||recently_mid_ir_weak_right)
-//			{
-//				left_vel = DOCKING_NEAR_SLOWEST_SPEED;
-//				right_vel = DOCKING_NEAR_SLOW_SPEED;
-//			}
-//			else
+			if (decode_near)
+			{
+				left_vel = DOCKING_NEAR_SLOWEST_SPEED;
+				right_vel = DOCKING_NEAR_SLOW_SPEED;
+			}
+			else
 			{
 				left_vel = DOCKING_SLOWEST_SPEED;
 				right_vel = DOCKING_SLOW_SPEED;
@@ -2634,12 +2868,12 @@ DOCK_FN_DECL(docking_correct)
 		}
 		else if (docking_correct_direction == AM_RIGHT)
 		{
-//			if (recently_near_dock.current_state)
-//			{
-//				left_vel = DOCKING_NEAR_SLOW_SPEED;
-//				right_vel = DOCKING_NEAR_SLOWEST_SPEED;
-//			}
-//			else
+			if (decode_near)
+			{
+				left_vel = DOCKING_NEAR_SLOW_SPEED;
+				right_vel = DOCKING_NEAR_SLOWEST_SPEED;
+			}
+			else
 			{
 				left_vel = DOCKING_SLOW_SPEED;
 				right_vel = DOCKING_SLOWEST_SPEED;
@@ -2709,7 +2943,7 @@ void set_findmiddle_abort(void)
 DOCK_FN_DECL(fine_middle)
 {
       S8 result = 0;
-      AM_GO_TO_PLACE(90,DOCKING_TRUN_SLOWEST_SPEED,\
+      AM_GO_TO_PLACE(180,DOCKING_TRUN_SLOWEST_SPEED,\
       DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
       
       
@@ -2719,7 +2953,7 @@ DOCK_FN_DECL(fine_middle)
 
 BOOLEAN find_middle_start_when(void)
 {
-          if((!recently_left_ir_strong_backleft.current_state)&&recently_left_ir_strong_right.current_state&&\
+          if(recently_left_ir_strong_right.current_state&&\
             recently_left_ir_strong_mid.current_state&&recently_left_ir_strong_left.current_state)      
           {
             return  TRUE;
@@ -2771,7 +3005,7 @@ void fine_middle_register(void)
 DOCK_FN_DECL(docking_line)
 {
 	S8 result = 0;
-	U16 angle = 0;
+        U16 angle;
 	BOOLEAN slow_speed = FALSE;
 
 	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_line\r\n");
@@ -2788,18 +3022,18 @@ DOCK_FN_DECL(docking_line)
 		}
 		else
 		{
-			DRIVE_GO(5000,FORWARDSPEED, \
+			DRIVE_GO(5000,200, \
 		        TRUE,\
 		       (CARE_CLIFF|CARE_BUMP),\
                          result);
 			//angle = get_random();
                        srand(timer_ms());
                        angle = rand()%180;
-//
-//			AM_GO_TO_PLACE(20,DOCKING_TRUN_SLOWEST_SPEED,\
-//		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
-//                        AM_GO_TO_PLACE(-20,DOCKING_TRUN_SLOWEST_SPEED,\
-//		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+////
+////			AM_GO_TO_PLACE(20,DOCKING_TRUN_SLOWEST_SPEED,\
+////		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+////                        AM_GO_TO_PLACE(-20,DOCKING_TRUN_SLOWEST_SPEED,\
+////		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
 		}
 	}
 	while (1);
@@ -2858,7 +3092,7 @@ void dock_get_random_count(void)
 
 dock_config_t* dock_new_init(void)
 {
-  
+        dock_success_register();
         fine_middle_register();
         docking_line_register();
         dock_right_register();
@@ -2934,15 +3168,16 @@ dock_config_t* dock_new_init(void)
 
 	dock_config.max_ir_chan = IR_MAX_RECV;
 
-	/* 圆泡看到圆泡信号  避座*/
+	/* 前面三个接收头收到中间发射头弱信号  避座*/ 
 	dock_config.dock_avoid_chan = 0;
-	dock_config.dock_avoid_chan = ((0x1<<IR_LOCAL_MID_LEFT)|(0x1<<IR_LOCAL_MID_RIGHT));
-	/* 双目看到圆泡信号   避座*/
+	dock_config.dock_avoid_chan = ((0x1<<IR_LOCAL_LEFT)|(0x1<<IR_LOCAL_MID)|(0x1<<IR_LOCAL_RIGHT)|\
+                                       (0x1<<IR_LOCAL_BACK_LEFT)|(0x1<<IR_LOCAL_BACK_RIGHT));
+	/* 前面三个接收头收到中间发射头弱信号   避座*/
 	dock_config.binocular_see_avoid_chan = 0;
-	dock_config.binocular_see_avoid_chan = ((0x1<<IR_LOCAL_MID_LEFT)|(0x1<<IR_LOCAL_MID_RIGHT));
+	dock_config.binocular_see_avoid_chan = ((0x1<<IR_LOCAL_LEFT)|(0x1<<IR_LOCAL_MID)|(0x1<<IR_LOCAL_RIGHT));
 
 	dock_config.aovw_chan = 0;
-	dock_config.aovw_chan = ((0x1<<IR_LOCAL_MID_LEFT)|(0x1<<IR_LOCAL_MID_RIGHT)|\
+	dock_config.aovw_chan = ((0x1<<IR_LOCAL_MID)|\
 									(0x1<<IR_LOCAL_LEFT)|(0x1<<IR_LOCAL_RIGHT));
 	dock_config.dock_signals_type.dock_closed = DOCK_CLOSE_BEACON;
 	dock_config.dock_signals_type.left_signal = LEFT_BEACON_BYTE;
@@ -2962,15 +3197,15 @@ dock_config_t* dock_new_init(void)
 
 	return &dock_config;
 }
-
+extern void ir_send_on_off(U8 state);
 void dock_new_start(void)
 {
 //	set_lighttouch_enable(0);
 //	turn_on_touch_bump();
         set_lighttouch_enable(1);
         turn_off_touch_bump();
-
-
+        
+        ir_send_on_off(0);
 	docking_parameter_init();
 
 	dock_core_enable();

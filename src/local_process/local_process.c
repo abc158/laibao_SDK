@@ -125,7 +125,6 @@ void local_app_init(void)
   InitBK2425();
   //InitARF2496k();
   sys_timer_register(HZ_4K,(long)ir_tx_send_4khz,1);//红外优先级最高
-
   #if defined(USE_WIFI_DEMO_1)
   UART_Config_PinResetWifiCard();
   #elif defined(USE_WIFI_DEMO_2)
@@ -134,7 +133,7 @@ void local_app_init(void)
   if(battery_switch_check() == 1)
   {
 		robot_start_work =1;
-     // songplayer_play_id(SONG_ID_POWER_UP, 1);
+      songplayer_play_id(SONG_ID_POWER_UP, 1);
   }
   start_watchdog();
   
@@ -154,17 +153,23 @@ extern U8 SPI_Read_Reg(U8 reg);
 extern U8 SPI_RW(U8 value)   ;
 extern U8 Get_Chip_ID(void);
 extern void Send_Packet(U8 type,U8* pbuf,U8 len);
-#define WR_TX_PLOAD     0xA0  // Define TX payload register address
-#define W_TX_PAYLOAD_NOACK_CMD	0xb0
+static bool wifi_open=true;
 void main_app_task(void *arg)
 {
   UI_STATE_E s;
+  uint32_t wifi_start_time;
+  wifi_start_time= timer_ms();
   while(1)
   {  
+    if((wifi_open==true)&&(timer_elapsed(wifi_start_time)>=1000))
+   {
+        wifi_open=false;
+        InsertExtCmd(RestoreFactorySet); //进入wifi配网模式
+        set_reset_wifi_flag(1);
+   }
+
     
     {
-      
-      //Send_Packet(W_TX_PAYLOAD_NOACK_CMD,temp,sizeof(temp));
       key_routine();
       remote_routine();
       #if defined(USE_UART_WIFI)

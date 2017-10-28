@@ -31,10 +31,10 @@ typedef struct
 #define AM_IO_SIDE_BRUSH_DIR      GPIOE(3)
 #define AM_IO_MAIN_BRUSH_DIR      GPIOE(5)
 #define IO_CHARGER_LOW            GPIOE(9)
-//#define IO_CHARGER_HIGH           GPIOE(11)
+#define IO_CHARGER_HIGH           GPIOE(11)
 #define AM_IO_IR_REC_MIDDLE_RIGHT GPIOD(4)
 
-#define AM_IO_TOUCH_LED_FAR_EN     	  GPIOE(10)
+#define AM_IO_TOUCH_LED_FAR_EN        GPIOE(10)
 #define AM_IO_TOUCH_LED_NEAR_EN       GPIOE(13)
 #define AM_IO_TOUCH_CLIFF_LED_FAR_EN  GPIOE(12)
 
@@ -52,7 +52,7 @@ typedef struct
 #define AM_I0_FLASH_DATA_I        GPIOF(14)
 #define AM_I0_FLASH_CLOCK         GPIOF(13)
 
-#define AM_IO_WIFI_POWER          GPIOD(4)
+#define AM_IO_WIFI_POWER          GPIOD(2)
 #define AM_IO_RESET_WIFI          GPIOD(9)
 #define AM_IO_WIFI_WAKE_UP        GPIOD(12)
 #define AM_I0_WATER_TANK_DETECT   GPIOD(4)

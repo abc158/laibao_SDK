@@ -229,6 +229,10 @@ void get_rec_ir_data(U8 index,U8 data)
 *Others     :  
 ******************************************************************/
 extern void Receive_Packet();
+extern void ir_send_on_off(U8 state);
+U8 near_count=0;
+U8 decode_count=0;
+U8 decode_near=0;
 void ir_rx_decode(void)
 {
   U8 state, value;
@@ -241,6 +245,24 @@ void ir_rx_decode(void)
     REC_IR_DATA[index]=(REC_IR_DATA[index]<<8)|REC_IR_BUFF[index*2];
     if(REC_IR_DATA[index])
     printf("%d  REC  %x \r\n",index,REC_IR_DATA[index]);
+    if(near_count)
+    decode_count++;
+    if(REC_IR_DATA[index]==0XF020)
+    {
+      //near_count++;
+      decode_near=1;
+      ir_send_on_off(1);  //靠近座子关闭强信号
+    }
+//    if(near_count>=30)
+//    {
+//      near_count=0;
+//         ir_send_on_off(1);  //靠近座子关闭强信号
+//    }
+//    if((decode_count>=200)&&(near_count<30))
+//    {
+//      decode_count=0;
+//        near_count=0;
+//    }
     ir_val[index]=REC_IR_DATA[index];
     ir_val_test[index] = ir_val[index];
 
