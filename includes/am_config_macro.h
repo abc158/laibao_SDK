@@ -3,7 +3,7 @@
 ///////////////////////cliff config///////////////////////
 
 #define USE_UART_WIFI
-#ifdef USE_UART_WIFI
+#ifdef USE_UART_WIFI     //wifi 选择
 //#define USE_WIFI_DEMO_1
 #define USE_WIFI_DEMO_2
 #endif
@@ -48,21 +48,21 @@ typedef enum
 {
   OFF=0x0, 
   ON =0x1  
-}EN_E;
+}EN_E;   //(不用)
 
 /*应答状态*/
 typedef enum
 {
   RESP_OK  =0x0, /*接收ok*/
   RESP_ERR =0x1  /*接收err*/
-}RESPONSE_E;
+}RESPONSE_E;   //(不用)
 
 /*应答状态*/
 typedef enum
 {
   PASS  =0x0, /*测试成功*/
   FAIL  =0x1  /*测试失败*/
-}TEST_STATE_E;
+}TEST_STATE_E;   //(不用)
 
 
 /*遥控器的码值*/
@@ -96,7 +96,7 @@ typedef enum
   DOCK_BUOY_RED    = 0xf4,  //右
   DOCK_BUOY_GREEN  = 0xf8,  //左 
   DOCK_BUOY_BOTH   = 0xfc       
-}DOCK_E;
+}DOCK_E;    //(不用)
 
 /*lt bump info*/
 typedef enum
@@ -107,7 +107,7 @@ typedef enum
   LT_CENTER_RIGHT=0x8,
   LT_SIDE_LEFT   =0x10,
   LT_SIDE_RIGHT  =0x20
-}LT_BUMP_ACTIVE_DIR_E;
+}LT_BUMP_ACTIVE_DIR_E;    //(不用)
 
 typedef enum
 {
@@ -124,14 +124,14 @@ typedef enum
   BAT_TYPE               = 0,
   ADAPTER_OUTPUT_VOL     = 24,
   ADAPTER_OUTPUT_CURRENT = 1000,
-  PA_GAIN                = 10,
+  PA_GAIN                = 10,      //喇叭音量
   ACTION                 = 0x5,
-  BAT_CAP_MAX            =  2200,
-  BAT_CAP_MIN            =  0,
-  BAT_VOL_MAX            =  3628,  //电池在16.8V时对应的ADC
-  BAT_VOL_MIN            =  2700,  
-  BAT_VOLTAGE_MIN        =  2790,  /*最低电池工作电压13000mV*/
-  BAT_VOLTAGE_MAX        =  3628,  /*最大电池工作电压16800mV*/
+  BAT_CAP_MAX            =  2200,   //(不用)
+  BAT_CAP_MIN            =  0,      //(不用)
+  BAT_VOL_MAX            =  3628,  //电池在16.8V时对应的ADC   //(不用)
+  BAT_VOL_MIN            =  2700,    //(不用)
+  BAT_VOLTAGE_MIN        =  2790,  /*最低电池工作电压13000mV*/ //(不用)
+  BAT_VOLTAGE_MAX        =  3628,  /*最大电池工作电压16800mV*/ //(不用)
   BAT_VOLTAGE_DEAD       =  2700,  /*截止工作电压12.5v*/
   BAT_VOLTAGE_CHARGE_MAX =  3628,  /*充电最大电压 16.8v*/
   BAT_TEMPERATURE_MAX    =  50,    /*运行工作的最大温度50C*/
@@ -181,9 +181,9 @@ typedef enum
 {
     CLEAN_SPEED_MAX  = 290, /*清扫时最大速度*/
     CLEAN_SPEED_LOW  = 220,
-    CRASH_SPEED      = 140,  /*遇到障碍物降的速度*/
-    DOCK_SPEED_NOMAL = 150, /*自座的正常速度*/
-    DOCK_SPEED_LOW   = 70,   /*找到自座后降低的速度*/
+    CRASH_SPEED      = 140,  /*遇到障碍物降的速度*/   //(不用)
+    DOCK_SPEED_NOMAL = 150, /*自座的正常速度*/ //(不用)
+    DOCK_SPEED_LOW   = 70,   /*找到自座后降低的速度*/ //(不用)
     WALLFOLLOW_SPEED = 180  /*沿边清扫的速度*/
 }SPEED_E;
 
