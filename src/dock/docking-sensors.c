@@ -50,9 +50,70 @@ BOOLEAN mid_ir_weak(IR_REC_POSITION chan)
 {
      return(((dock_signals[chan]&MIDDLE_WEAK)==MIDDLE_WEAK));
 }
+BOOLEAN backleft_ir_strong(IR_REC_POSITION chan)
+{
+     return(((dock_signals[chan]&BACK_LEFT_STRONG)==BACK_LEFT_STRONG));
+}
+
+BOOLEAN backleft_ir_weak(IR_REC_POSITION chan)
+{
+     return(((dock_signals[chan]&BACK_LEFT_WEAK)==BACK_LEFT_WEAK));
+}
+BOOLEAN backright_ir_strong(IR_REC_POSITION chan)
+{
+     return(((dock_signals[chan]&BACK_RIGHT_STRONG)==BACK_RIGHT_STRONG));
+}
+
+BOOLEAN backright_ir_weak(IR_REC_POSITION chan)
+{
+     return(((dock_signals[chan]&BACK_RIGHT_WEAK)==BACK_RIGHT_WEAK));
+}
 
 
+////////////////////////right//////////////////////////////////////
+BOOLEAN right_ir_strong_mid(void)
+{
+	return (right_ir_strong(AM_IR_REC_MIDDLE));
+}
+BOOLEAN right_ir_weak_mid(void)
+{
+        return (right_ir_weak(AM_IR_REC_MIDDLE));
+}
+BOOLEAN right_ir_strong_left(void)
+{
+	return (right_ir_strong(AM_IR_REC_LEFT));
+}
+BOOLEAN right_ir_weak_left(void)
+{
+        return (right_ir_weak(AM_IR_REC_LEFT));
+}
+BOOLEAN right_ir_strong_right(void)
+{
+	return (right_ir_strong(AM_IR_REC_RIGHT));
+}
+BOOLEAN right_ir_weak_right(void)
+{
+        return (right_ir_weak(AM_IR_REC_RIGHT));
+}
+BOOLEAN right_ir_weak_backleft(void)
+{
+        return (right_ir_weak(AM_IR_REC_BACK_LEFT));
+}    
+BOOLEAN right_ir_weak_backright(void)
+{
+        return (right_ir_weak(AM_IR_REC_BACK_RIGHT));
+}
 
+BOOLEAN right_ir_strong_backleft(void)
+{
+        return (right_ir_strong(AM_IR_REC_BACK_LEFT));
+}  
+BOOLEAN right_ir_strong_backright(void)
+{
+		return (right_ir_strong(AM_IR_REC_BACK_RIGHT));
+}
+/////////////////////////right end/////////////////////////
+//////////////////////////////mid/////////////////////////////
 BOOLEAN mid_ir_strong_mid(void)
 {
 	return (mid_ir_strong(AM_IR_REC_MIDDLE));
@@ -77,7 +138,24 @@ BOOLEAN mid_ir_weak_right(void)
 {
         return (mid_ir_weak(AM_IR_REC_RIGHT));
 }
-
+BOOLEAN mid_ir_weak_backright(void)
+{
+        return (mid_ir_weak(AM_IR_REC_BACK_RIGHT));
+}
+BOOLEAN mid_ir_weak_backleft(void)
+{
+        return (mid_ir_weak(AM_IR_REC_BACK_LEFT));
+}
+BOOLEAN mid_ir_strong_backright(void)
+{
+        return (mid_ir_strong(AM_IR_REC_BACK_RIGHT));
+}
+BOOLEAN mid_ir_strong_backleft(void)
+{
+        return (mid_ir_strong(AM_IR_REC_BACK_LEFT));
+}
+/////////////////////////mid end/////////////////////////
+/////////////////////////left////////////////////////////
 BOOLEAN left_ir_weak_right(void)
 {
         return (left_ir_weak(AM_IR_REC_RIGHT));
@@ -111,8 +189,233 @@ BOOLEAN left_ir_strong_backleft(void)
 {
         return (left_ir_strong(AM_IR_REC_BACK_LEFT));
 }   
+///////////////////////left/////////////////////////////
+///////////////////////backleft//////////////////////////
+BOOLEAN backleft_ir_weak_right(void)
+{
+        return (backleft_ir_weak(AM_IR_REC_RIGHT));
+}
+BOOLEAN backleft_ir_weak_left(void)
+{
+        return (backleft_ir_weak(AM_IR_REC_LEFT));
+}
+BOOLEAN backleft_ir_weak_mid(void)
+{
+        return (backleft_ir_weak(AM_IR_REC_MIDDLE));
+}
+BOOLEAN backleft_ir_weak_backleft(void)
+{
+        return (backleft_ir_weak(AM_IR_REC_BACK_LEFT));
+}          
+
+BOOLEAN backleft_ir_strong_right(void)
+{
+        return (backleft_ir_strong(AM_IR_REC_RIGHT));
+}
+BOOLEAN backleft_ir_strong_left(void)
+{
+        return (backleft_ir_strong(AM_IR_REC_LEFT));
+}
+BOOLEAN backleft_ir_strong_mid(void)
+{
+        return (backleft_ir_strong(AM_IR_REC_MIDDLE));
+}
+BOOLEAN backleft_ir_strong_backleft(void)
+{
+        return (backleft_ir_strong(AM_IR_REC_BACK_LEFT));
+}  
+
+///////////////////////backleft end//////////////////////////
+///////////////////////backright//////////////////////////
+BOOLEAN backright_ir_weak_right(void)
+{
+        return (backright_ir_weak(AM_IR_REC_RIGHT));
+}
+BOOLEAN backright_ir_weak_left(void)
+{
+        return (backright_ir_weak(AM_IR_REC_LEFT));
+}
+BOOLEAN backright_ir_weak_mid(void)
+{
+        return (backright_ir_weak(AM_IR_REC_MIDDLE));
+}
+BOOLEAN backright_ir_weak_backleft(void)
+{
+        return (backright_ir_weak(AM_IR_REC_BACK_LEFT));
+}          
+
+BOOLEAN backright_ir_strong_right(void)
+{
+        return (backright_ir_strong(AM_IR_REC_RIGHT));
+}
+BOOLEAN backright_ir_strong_left(void)
+{
+        return (backright_ir_strong(AM_IR_REC_LEFT));
+}
+BOOLEAN backright_ir_strong_mid(void)
+{
+        return (backright_ir_strong(AM_IR_REC_MIDDLE));
+}
+BOOLEAN backright_ir_strong_backleft(void)
+{
+        return (backright_ir_strong(AM_IR_REC_BACK_LEFT));
+}  
+
+///////////////////////backright end//////////////////////////
+
+/////////////////////////////Debouncer/////////////////////////////////
+///////////////////////backright  //////////////////////
+Debouncer_Data recently_backright_ir_strong_backleft = {
+	.predicate = &backright_ir_strong_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_strong_left = {
+	.predicate = &backright_ir_strong_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_strong_mid = {
+	.predicate = &backright_ir_strong_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_strong_right = {
+	.predicate = &backright_ir_strong_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_weak_backleft = {
+	.predicate = &backright_ir_weak_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_weak_left = {
+	.predicate = &backright_ir_weak_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_weak_mid = {
+	.predicate = &backright_ir_weak_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backright_ir_weak_right = {
+	.predicate = &backright_ir_weak_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+///////////////////////backright end //////////////////////
+
+///////////////////////back left  //////////////////////
+Debouncer_Data recently_backleft_ir_strong_backleft = {
+	.predicate = &backleft_ir_strong_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_strong_left = {
+	.predicate = &backleft_ir_strong_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_strong_mid = {
+	.predicate = &backleft_ir_strong_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_strong_right = {
+	.predicate = &backleft_ir_strong_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_weak_backleft = {
+	.predicate = &backleft_ir_weak_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_weak_left = {
+	.predicate = &backleft_ir_weak_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_weak_mid = {
+	.predicate = &backleft_ir_weak_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_backleft_ir_weak_right = {
+	.predicate = &backleft_ir_weak_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+///////////////////////backleft end //////////////////////
+///////////////////////left  //////////////////////
 Debouncer_Data recently_left_ir_strong_backleft = {
-	.predicate = &left_ir_strong_backleft,
+	.predicate = &backright_ir_strong_backleft,
 	.trigger_on = 1,
 	.trigger_off = 40,
 	.on_count = 0,
@@ -183,6 +486,8 @@ Debouncer_Data recently_left_ir_weak_right = {
 	.current_state = FALSE,
 	.set_dock_context = NULL
 };
+///////////////////////left end //////////////////////
+//////////////////////////mid /////////////////////////
 Debouncer_Data recently_mid_ir_strong_mid = {
 	.predicate = &mid_ir_strong_mid,
 	.trigger_on = 1,
@@ -238,6 +543,173 @@ Debouncer_Data recently_mid_ir_weak_right = {
 	.current_state = FALSE,
 	.set_dock_context = NULL
 };
+Debouncer_Data recently_mid_ir_weak_backright = {
+	.predicate = &mid_ir_weak_backright,
+	.trigger_on = 1,
+	.trigger_off = 50,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_mid_ir_weak_backleft = {
+	.predicate = &mid_ir_weak_backleft,
+	.trigger_on = 1,
+	.trigger_off =50,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_mid_ir_strong_backright = {
+	.predicate = &mid_ir_strong_backright,
+	.trigger_on = 1,
+	.trigger_off = 50,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_mid_ir_strong_backleft = {
+	.predicate = &mid_ir_strong_backleft,
+	.trigger_on = 1,
+	.trigger_off = 50,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+//////////////////////////mid end////////////////////////////
+//////////////////////////right////////////////////////////////
+Debouncer_Data recently_right_ir_strong_backleft = {
+	.predicate = &right_ir_strong_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_strong_left = {
+	.predicate = &right_ir_strong_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_strong_mid = {
+	.predicate = &right_ir_strong_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_strong_right = {
+	.predicate = &right_ir_strong_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_weak_backleft = {
+	.predicate = &right_ir_weak_backleft,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_weak_backright = {
+	.predicate = &right_ir_weak_backright,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_strong_backright = {
+	.predicate = &right_ir_strong_backright,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_weak_left = {
+	.predicate = &right_ir_weak_left,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_weak_mid = {
+	.predicate = &right_ir_weak_mid,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+Debouncer_Data recently_right_ir_weak_right = {
+	.predicate = &right_ir_weak_right,
+	.trigger_on = 1,
+	.trigger_off = 40,
+	.on_count = 0,
+	.off_count = 0,
+	.current_state = FALSE,
+	.set_dock_context = NULL
+};
+////////////////////////////////right////////////////////////////////
+U8 decode_near=false;
+extern void ir_send_on_off(U8 state);
+U8 robot_get_dock_signals(U8 index)
+{
+  U8 signal=0;
+#ifdef IR_WIRELESS
+	dock_signals[index] = get_wireless_rx_code();
+#else
+	dock_signals[index] = remote_ir_get((IR_REMOT_POSITION_E)index);
+#endif
+//       if(dock_signals[index])
+//       printf("%d REC %x  \r\n",index,dock_signals[index]);
+	if (dock_signals[index] != 0)
+	{
+		dprintf(DEBUG_DOCK_SIGNAL, "IR%d : %x \r\n", index, dock_signals[index]);
+                
+    dock_signal_get_time=timer_ms();
+    if((dock_signals[index]==MIDDLE_WEAK))   //避座处理
+      signal=DOCK_CLOSE_BEACON;
+    if((dock_signals[index]==LEFT_STRONG))   //地图信息记录
+      signal=LEFT_BEACON_BYTE;
+    if((dock_signals[index]==RIGHT_STRONG))
+      signal=RIGHT_BEACON_BYTE;
+		if(dock_signals[index]==0XF020)
+    {
+      decode_near=true;
+      ir_send_on_off(1);  //靠近座子关闭强信号
+    }
+		//dock_avoid_get_signals(index, dock_signals[index]);
+		//virtual_wall_get_signals(index, dock_signals[index]);
+    dock_avoid_get_signals(index, signal);
+    virtual_wall_get_signals(index, signal);
+	}
+
+	//return dock_signals[index];
+        return signal;
+}
+
 #if 0
 BOOLEAN force_field(IR_local_Index chan)
 {
@@ -792,34 +1264,3 @@ Debouncer_Data recently_bump = {
 };
 #endif
 
-U8 robot_get_dock_signals(U8 index)
-{
-  U8 signal=0;
-#ifdef IR_WIRELESS
-	dock_signals[index] = get_wireless_rx_code();
-#else
-	dock_signals[index] = remote_ir_get((IR_REMOT_POSITION_E)index);
-#endif
-//       if(dock_signals[index])
-//       printf("%d REC %x  \r\n",index,dock_signals[index]);
-
-
-	if (dock_signals[index] != 0)
-	{
-		dprintf(DEBUG_DOCK_SIGNAL, "IR%d : %x \r\n", index, dock_signals[index]);
-                
-                dock_signal_get_time=timer_ms();
-                if((dock_signals[index]==MIDDLE_WEAK))   //避座处理
-                  signal=DOCK_CLOSE_BEACON;
-                if((dock_signals[index]==LEFT_STRONG))   //地图信息记录
-                  signal=LEFT_BEACON_BYTE;
-                if((dock_signals[index]==RIGHT_STRONG))
-                  signal=RIGHT_BEACON_BYTE;
-		//dock_avoid_get_signals(index, dock_signals[index]);
-                dock_avoid_get_signals(index, signal);
-		virtual_wall_get_signals(index, dock_signals[index]);
-	}
-
-	//return dock_signals[index];
-        return signal;
-}

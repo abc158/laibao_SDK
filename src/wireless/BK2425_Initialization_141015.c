@@ -101,33 +101,33 @@ Description:
 	Writes one UINT8 to BK2425, and return the UINT8 read 
 **************************************************/     
 extern UINT8 SPI_RW_Byte(UINT8 byte);	
-int arf2498_spi_id = 0;
+int bk2425_spi_id = 0;
 extern void BK2425_Initialize(void);
 void InitBK2425(void)
 {
-  arf2498_spi_id = spi0_id_get();
+  bk2425_spi_id = spi0_id_get();
   SPI_FLASH_CS_HIGH();
   BK2425_Initialize();
 }
-static u8 spi_ARF2498_transmit_byte(u8 data)
+static u8 spi_BK2425_transmit_byte(u8 data)
 {
     volatile u8 arg = 0;
-    ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+    ioctl(bk2425_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
 
     while(!arg)
     {
-      ioctl(arf2498_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
+      ioctl(bk2425_spi_id,SPI_FIFO_TX_STATE,(void*)&arg);
     }
 
-    write(arf2498_spi_id,(u8 *)&data,1);
+    write(bk2425_spi_id,(u8 *)&data,1);
 
 
-    ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+    ioctl(bk2425_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
     while(!arg)
     {
-      ioctl(arf2498_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
+      ioctl(bk2425_spi_id,SPI_FIFO_RX_STATE,(void*)&arg);
     }
-    read(arf2498_spi_id,(u8*)&arg,1);
+    read(bk2425_spi_id,(u8*)&arg,1);
     return arg;
 }
 UINT8 SPI_RW(UINT8 value)                                    
@@ -149,7 +149,7 @@ UINT8 SPI_RW(UINT8 value)
 //		value |= MISO;       		  // capture current MISO bit
 //		SCK = 0;            		  // ..then set SCK low again
 //	}
-        rec_data=spi_ARF2498_transmit_byte(value);
+        rec_data=spi_BK2425_transmit_byte(value);
 	return(rec_data);           		  // return read UINT8
 }                                                           
 /**************************************************/        

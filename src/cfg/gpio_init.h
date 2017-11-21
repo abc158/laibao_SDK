@@ -74,15 +74,15 @@ typedef struct
 	m( GPIO_DIR_IN  ,   4 ,  9 ,   1 ,GPIO_PR_UP  )/*reset to ui */\
 	m( GPIO_DIR_OUT ,   4 ,  10 ,  1 ,GPIO_PR_UP       )/*light pwm */\
 	m( GPIO_DIR_IN  ,   4 ,  11 ,  1 ,GPIO_PR_UP       )/*vac pwm */ \
-	m( GPIO_DIR_OUT ,    4 ,  12 ,  1 ,GPIO_PR_UP  )/*int to ui */\
-	m( GPIO_DIR_OUT ,   4 ,  13 ,  1 ,GPIO_PR_DOWN     )/*int to main */\
+	m( GPIO_DIR_OUT ,    4 ,  12 ,  1 ,GPIO_PR_DISABLE  )/*int to ui */\
+	m( GPIO_DIR_OUT ,   4 ,  13 ,  1 ,GPIO_PR_DISABLE     )/*int to main */\
 	m( GPIO_DIR_IN  ,   4 ,  14 ,  1 ,GPIO_PR_DISABLE  )/*bump left */\
-	m( GPIO_DIR_OUT  ,   4 ,  15 ,  1 ,GPIO_PR_DISABLE  )/*bump right */\
+	m( GPIO_DIR_IN  ,   4 ,  15 ,  1 ,GPIO_PR_DISABLE  )/*bump right */\
 	/* Port 0 F  */                                          \
 	m( GPIO_DIR_OUT ,   5 ,  0 ,   1 ,GPIO_PR_DISABLE     )/*audio en */\
 	m( GPIO_DIR_OUT ,    5 ,  1 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
-        m( GPIO_DIR_OUT ,    5 ,  2 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
-        m( GPIO_DIR_OUT ,    5 ,  3 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
+  m( GPIO_DIR_OUT ,    5 ,  2 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
+  m( GPIO_DIR_OUT ,    5 ,  3 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
 	m( GPIO_DIR_OUT ,   5 ,  4 ,   1 ,GPIO_PR_DISABLE  )/*spi1 ss */\
 	m( GPIO_DIR_OUT ,   5 ,  5 ,   1 ,GPIO_PR_DISABLE  )/* spi1 sck*/ \
 	m( GPIO_DIR_OUT ,   5 ,  6 ,   1 ,GPIO_PR_DISABLE  )/* spi1 mosi */ \

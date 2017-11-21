@@ -29,7 +29,6 @@ void wake_handler(void)
 { 
   ;
 }
-
 /****************************************************************
 *Function   :  exit_wakeup_cfg
 *Author     :  lyy
@@ -100,6 +99,8 @@ s16 wakeup_pin_cfg(void)
     request_irq(id,(long)wake_handler,0);
     wakeup_id[i++] = id;
 
+
+
     exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
     exti_user_init.Int_type    = EXTI_POSITIVE_EDGE;
     id = open(DEV_EXTI,AM_IO_IR_REC_RIGHT);
@@ -113,14 +114,14 @@ s16 wakeup_pin_cfg(void)
     ioctl(id,EXTI_INIT,&exti_user_init);
     request_irq(id,(long)wake_handler,0);
     wakeup_id[i++] = id;
-    /*
+    
     exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
     exti_user_init.Int_type    = EXTI_POSITIVE_EDGE;
     id = open(DEV_EXTI,AM_IO_IR_REC_MIDDLE_RIGHT);
     ioctl(id,EXTI_INIT,&exti_user_init);
     request_irq(id,(long)wake_handler,0);
     wakeup_id[i++] = id;
-    */
+    
     
     exti_user_init.Wakeup_type = EXTI_WAKEUP_LOW_LEVEL;
     exti_user_init.Int_type    = EXTI_POSITIVE_EDGE;

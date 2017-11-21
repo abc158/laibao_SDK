@@ -30,16 +30,16 @@ TEST_CMD_E test_item_table[UI_TEST_ITEM_MAX]={
 	CMD_TEST_ALL_TOUCH_FAR,		
 	CMD_TEST_ALL_TOUCH_NEAR,
 	CMD_TEST_ALL_CLIFF, 
-	CMD_TEST_ALL_TOUCH_FAR,		
+	CMD_TEST_BUMP_DROP,		
 	CMD_TEST_ALL_TOUCH_NEAR,
 	CMD_TEST_ALL_CLIFF, 	
-        CMD_TEST_ALL_TOUCH_FAR,		
+  CMD_TEST_ALL_TOUCH_FAR,		
 	CMD_TEST_ALL_TOUCH_NEAR,
 	CMD_TEST_ALL_CLIFF, 	
-        CMD_TEST_ALL_TOUCH_FAR,		
+  CMD_TEST_ALL_TOUCH_FAR,		
 	CMD_TEST_ALL_TOUCH_NEAR,
 	CMD_TEST_ALL_CLIFF, 	
-        CMD_TEST_ALL_TOUCH_FAR,		
+  CMD_TEST_ALL_TOUCH_FAR,		
 	CMD_TEST_ALL_TOUCH_NEAR,
 	CMD_TEST_ALL_CLIFF};
 
@@ -731,98 +731,100 @@ void handle_test_cmd(U32 cmd)
     break;
 	
 	case CMD_TEST_ALL_TOUCH_FAR://Ç½¼ìÇ¿µÆ
-          ir_send_on_off(3);
-	touch_near_flag =0;
-	set_cliff_enable(1);//¹Ø
-	set_lighttouch_enable(0);//¿ª
-	print_touch();
-//	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
-//	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT))
-	if(lt_flag)
-	{
-//	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
-//			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
-//	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));
-      gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
-      gpio_set_value(AM_I0_CLEAN_LED,0);
-      gpio_set_value(AM_I0_SPOT_LED,0);		
-	}	
-	else
-	{
-	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
-      gpio_set_value(AM_I0_DOCK_LED,0);
-      gpio_set_value(AM_I0_SPOT_LED,0);		
-	}
-	  
+           print_touch();
+//          ir_send_on_off(3);
+//	touch_near_flag =0;
+//	set_cliff_enable(1);//¹Ø
+//	set_lighttouch_enable(0);//¿ª
+//	print_touch();
+////	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
+////	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT))
+//	if(lt_flag)
+//	{
+////	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
+////			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
+////	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));
+//      gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
+//      gpio_set_value(AM_I0_CLEAN_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,0);		
+//	}	
+//	else
+//	{
+//	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
+//      gpio_set_value(AM_I0_DOCK_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,0);		
+//	}
+//	  
 	  
 	 break; 
 	case CMD_TEST_ALL_TOUCH_NEAR://Ç½¼ìÈõµÆ
-          ir_send_on_off(3);
-	 touch_near_flag =1;
-	set_cliff_enable(1);//¹Ø
-	set_lighttouch_enable(0);//¿ª
-	print_touch();
-//	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
-//	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT)||\
-//		robot_is_lighttouch(LT_CENTERLEFT_L))
-	if(lt_flag)
-	{
-//	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
-//			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
-//	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));	  
-      gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
-      gpio_set_value(AM_I0_CLEAN_LED,0);
-      gpio_set_value(AM_I0_SPOT_LED,0);		
-	}	
-	else
-	{
-	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
-      gpio_set_value(AM_I0_DOCK_LED,0);
-      gpio_set_value(AM_I0_SPOT_LED,0);		
-	}  
+//          ir_send_on_off(3);
+//	 touch_near_flag =1;
+//	set_cliff_enable(1);//¹Ø
+//	set_lighttouch_enable(0);//¿ª
+//	print_touch();
+////	if(robot_is_lighttouch(LT_LEFT)||robot_is_lighttouch(LT_CENTERLEFT)||robot_is_lighttouch(LT_FRONTLEFT)||\
+////	  robot_is_lighttouch(LT_FRONTRIGHT)||robot_is_lighttouch(LT_CENTERRIGHT)||robot_is_lighttouch(LT_RIGHT)||\
+////		robot_is_lighttouch(LT_CENTERLEFT_L))
+//	if(lt_flag)
+//	{
+////	  printf("touch: l=%d cl=%d fl=%d fr=%d cr=%d r=%d\r\n", \
+////			robot_is_lighttouch(LT_LEFT),robot_is_lighttouch(LT_CENTERLEFT),robot_is_lighttouch(LT_FRONTLEFT),\
+////	  		robot_is_lighttouch(LT_FRONTRIGHT),robot_is_lighttouch(LT_CENTERRIGHT),robot_is_lighttouch(LT_RIGHT));	  
+//      gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
+//      gpio_set_value(AM_I0_CLEAN_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,0);		
+//	}	
+//	else
+//	{
+//	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
+//      gpio_set_value(AM_I0_DOCK_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,0);		
+//	}  
 	 break; 
     case CMD_TEST_ALL_CLIFF://µØ¼ì
-      ir_send_on_off(3);
-	  touch_near_flag =1;
-	set_cliff_enable(0);//¿ª
-	set_lighttouch_enable(1);//¹Ø
-	print_cliff();
-	
-// 	if(!robot_is_cliff_test(CLIFF_LEFT)&&!robot_is_cliff_test(CLIFF_FRONTLEFT)&&!robot_is_cliff_test(CLIFF_FRONTRIGHT)&&!robot_is_cliff_test(CLIFF_RIGHT))	
+      print_cliff();
+//      ir_send_on_off(3);
+//	  touch_near_flag =1;
+//	set_cliff_enable(0);//¿ª
+//	set_lighttouch_enable(1);//¹Ø
+//	print_cliff();
+//	
+//// 	if(!robot_is_cliff_test(CLIFF_LEFT)&&!robot_is_cliff_test(CLIFF_FRONTLEFT)&&!robot_is_cliff_test(CLIFF_FRONTRIGHT)&&!robot_is_cliff_test(CLIFF_RIGHT))	
+////	{
+////      gpio_set_value(AM_I0_DOCK_LED,1);
+////      gpio_set_value(AM_I0_CLEAN_LED,0);
+////      gpio_set_value(AM_I0_SPOT_LED,1);		  
+////	  break;
+////	}
+//    if(!robot_is_cliff_test(CLIFF_LEFT)||!robot_is_cliff_test(CLIFF_FRONTLEFT)||!robot_is_cliff_test(CLIFF_FRONTRIGHT)||!robot_is_cliff_test(CLIFF_RIGHT))	
 //	{
-//      gpio_set_value(AM_I0_DOCK_LED,1);
+////	  printf("cliff: cl=%d fl=%d fr=%d cr=%d \r\n",\
+////		robot_is_cliff_test(CLIFF_LEFT),robot_is_cliff_test(CLIFF_FRONTLEFT),robot_is_cliff_test(CLIFF_FRONTRIGHT),robot_is_cliff_test(CLIFF_RIGHT)); 	
 //      gpio_set_value(AM_I0_CLEAN_LED,0);
-//      gpio_set_value(AM_I0_SPOT_LED,1);		  
-//	  break;
+//	  if(cliff_led_flag ==1)//cliff¶¼´óÓÚ2500
+//	  {
+//	  	gpio_set_value(AM_I0_SPOT_LED,1);//ºìµÆ
+//		gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
+//	  }	  
+//	  else if(cliff_led_flag ==2)//Ò»¸öcliff>2500
+//	  {
+//	  	gpio_set_value(AM_I0_SPOT_LED,1);//ºìµÆ
+//		gpio_set_value(AM_I0_DOCK_LED,0);//À¶µÆ
+//	  }
+//	  else if(cliff_led_flag ==0)
+//	  {
+//		gpio_set_value(AM_I0_SPOT_LED,0);//ºìµÆ
+//      	gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ	  	  
+//	  }
+//      		
+//	}	
+//	else
+//	{
+//	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
+//      gpio_set_value(AM_I0_DOCK_LED,0);
+//      gpio_set_value(AM_I0_SPOT_LED,0);		
 //	}
-    if(!robot_is_cliff_test(CLIFF_LEFT)||!robot_is_cliff_test(CLIFF_FRONTLEFT)||!robot_is_cliff_test(CLIFF_FRONTRIGHT)||!robot_is_cliff_test(CLIFF_RIGHT))	
-	{
-//	  printf("cliff: cl=%d fl=%d fr=%d cr=%d \r\n",\
-//		robot_is_cliff_test(CLIFF_LEFT),robot_is_cliff_test(CLIFF_FRONTLEFT),robot_is_cliff_test(CLIFF_FRONTRIGHT),robot_is_cliff_test(CLIFF_RIGHT)); 	
-      gpio_set_value(AM_I0_CLEAN_LED,0);
-	  if(cliff_led_flag ==1)//cliff¶¼´óÓÚ2500
-	  {
-	  	gpio_set_value(AM_I0_SPOT_LED,1);//ºìµÆ
-		gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ
-	  }	  
-	  else if(cliff_led_flag ==2)//Ò»¸öcliff>2500
-	  {
-	  	gpio_set_value(AM_I0_SPOT_LED,1);//ºìµÆ
-		gpio_set_value(AM_I0_DOCK_LED,0);//À¶µÆ
-	  }
-	  else if(cliff_led_flag ==0)
-	  {
-		gpio_set_value(AM_I0_SPOT_LED,0);//ºìµÆ
-      	gpio_set_value(AM_I0_DOCK_LED,1);//À¶µÆ	  	  
-	  }
-      		
-	}	
-	else
-	{
-	  gpio_set_value(AM_I0_CLEAN_LED,1);//ÂÌµÆ	  
-      gpio_set_value(AM_I0_DOCK_LED,0);
-      gpio_set_value(AM_I0_SPOT_LED,0);		
-	}
 	 break;	
 	 
     default:

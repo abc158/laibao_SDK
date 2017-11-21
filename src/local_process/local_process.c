@@ -154,20 +154,22 @@ extern U8 SPI_RW(U8 value)   ;
 extern U8 Get_Chip_ID(void);
 extern void Send_Packet(U8 type,U8* pbuf,U8 len);
 static bool wifi_open=true;
+extern void print_cliff(void);
 void main_app_task(void *arg)
 {
   UI_STATE_E s;
+  uint8_t WIFI_STATUS;
   uint32_t wifi_start_time;
   wifi_start_time= timer_ms();
   while(1)
   {  
-    if((wifi_open==true)&&(timer_elapsed(wifi_start_time)>=1000))
+    //延时太短wifi容易进入失败
+    if((wifi_open==true)&&(timer_elapsed(wifi_start_time)>=200))
    {
         wifi_open=false;
-        InsertExtCmd(RestoreFactorySet); //进入wifi配网模式
+        WIFI_STATUS=InsertExtCmd(RestoreFactorySet); //进入wifi配网模式
         set_reset_wifi_flag(1);
    }
-
     
     {
       key_routine();

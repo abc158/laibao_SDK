@@ -2508,7 +2508,7 @@ DOCK_FN_DECL(docking_line_bounce)
 
 	return ;
 }
-
+extern int bump_state;
 BOOLEAN docking_line_bounce_start_when(void)
 {
 	BumpState bumped_state = get_bump_state();
@@ -2520,6 +2520,7 @@ BOOLEAN docking_line_bounce_start_when(void)
 
 	if (((bumped_state !=0) || (cliffed_state != 0)) )
 	{
+    printf("bump %d bumped_state %d cliffed_state %d \r\n ",bump_state,bumped_state,cliffed_state);
 		//angle = get_random();
                  srand(timer_ms());
                  angle = rand()%180;
@@ -2589,6 +2590,94 @@ void docking_line_bounce_register(void)
 }
 /******************************* DOCK LINE BOUNCE END *****************************/
 
+/********************************* DOCK FORCE FIELD *******************************/
+/**
+ * dock only field - 只收到后面发射头信号时，搜索有用信号
+ * NOTE:此行为原地转一圈，以搜索是否存在有用的信号
+ * 触发条件: 只收到后面发射头信号时触发
+ * 退出条件: 无
+ */
+
+static BOOLEAN docking_only_force_field_abort = FALSE;
+static S16 docking_only_force_field_angle = 360;
+void set_docking_only_force_field_abort(void)
+{
+	docking_only_force_field_abort = TRUE;
+	return;
+}
+
+BOOLEAN docking_only_force_field_abort_when(void)
+{
+	if(docking_only_force_field_abort != FALSE)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+void docking_only_force_field_abort_code(void)
+{
+	docking_only_force_field_abort = FALSE;
+	return;
+}
+
+DOCK_FN_DECL(docking_only_force_field)
+{
+	S8 result = 0;
+
+	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_only_force_field\r\n");
+	if(docking_only_force_field_angle>0)
+	{
+		AM_GO_TO_PLACE(docking_only_force_field_angle,DOCKING_TRUN_SLOWEST_SPEED,DOCKING_TRUN_SLOWEST_SPEED,
+			   (!(recently_left_ir_strong_right.current_state||recently_left_ir_strong_left.current_state||recently_left_ir_strong_mid.current_state)),\
+					0,result);
+	}
+	else
+	{
+		AM_GO_TO_PLACE(docking_only_force_field_angle,DOCKING_TRUN_SLOWEST_SPEED,DOCKING_TRUN_SLOWEST_SPEED,
+			    (!(recently_right_ir_strong_right.current_state||recently_right_ir_strong_left.current_state||recently_right_ir_strong_mid.current_state)),\
+					0,result);
+	}
+	DRIVE_GO(100,FORWARD_SLOW_SPEED,TRUE,0,result);
+
+	set_docking_only_force_field_abort();
+
+	return ;
+}
+
+BOOLEAN docking_only_force_field_start_when(void)
+{
+	if (backleft_ir_strong_right()||backleft_ir_strong_left()||backleft_ir_strong_mid())
+	{
+		docking_only_force_field_angle = 360;
+		return TRUE;
+	}
+	else if(backright_ir_strong_right()||backright_ir_strong_left()||backright_ir_strong_mid())
+	{
+		docking_only_force_field_angle = -360;
+		return TRUE;
+	}
+	else
+		return FALSE;
+}
+
+void docking_only_force_field_register(void)
+{
+	Dock_Data dock_funtion;
+
+	dock_funtion.priorty = DOCKING_ONLY_FORCE_FIELD;
+	dock_funtion.start_when = &docking_only_force_field_start_when;
+	dock_funtion.run_when = NULL;
+	dock_funtion.abort_when = &docking_only_force_field_abort_when;
+	dock_funtion.abort_code = &docking_only_force_field_abort_code;
+	dock_funtion.last_start_state = FALSE;
+	dock_funtion.current_function = docking_only_force_field;
+
+	register_dock_function(&dock_funtion);
+
+	return;
+}
+/******************************* DOCK FORCE FIELD END *****************************/
+
 /************************************ DOCK RIGHT **********************************/
 /**
  * dock right - 右摆行为
@@ -2602,6 +2691,8 @@ DOCK_FN_DECL(docking_right)
 	TransVel  right_vel;
 	BOOLEAN already_mid = FALSE;
 
+  set_lighttouch_enable(1);
+  turn_off_touch_bump();
 	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_right\r\n");
 
 	/*if (recently_docking_go_forward.current_state)
@@ -2676,6 +2767,8 @@ DOCK_FN_DECL(docking_left)
 
 	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_left\r\n");
 
+  	set_lighttouch_enable(1);
+  turn_off_touch_bump();
 	/*if (recently_docking_go_forward.current_state)
 	{
 		already_mid = TRUE;
@@ -2746,6 +2839,8 @@ DOCK_FN_DECL(docking_go_forward)
 	TransVel  left_vel;
 	TransVel  right_vel;
 
+  	set_lighttouch_enable(1);
+  turn_off_touch_bump();
 	dprintf(DEBUG_DOCK_BEHAVIOR, "docking_go_forward\r\n");
 	if (recently_mid_ir_weak_mid.current_state)
 	{
@@ -2934,6 +3029,7 @@ void dock_correct_register(void)
 
 /************************************ FINE MIDDLE***********************************/
 static BOOLEAN findmiddle_abort_flag=FALSE;
+static S16 MID_turn=0;
 void set_findmiddle_abort(void)
 {
       findmiddle_abort_flag=TRUE;
@@ -2943,22 +3039,46 @@ void set_findmiddle_abort(void)
 DOCK_FN_DECL(fine_middle)
 {
       S8 result = 0;
-      AM_GO_TO_PLACE(180,DOCKING_TRUN_SLOWEST_SPEED,\
-      DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
-      
-      
+//      if(recently_left_ir_strong_right.current_state||recently_backleft_ir_strong_right.current_state)
+//              {
+//    AM_GO_TO_PLACE(180,DOCKING_TRUN_SLOWEST_SPEED,\
+//    DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+//              }
+//      else if(recently_right_ir_strong_left.current_state||recently_backright_ir_strong_left.current_state)
+//              {
+//                       AM_GO_TO_PLACE(-180,DOCKING_TRUN_SLOWEST_SPEED,\
+//    DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+//              }
+
+ AM_GO_TO_PLACE(MID_turn,DOCKING_TRUN_SLOWEST_SPEED,\
+ DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
       set_findmiddle_abort();
 	return;
 }
 
 BOOLEAN find_middle_start_when(void)
 {
-          if(recently_left_ir_strong_right.current_state&&\
-            recently_left_ir_strong_mid.current_state&&recently_left_ir_strong_left.current_state)      
+       if(recently_left_ir_strong_right.current_state)      
           {
+          MID_turn=180;
             return  TRUE;
           }
-           else 
+	    else if(recently_right_ir_strong_left.current_state)      
+          {
+          MID_turn=-180;
+            return  TRUE;
+          }
+			 else if(recently_backleft_ir_strong_right.current_state||recently_backleft_ir_strong_mid.current_state)      
+          {
+          MID_turn=180;
+            return  TRUE;
+          }
+	    else if(recently_backright_ir_strong_left.current_state||recently_backright_ir_strong_mid.current_state)      
+          {
+          MID_turn=-180;
+            return  TRUE;
+          }
+      else 
           return FALSE;
 }
 
@@ -3029,11 +3149,9 @@ DOCK_FN_DECL(docking_line)
 			//angle = get_random();
                        srand(timer_ms());
                        angle = rand()%180;
-////
-////			AM_GO_TO_PLACE(20,DOCKING_TRUN_SLOWEST_SPEED,\
-////		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
-////                        AM_GO_TO_PLACE(-20,DOCKING_TRUN_SLOWEST_SPEED,\
-////		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+			    AM_GO_TO_PLACE(angle,DOCKING_TRUN_SLOWEST_SPEED,\
+		    	DOCKING_TRUN_SLOWEST_SPEED,TRUE,CARE_CLIFF,result);
+
 		}
 	}
 	while (1);
@@ -3095,10 +3213,13 @@ dock_config_t* dock_new_init(void)
         dock_success_register();
         fine_middle_register();
         docking_line_register();
+				docking_line_bounce_register();
         dock_right_register();
-	dock_left_register();
-	docking_go_forward_register();
-	dock_correct_register();
+	      dock_left_register();
+	      docking_go_forward_register();
+      	dock_correct_register();
+        docking_only_force_field_register();
+				//docking_force_field_register();
         
         
         register_debouncer(&recently_mid_ir_strong_mid);
@@ -3107,62 +3228,37 @@ dock_config_t* dock_new_init(void)
         register_debouncer(&recently_mid_ir_weak_left   );
         register_debouncer(&recently_mid_ir_strong_right);
         register_debouncer(&recently_mid_ir_weak_right  );
-        register_debouncer(&recently_left_ir_weak_right   );
-        register_debouncer(&recently_left_ir_weak_mid     );
-        register_debouncer(&recently_left_ir_weak_left    );
+				register_debouncer(&recently_mid_ir_weak_backright);
+        register_debouncer(&recently_mid_ir_weak_backleft  );
+			  register_debouncer(&recently_mid_ir_strong_backleft);
+        register_debouncer(&recently_mid_ir_strong_backright);
+       // register_debouncer(&recently_left_ir_weak_right   );
+      //  register_debouncer(&recently_left_ir_weak_mid     );
+      //  register_debouncer(&recently_left_ir_weak_left    );
         register_debouncer(&recently_left_ir_weak_backleft);
-        register_debouncer(&recently_left_ir_strong_backleft);
+       // register_debouncer(&recently_left_ir_strong_backleft);
         register_debouncer(&recently_left_ir_strong_left    );
         register_debouncer(&recently_left_ir_strong_mid     );
         register_debouncer(&recently_left_ir_strong_right   );
- #if 0
-	dock_success_register();
-	docking_bounce_register();
-	//docking_ahead_register();
-	//docking_left_right_register();
-	docking_force_field_register();
-	docking_find_buoy_register();
-	//docking_only_force_field_register();
-	dock_right_register();
-	dock_left_register();
-	docking_go_forward_register();
-	dock_correct_register();
-	docking_avoid_obstacle_register(); 
-	docking_line_bounce_register();
-	docking_line_register();
-
-        fine_middle_register();
-
-        
-	register_debouncer(&recently_signal);
-	register_debouncer(&recently_near_dock);
-	register_debouncer(&recently_near_dock_1);
-	register_debouncer(&recently_docking_left);
-	register_debouncer(&recently_docking_right);
-	register_debouncer(&recently_left_left);
-	register_debouncer(&recently_right_right);
-	register_debouncer(&recently_left_backleft);
-	register_debouncer(&recently_right_backright);
-	register_debouncer(&recently_right_backleft);
-	register_debouncer(&recently_left_backright);
-	register_debouncer(&recently_docking_go_forward_right);
-	register_debouncer(&recently_docking_go_forward_left);
-	register_debouncer(&recently_docking_go_forward_onlyright);
-	register_debouncer(&recently_docking_go_forward_onlyleft);
-	register_debouncer(&recently_docking_go_forward);
-	register_debouncer(&recently_force_field);
-	register_debouncer(&recently_no_force_field);
-	register_debouncer(&recently_center_left_focus);
-	register_debouncer(&recently_center_right_focus);
-	register_debouncer(&recently_follow_left_force_field);
-	register_debouncer(&recently_follow_right_force_field);
-	register_debouncer(&recently_left_near_dock);
-	register_debouncer(&recently_right_near_dock);
-	register_debouncer(&recently_left_right);
-	register_debouncer(&recently_right_left);
-	register_debouncer(&recently_force_field_middle);
-	register_debouncer(&recently_bump);       
-#endif
+       // register_debouncer(&recently_right_ir_weak_right   );
+       // register_debouncer(&recently_right_ir_weak_mid     );
+       // register_debouncer(&recently_right_ir_weak_left    );
+       // register_debouncer(&recently_right_ir_weak_backleft);
+				register_debouncer(&recently_right_ir_weak_backright);
+       // register_debouncer(&recently_right_ir_strong_backleft);
+        register_debouncer(&recently_right_ir_strong_left    );
+        register_debouncer(&recently_right_ir_strong_mid     );
+        register_debouncer(&recently_right_ir_strong_right   );
+     //   register_debouncer(&recently_backright_ir_strong_backleft);
+        register_debouncer(&recently_backright_ir_strong_left    );
+        register_debouncer(&recently_backright_ir_strong_mid     );
+        register_debouncer(&recently_backright_ir_strong_right   );
+      //  register_debouncer(&recently_backleft_ir_strong_backleft);
+       // register_debouncer(&recently_backleft_ir_strong_left    );
+        register_debouncer(&recently_backleft_ir_strong_mid     );
+        register_debouncer(&recently_backleft_ir_strong_right   );
+				register_debouncer(&recently_right_ir_strong_backright);
+ 
 	register_dock_signals(&robot_get_dock_signals);
 	register_random_conut(&dock_get_random_count);
 
@@ -3200,15 +3296,20 @@ dock_config_t* dock_new_init(void)
 extern void ir_send_on_off(U8 state);
 void dock_new_start(void)
 {
-//	set_lighttouch_enable(0);
-//	turn_on_touch_bump();
-        set_lighttouch_enable(1);
-        turn_off_touch_bump();
-        
-        ir_send_on_off(0);
+	set_lighttouch_enable(0);
+	turn_on_touch_bump();
+//  set_lighttouch_enable(1);
+//  turn_off_touch_bump();
+	
+  ir_send_on_off(3);
+	decode_near=false;
 	docking_parameter_init();
-
 	dock_core_enable();
+	while(voiceplayer_is_playing());
+	U32 time=timer_ms();
+	while(timer_elapsed(time)<10);
+	while(voiceplayer_is_playing());
+  ir_send_on_off(0);
 	return;
 }
 
@@ -3223,7 +3324,10 @@ BOOLEAN dock_new_end(U8 *uTerm)
 		*uTerm = DOCKING_SUCESS;
 	else if (docking_state.random_behavior_count >= DOCKINT_RANDOM_THRESHOLD)
 		*uTerm = DOCKING_FAIL;
-
+  
+	set_lighttouch_enable(0);
+	turn_on_touch_bump();
+  
 	dock_core_disable();
 	clear_debouncer();
 
@@ -3234,6 +3338,10 @@ void set_dock_new_end(void)
 {
 	if (dock_is_enable())
 	{
+    
+    set_lighttouch_enable(0);
+	  turn_on_touch_bump();
+  
 		docking_state.dock_finished = TRUE;
 		dock_core_disable();
 	}

@@ -42,7 +42,7 @@ void robot_docking_kidnap_monitor(BatteryStatus *battery_status)
     static uint8_t debounce_ing = 0;
 
     static DockingKidnap cur_status;
-
+	//ROBOT_STATE_DEAD  ROBOT_STATE_WAITING之间的某一个状态并且不在座子上
     if( (IS_RUNNING_MODE(sys_runing_mode_get())) && (sys_runing_mode_get()!=ROBOT_STATE_DOCK) )
     {
       debounce_ing = 0;
@@ -51,7 +51,7 @@ void robot_docking_kidnap_monitor(BatteryStatus *battery_status)
       cur_status=DOCK_NONE;
       return;
     }
-    
+    //不是充电状态
     if(battery_status->charging_state == 0)
     {
         debounce_ing = 0;
@@ -62,6 +62,7 @@ void robot_docking_kidnap_monitor(BatteryStatus *battery_status)
           cur_status = DOCK_NONE;
         }
     }
+	//充电状态
     else
     {
         debounce_none = 0;
@@ -72,7 +73,7 @@ void robot_docking_kidnap_monitor(BatteryStatus *battery_status)
           cur_status = DOCK_ING;
         }
     }
-
+    //上一个状态是座子上当前状态时不再座子上
     if( (prev_status == DOCK_ING) && (cur_status == DOCK_NONE) && \
         ((sys_runing_mode_get() == ROBOT_STATE_WAITING)|| (sys_runing_mode_get() == ROBOT_STATE_SLEEP)) )
     {

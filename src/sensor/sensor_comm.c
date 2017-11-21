@@ -7,8 +7,6 @@
 #include "syscall_api.h"
 
 static u8 g_sensor_start_gather;
-extern volatile u16 time_4khz_counter_touch;
-u8 cliff_touch_turn_switch =0;
 
 u16 mid_filter(s16* data_array, u16 new_data)
 {
@@ -62,10 +60,6 @@ u16 mid_filter(s16* data_array, u16 new_data)
 void robot_sensor_gather_start(u8 en)
 {
   g_sensor_start_gather = en;
-  if(en == 1)
-  {
-     set_lighttouch_enable(0);
-  }
 }
 
 /****************************************************************
@@ -86,29 +80,12 @@ void robot_sensor_gather_start(u8 en)
 long robot_sensor_handler(void)
 {
   static u8 led_close = 0;
-  static u8 lt_cnt = 0;
   if(g_sensor_start_gather)
   {
     led_close = 0;
-	if(cliff_touch_turn_switch)
-	{
-		sensor_gather_cliff();
-		sensor_handle_cliff();	
-		hal_isr();
-		cliff_touch_turn_switch =0;
-	}
-	else
-	{
-		lt_cnt++;
-		if (lt_cnt >= 1)
-		{
-		  lt_cnt = 0;
-		  sensor_gather_touch();
-		  sensor_handle_touch();
-		  time_4khz_counter_touch = (time_4khz_counter_touch + 1) & 0xff;
-		  cliff_touch_turn_switch =1;
-		} 		
-	}
+    sensor_gather();
+    sensor_handle();
+    hal_isr();
   }
   else
   {
@@ -117,15 +94,10 @@ long robot_sensor_handler(void)
       led_close = 1;
       robot_sensor_init();
       robot_close_sensor_led();
-    #ifdef USE_LT_AUTO_ADJUST
-      if (is_lt_offset_adjust_enable()) {
-          reset_lt_auto_offset();
-      }
-    #endif
+
     }
-    lt_cnt = 0;
-    time_4khz_counter_touch = 0;
   }
+	
   return (1);
 }
 
@@ -148,10 +120,5 @@ long robot_sensor_handler(void)
 void robot_ir_detection_init(void)
 {
   robot_sensor_init();
-  #ifdef USE_LT_AUTO_ADJUST
-    //reset_ht_auto_offset();    
-    printf("restore_lt_signal_offset!!!!\r\n");
-    restore_lt_signal_offset();
-  #endif
   sys_timer_register(HZ_4K,(long)robot_sensor_handler,0);
 }

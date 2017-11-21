@@ -344,41 +344,41 @@ u8 ext_act_handle(U32 key)
 	}
      
 	//校准处理
-	if(adjust_handle == 1)
-	{	  	
-		if(adjust_one_second == 0)
-		{ 
-		    printf("start adjust ir!!!!!\r\n");
-		  	adjust_one_second = get_total_seconds();
-			if(get_restore_lt_signal_offset_state())
-			{
-				//songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
-			}
-			else 
-			{
-				robot_sensor_gather_start(1);
-				enable_lt_offset_adjust(1);
-				//songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
-			}				
-		}
-		else if(get_total_seconds()>(adjust_one_second+2))
-		{
-			if(get_restore_lt_signal_offset_state())
-			{
-				reset_lt_signal_offset();
-				songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
-				
-			}
-			else
-			{
-				save_lt_signal_offset();              
-				robot_sensor_gather_start(0);
-				songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
-			}
-			adjust_handle =0;
-			adjust_one_second =0;			
-		}
-	}
+//	if(adjust_handle == 1)   //开机要一直按住
+//	{	  	
+//		if(adjust_one_second == 0)  //开始首先进入校准
+//		{ 
+//		    printf("start adjust ir!!!!!\r\n");
+//		  	adjust_one_second = get_total_seconds();
+//			if(get_restore_lt_signal_offset_state())//数据保存并校验成功就不再打开采集
+//			{
+//				//songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
+//			}
+//			else //打开采集数据
+//			{
+//				robot_sensor_gather_start(1);
+//				enable_lt_offset_adjust(1);  //打开自动校准
+//				//songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+//			}				
+//		}
+//		else if(get_total_seconds()>(adjust_one_second+2))  //开始校准超过2秒后打开采集
+//		{
+//			if(get_restore_lt_signal_offset_state()) //数据校验成功
+//			{
+//				reset_lt_signal_offset();  //保存数据并表示数据已经使用过了
+//				songplayer_play_id(SONG_ID_BUTTON_CANCEL, 0);
+//				
+//			}
+//			else
+//			{
+//				save_lt_signal_offset();              
+//				robot_sensor_gather_start(0);
+//				songplayer_play_id(SONG_ID_BUTTON_CLICK, 0);
+//			}
+//			adjust_handle =0;
+//			adjust_one_second =0;			
+//		}
+//	}
 	
 	//sleep处理
 	if (sleep_handle(key) == 1)

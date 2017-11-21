@@ -61,5 +61,7 @@ extern uint8_t is_lt_offset_adjust_enable(void);
 extern uint8_t get_restore_lt_signal_offset_state(void);
 extern void reset_lt_signal_offset(void);
 extern void save_lt_signal_offset(void);
+extern void sensor_gather(void);
+extern void sensor_handle(void);
 #endif
 #endif

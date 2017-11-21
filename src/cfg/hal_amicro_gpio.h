@@ -34,9 +34,9 @@ typedef struct
 #define IO_CHARGER_HIGH           GPIOE(11)
 #define AM_IO_IR_REC_MIDDLE_RIGHT GPIOD(4)
 
-#define AM_IO_TOUCH_LED_FAR_EN        GPIOE(10)
+#define AM_IO_LIGHT_TOUCH_LED        GPIOE(10)
 #define AM_IO_TOUCH_LED_NEAR_EN       GPIOE(13)
-#define AM_IO_TOUCH_CLIFF_LED_FAR_EN  GPIOE(12)
+#define AM_IO_CLIFF_LED              GPIOE(12)
 
 #define AM_IO_LED_STB             GPIOE(13)
 
@@ -73,7 +73,7 @@ typedef struct
 /*下面中不使用的IO 口配置为0xff，lyy*/
 #define ROBOT_IODEF(m)                                             \
 	/* Port                          Strt    */\
-        m( AM_IO_FLASH_HOLD ,           GPIOB(11)) \
+    m( AM_IO_FLASH_HOLD ,           GPIOB(11)) \
 	m( AM_IO_MOTOR_DISABLE ,        GPIOB(13))  \
 	m( AM_IO_MOTOR_L_PWM   ,        GPIOC(5) )  \
 	m( AM_IO_LEFT_MOTOR_DIR ,       GPIOC(6) )  \

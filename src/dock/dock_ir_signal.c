@@ -11,7 +11,8 @@
 #include "am_tm_api.h"
 #include "docking-new.h"
 #include "dock_ir_signal.h"
-#define SIGNAL_INTERVAL_SEND        //强弱信号分开发 强弱信号之间间隔时间SIGNAL_INTERVAL_SEND*0.25ms  强/弱信号间隔时间SIGNAL_INTERVAL_SEND*0.25ms+data_length*4ms
+//强弱信号分开发送    强弱信号之间间隔时间SIGNAL_INTERVAL_SEND*0.25ms  强/弱信号间隔时间SIGNAL_INTERVAL_SEND*0.25ms+data_length*4ms
+#define SIGNAL_INTERVAL_SEND        
 #define data_length         16            //信号位数
 #define long_level          12           //长电平时间long_level*0.25ms
 #define short_level         4           //短电平时间short_level*0.25ms

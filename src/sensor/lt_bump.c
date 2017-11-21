@@ -80,6 +80,7 @@ void turn_on_touch_bump()
     <author>       <time>      <version>           <desc>
     lyy            17.4.28       v1.0         build this function
 ******************************************************************/
+int bump_state;
 int touch_bump_run(void)
 {
   s16 value_cl;
@@ -259,7 +260,7 @@ int touch_bump_run(void)
     }
 
   }
-
+bump_state =lt_bump;
   return lt_bump;
 }
 

@@ -9,6 +9,10 @@ extern Debouncer_Data recently_mid_ir_strong_left  ;
 extern Debouncer_Data recently_mid_ir_weak_left    ;
 extern Debouncer_Data recently_mid_ir_strong_right ;
 extern Debouncer_Data recently_mid_ir_weak_right   ;
+extern Debouncer_Data recently_mid_ir_weak_backright ;
+extern Debouncer_Data recently_mid_ir_weak_backleft   ;
+extern Debouncer_Data recently_mid_ir_strong_backleft;
+extern Debouncer_Data recently_mid_ir_strong_backright;
 extern Debouncer_Data recently_left_ir_weak_right   ;
 extern Debouncer_Data recently_left_ir_weak_mid     ;
 extern Debouncer_Data recently_left_ir_weak_left    ;
@@ -17,8 +21,41 @@ extern Debouncer_Data recently_left_ir_strong_backleft;
 extern Debouncer_Data recently_left_ir_strong_left    ;
 extern Debouncer_Data recently_left_ir_strong_mid     ;
 extern Debouncer_Data recently_left_ir_strong_right   ;
+extern Debouncer_Data recently_right_ir_weak_right   ;
+extern Debouncer_Data recently_right_ir_weak_mid     ;
+extern Debouncer_Data recently_right_ir_weak_left    ;
+extern Debouncer_Data recently_right_ir_weak_backleft;
+extern Debouncer_Data recently_right_ir_strong_backleft;
+extern Debouncer_Data recently_right_ir_strong_left    ;
+extern Debouncer_Data recently_right_ir_strong_mid     ;
+extern Debouncer_Data recently_right_ir_strong_right   ;
+extern Debouncer_Data recently_backright_ir_weak_right   ;
+extern Debouncer_Data recently_backright_ir_weak_mid     ;
+extern Debouncer_Data recently_backright_ir_weak_left    ;
+extern Debouncer_Data recently_backright_ir_weak_backleft;
+extern Debouncer_Data recently_backright_ir_strong_backleft;
+extern Debouncer_Data recently_backright_ir_strong_left    ;
+extern Debouncer_Data recently_backright_ir_strong_mid     ;
+extern Debouncer_Data recently_backright_ir_strong_right   ;
+extern Debouncer_Data recently_backleft_ir_weak_right   ;
+extern Debouncer_Data recently_backleft_ir_weak_mid     ;
+extern Debouncer_Data recently_backleft_ir_weak_left    ;
+extern Debouncer_Data recently_backleft_ir_weak_backleft;
+extern Debouncer_Data recently_backleft_ir_strong_backleft;
+extern Debouncer_Data recently_backleft_ir_strong_left    ;
+extern Debouncer_Data recently_backleft_ir_strong_mid     ;
+extern Debouncer_Data recently_backleft_ir_strong_right   ;
+extern Debouncer_Data recently_right_ir_weak_backright;
+extern Debouncer_Data recently_right_ir_strong_backright;
 
 
+
+extern BOOLEAN backleft_ir_strong_right(void)  ;
+extern BOOLEAN backleft_ir_strong_left(void)   ;
+extern BOOLEAN backleft_ir_strong_mid(void)    ;
+extern BOOLEAN backright_ir_strong_right(void) ;
+extern BOOLEAN backright_ir_strong_left(void)  ;
+extern BOOLEAN backright_ir_strong_mid(void)   ;
 
 #if 0
 extern BOOLEAN force_field(IR_local_Index chan);
