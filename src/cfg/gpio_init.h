@@ -77,7 +77,7 @@ typedef struct
 	m( GPIO_DIR_OUT ,    4 ,  12 ,  1 ,GPIO_PR_DISABLE  )/*int to ui */\
 	m( GPIO_DIR_OUT ,   4 ,  13 ,  1 ,GPIO_PR_DISABLE     )/*int to main */\
 	m( GPIO_DIR_IN  ,   4 ,  14 ,  1 ,GPIO_PR_DISABLE  )/*bump left */\
-	m( GPIO_DIR_IN  ,   4 ,  15 ,  1 ,GPIO_PR_DISABLE  )/*bump right */\
+	m( GPIO_DIR_OUT  ,   4 ,  15 ,  1 ,GPIO_PR_DISABLE  )/*bump right */\
 	/* Port 0 F  */                                          \
 	m( GPIO_DIR_OUT ,   5 ,  0 ,   1 ,GPIO_PR_DISABLE     )/*audio en */\
 	m( GPIO_DIR_OUT ,    5 ,  1 ,   1 ,GPIO_PR_DISABLE  )/*ir remote / ir a /ir b*/   \
